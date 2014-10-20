@@ -1,0 +1,9 @@
+CMakeFile*
+Databas*
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.test
+elabTest
+poseEst
+createDB
