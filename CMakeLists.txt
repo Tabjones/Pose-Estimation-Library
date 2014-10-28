@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
-set(FIND_DIR "/home/kuko/code/pcl-trunk/cmake/Modules") 
+#set(FIND_DIR "../cmake/") 
 
-list(APPEND CMAKE_MODULE_PATH ${FIND_DIR}) 
+#list(APPEND CMAKE_MODULE_PATH ${FIND_DIR}) 
 
-project(PoseEstimator)
+project(PoseEstimation)
 
 find_package(PCL 1.8.0 REQUIRED)
 
@@ -12,9 +12,6 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 add_definitions(-std=c++11)
-
-add_executable(elabTest elab_test.cpp)
-target_link_libraries (elabTest ${Boost_LIBRARIES})
 
 find_package(HDF5)
 if (HDF5_FOUND)
