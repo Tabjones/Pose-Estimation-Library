@@ -180,15 +180,18 @@ PoseEstimation::PoseEstimation ()
   params_["mlsSearchRadius"]=0.03f;
   params_["filterMeanK"]=50;
   params_["filterStdDevMulThresh"]=3;
+  params_["neRadiusSearch"]=0.015;
+  params_["useSOasViewpoint"]=1;
+  params_["computeViewpointFromName"]=0;
 }
 void PoseEstimation::setParam(string& param, bool value)
 {
   //USE <unordered_map> !! 
 }
 
-void PoseEstimation::initParams(string cfile)
+void PoseEstimation::initParams(path config_file)
 { //rewrite with maps !!
-  ifstream file (cfile.c_str());
+  ifstream file (config_file.string().c_str());
   string line;
   if (file.is_open())
   {

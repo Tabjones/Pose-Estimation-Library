@@ -119,41 +119,32 @@ class Candidate: public Object {
  * 5) Print, Get or Save the final pose estimation with the corresponding member functions
  */
 class PoseEstimation {
-  
+  //Map to store all parameters as key=value pairs
   unordered_map<string,float> params_;
-  bool use_VFH_, use_ESF_, use_CVFH_, use_OURCVFH_;
+  //Object that represent the query to estimate
   Object query_;
+  //List of candidates to the query
   vector<Candidate> VFH_list_, ESF_list_, CVFH_list_, OURCVFH_list_, composite_list_;
-  int k_, howmany_features_, max_itera_;
-  bool upsampling_, downsampling_, filter_, progressive_;
-  float rmse_threshold_;
-
-  //progressive bisection parameters  (relevant if progressive_=true)
-  int progressive_itera_;
-  float progressive_fraction_;
-
-  //statistical outliers filter parameters (relevant if filter_=true)
-  int filter_meanK_;
-  float filter_stdDevMulThresh;
+  //Viewpoint coordinates, used in computations like VFH and Normal estimation
+  float vpx_, vpy_, vpz_;
+  //counter that tracks how many features where used in matching
+  int how_many_features_;
   
-  //voxelgrid downsampling parameters (relevant if downsampling_=true)
-  float vgrid_leafSize_;
-
-  //MLS upsampling parameters (relevant if upsampling_=true)
-  int mls_polyOrder_, mls_pointDensity_;
-  float mls_searchRadius_;
-  bool mls_polyFit_;
+  //Set a parameter of the Class from a string representing its value,
+  //used when reading from a file
+  void setParam_ (string&, string&);
 
   public:
   //Default Empty Constructor with default parameters
   PoseEstimation(); 
-  //Constructor with path to a config_file, config_file must have extension .conf
+  //Constructor with path to a configuration file containing parameters to set, 
+  //configuration file must have extension .conf and follow certain naming convections, 
+  //look at example .conf file provided for more details
   PoseEstimation(boost::filesystem::path);
-  //Set a parameter of the Class
+  //Set a parameter of the Class directly, knowing its name
   void setParam (string&, float);
-  void setParam (string&, string&);
   //Initialize the class with parameters found in config file (path provided as argument)
-  void initParams (string);
+  void initParams (boost::filesystem::path);
   //Set the poseEstimation query to be Object q
   void setQuery (Object); 
   //Set the poseEstimation query to be an object of point cloud and name passed
