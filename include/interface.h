@@ -28,11 +28,12 @@
 //#include <pcl/segmentation/conditional_euclidean_clustering.h>
 //#include <flann/flann.h>
 //#include <flann/io/hdf5.h>
-//#include <boost/filesystem.hpp>
+#include <boost/filesystem.hpp>
 //#include <boost/algorithm/string/split.hpp>
 //#include <boost/algorithm/string/trim.hpp>
 //#include <algorithm>
 #include <string>
+#include <unordered_map>
 //#include <fstream>
 //#include <cmath>
 //#include <pcl/common/centroid.h>
@@ -48,68 +49,70 @@ using namespace std;
 class Object {
   
   protected:
-    string name;
-    PointCloud<PointXYZRGBA>::Ptr cloud;
+    string name_;
+    PointCloud<PointXYZRGBA>::Ptr cloud_;
   
   public:
-    //Default Constructor
+    //Default empty Constructor
     Object ();
     //Constructor with name and cloud
-    Object (string& str, PointCloud<PointXYZRGBA>& cl); 
+    Object (string& , PointCloud<PointXYZRGBA>& ); 
     //Constructor with name and cloud pointer
-    Object (string& str, PointCloud<PointXYZRGBA>::Ptr clp); 
-    //Set name of Object to str
-    void setName (string& str);
-    //Copy cl cloud into cloud pointer of Object
-    void setCloud (PointCloud<PointXYZRGBA>& cl);
-    //Copy what is pointed by clp into cloud pointer of Object
-    void setCloud (PointCloud<PointXYZRGBA>::Ptr clp);
-    //Get Object name into str
-    void getName (string& str);
-    //Copy Object cloud into cl
+    Object (string& , PointCloud<PointXYZRGBA>::Ptr ); 
+    //Set name of Object
+    void setName (string& );
+    //make a shared pointer of passed cloud and save it into cloud_ member of class
+    void setCloud (PointCloud<PointXYZRGBA>& );
+    //let class cloud_ member point at what is pointed by passed argument 
+    void setCloud (PointCloud<PointXYZRGBA>::Ptr);
+    //Get Object name
+    void getName (string& );
+    //Copy what is pointed by class cloud_ member into passed cloud (no checks)
     void getCloud (PointCloud<PointXYZRGBA>& cl);
-    //Copy Object cloud into what is pointed by clp
-    void getCloud (PointCloud<PointXYZRGBA>::Ptr clp);
+    //Let passed pointer point at what is pointed by class cloud_ (passed pointer must not be initialized with new)
+    void getCloud (PointCloud<PointXYZRGBA>::Ptr);
+    //Overloaded assignment operator
+    Object& operator= (const Object&);
 };
 
 /* Class Candidate describes a single candidate object to the query */
 class Candidate: public Object {
   
   protected:
-    float rank;
-    float distance;
-    float rmse;
-    Eigen::Matrix4f transformation;
+    float rank_;
+    float distance_;
+    float rmse_;
+    Eigen::Matrix4f transformation_;
 
   public:
-    //Default Constructor
+    //Default empty Constructor
     Candidate ();
     //Constructor with name and cloud
-    Candidate (string& str, PointCloud<PointXYZRGBA>& cl);
+    Candidate (string& , PointCloud<PointXYZRGBA>& );
     //Constructor with name and cloud pointer
-    Candidate (string& str, PointCloud<PointXYZRGBA>::Ptr clp);
-    //Set Rank of Candidate to r
-    void setRank (float r);
-    //Get Candidate Rank into r
-    void getRank (float& r);
-    //Set Distance of Candidate from Query to d
-    void setDistance (float d);
-    //Get Distance of Candidate from Query into d
-    void getDistance (float& d);
-    //Set RMSE of Candidate to be r
-    void setRMSE (float r);
-    //Get Candidate RMSE into r
-    void getRMSE (float& r);
-    //Get Transformation that brings the Candidate over the Query into Eigen Matrix t
-    void getTransformation (Eigen::Matrix4f& t);
-    //Set Candidate Transformation to be t
-    void setTransformation (Eigen::Matrix4f& t);
+    Candidate (string& , PointCloud<PointXYZRGBA>::Ptr );
+    //Set Rank of Candidate
+    void setRank (float);
+    //Get Candidate Rank
+    void getRank (float&);
+    //Set Distance of Candidate from Query
+    void setDistance (float);
+    //Get Distance of Candidate from Query
+    void getDistance (float&);
+    //Set RMSE of Candidate
+    void setRMSE (float);
+    //Get Candidate RMSE 
+    void getRMSE (float&);
+    //Get Transformation that brings the Candidate over the Query into Eigen Matrix
+    void getTransformation (Eigen::Matrix4f&);
+    //Set Candidate Transformation 
+    void setTransformation (Eigen::Matrix4f);
 };
 
 /*
- * Class PoseEstimation describes the procedure to achieve pose estimation of a given query object.
+ * Class PoseEstimation implements the procedure to achieve pose estimation of a given query object.
  * The ideal procedure can be summarized as follows:
- * 1) Initialize the class parameters either with the default constructor or by calling member initParams()
+ * 1) Initialize the class parameters either with the constructors or with initParams()
  * 2) Set the query object to be identified with member setQuery()
  * 3) Generate the list(s) of candidates to the query with member generateLists()
  * 4) Obtain the final candidate with member refineCandidates()
@@ -117,19 +120,45 @@ class Candidate: public Object {
  */
 class PoseEstimation {
   
-  bool use_VFH, use_ESF, use_CVFH, use_OURCVFH;
-  Object query;
-  vector<Candidate> VFH_list, ESF_list, CVFH_list, OURCVFH_list, composite_list;
-  int k, howmany;
-  bool upsampling, downsampling, filter, progressive;
+  unordered_map<string,float> params_;
+  bool use_VFH_, use_ESF_, use_CVFH_, use_OURCVFH_;
+  Object query_;
+  vector<Candidate> VFH_list_, ESF_list_, CVFH_list_, OURCVFH_list_, composite_list_;
+  int k_, howmany_features_, max_itera_;
+  bool upsampling_, downsampling_, filter_, progressive_;
+  float rmse_threshold_;
+
+  //progressive bisection parameters  (relevant if progressive_=true)
+  int progressive_itera_;
+  float progressive_fraction_;
+
+  //statistical outliers filter parameters (relevant if filter_=true)
+  int filter_meanK_;
+  float filter_stdDevMulThresh;
+  
+  //voxelgrid downsampling parameters (relevant if downsampling_=true)
+  float vgrid_leafSize_;
+
+  //MLS upsampling parameters (relevant if upsampling_=true)
+  int mls_polyOrder_, mls_pointDensity_;
+  float mls_searchRadius_;
+  bool mls_polyFit_;
 
   public:
+  //Default Empty Constructor with default parameters
   PoseEstimation(); 
-  void setQuery (Object& q); 
+  //Constructor with path to a config_file, config_file must have extension .conf
+  PoseEstimation(boost::filesystem::path);
+  //Set a parameter of the Class
+  void setParam (string&, float);
+  void setParam (string&, string&);
+  //Initialize the class with parameters found in config file (path provided as argument)
+  void initParams (string);
+  //Set the poseEstimation query to be Object q
+  void setQuery (Object); 
+  //Set the poseEstimation query to be an object of point cloud and name passed
+  void setQuery (string&, PointCloud<PointXYZRGBA>& );
+  //Set the poseEstimation query to be and object of pointcloud shared pointer and name passed
+  void setQuery (string& str, PointCloud<PointXYZRGBA>::Ptr clp);
 };
 #endif
-
-    
-
-
-
