@@ -106,8 +106,8 @@ class PoseEstimation {
   //Internal member to downsample the query with VoxelGrid, internal use
   void downsampling_();
   
-  //Internal member to compute Surface Normals of the query, internal use
-  void computeNormals_();
+  //Internal member to compute Surface Normals of the query, internal use, return true if success
+  bool computeNormals_();
   
   //Internal member to compute VFH feature of the query, internal use
   void computeVFH_();
@@ -169,5 +169,8 @@ class PoseEstimation {
   // 1) string& the name the query should assume
   // 2) PointCloud::Ptr Shared pointer containing ONLY the pointcloud of the object to be estimated (i.e. already segmented)
   void setQuery (string& str, PointCloud<PointXYZRGBA>::Ptr clp);
+
+  //Print parameters value on screen
+  void printParams();
 };
 #endif

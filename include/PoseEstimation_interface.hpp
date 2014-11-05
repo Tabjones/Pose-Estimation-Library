@@ -47,7 +47,7 @@ Candidate::Candidate ()
   rmse_ = -1;
   transformation_.setIdentity();
 }
-
+///////////////////////////////////////////////////////////////////
 Candidate::Candidate (string& str, PointCloud<PointXYZRGBA>& cl)
 {
   name_ = str;
@@ -57,7 +57,7 @@ Candidate::Candidate (string& str, PointCloud<PointXYZRGBA>& cl)
   rmse_ = -1;
   transformation_.setIdentity();
 }
-
+/////////////////////////////////////////////////////////////////////
 Candidate::Candidate (string& str, PointCloud<PointXYZRGBA>::Ptr clp)
 {
   name_ = str;
@@ -67,7 +67,7 @@ Candidate::Candidate (string& str, PointCloud<PointXYZRGBA>::Ptr clp)
   rmse_ = -1;
   transformation_.setIdentity();
 }
-
+///////////////////////////////////////////////////////////////////////
 void Candidate::setRank (float r) 
 { 
   rank_ = r; 
@@ -109,7 +109,7 @@ PoseEstimation::PoseEstimation ()
   feature_count_ = 4;
   params_["verbosity"]=1;
   params_["useVFH"]=params_["useESF"]=params_["useCVFH"]=params_["useOURCVFH"]=1;
-  params_["progBisection"]=params_["downsamspling"]=1;
+  params_["progBisection"]=params_["downsampling"]=1;
   params_["vgridLeafSize"]=0.003f;
   params_["upsampling"]=params_["filtering"]=0;
   params_["kNeighbors"]=20;
@@ -126,10 +126,22 @@ PoseEstimation::PoseEstimation ()
   params_["neRadiusSearch"]=0.015;
   params_["useSOasViewpoint"]=1;
   params_["computeViewpointFromName"]=0;
+  params_["cvfhEPSAngThresh"]=7.5;
+  params_["cvfhCurvThresh"]=0.025;
+  params_["cvfhClustTol"]=0.01;
+  params_["cvfhMinPoints"]=50;
+  params_["ourcvfhEPSAngThresh"]=7.5;
+  params_["ourcvfhCurvThresh"]=0.025;
+  params_["ourcvfhClustTol"]=0.01;
+  params_["ourcvfhMinPoints"]=50;
+  params_["ourcvfhAxisRatio"]=0.95;
+  params_["ourcvfhMinAxisValue"]=0.01;
+  params_["ourcvfhRefineClusters"]=1;
 }
-
+////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setParam(string& key, float value)
 {
+  int size = params_.size();
   if (value < 0)
   {
     if (params_["verbosity"]>0)
@@ -137,8 +149,9 @@ void PoseEstimation::setParam(string& key, float value)
     exit;
   }
   params_[key]=value;
-  //Check if key was a valid one, since the class has 24 parameters, if one was mispelled now we have 25 
-  if (params_.size() != 24)
+  //Check if key was a valid one, since the class has fixed number of parameters, 
+  //if one was mispelled, now we have one more 
+  if (params_.size() != size)
   {
     if (params_["verbosity"]>0)
       print_warn("[setParam]\tInvalid key parameter '%s', ignoring...\n", key.c_str());
@@ -157,7 +170,10 @@ void PoseEstimation::setParam(string& key, float value)
   if (params_["useOURCVFH"]>=1)
     count++;
   feature_count_ = count;
+  if (feature_count_ <=0 && params_["verbosity"]>0)
+    print_warn("[setParam]\tYou disabled all features, pose estimation will not initialize query...\n");
 }
+/////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setParam_ (string& key, string& value)
 {
   float f;
@@ -177,7 +193,7 @@ void PoseEstimation::setParam_ (string& key, string& value)
   }
   setParam(key, f); 
 }
-
+//////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::initParams(path config_file)
 { 
   if ( exists(config_file) && is_regular_file(config_file))   
@@ -223,15 +239,15 @@ void PoseEstimation::initParams(path config_file)
   else
     print_error("[initParams]\tPath to Config File is not valid ! (%s)\n", config_file.string().c_str());
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::filtering_()
 {
   StopWatch timer;
   if (params_["verbosity"] >1)
   {
-    print_info("[filtering]\t Setting Statistical Outlier Filter to preprocess query cloud...\n");
-    print_info("[filtering]\t Setting mean K to %f\n", params_["filterMeanK"]);
-    print_info("[filtering]\t Setting Standard Deviation multiplier to %f\n", params_["filterStdDevMulThresh"]);
+    print_info("[filtering]\tSetting Statistical Outlier Filter to preprocess query cloud...\n");
+    print_info("[filtering]\tSetting mean K to %f\n", params_["filterMeanK"]);
+    print_info("[filtering]\tSetting Standard Deviation multiplier to %f\n", params_["filterStdDevMulThresh"]);
     timer.reset();
   }
   PointCloud<PointXYZRGBA>::Ptr filtered (new PointCloud<PointXYZRGBA>);
@@ -240,26 +256,29 @@ void PoseEstimation::filtering_()
   fil.setStddevMulThresh (params_["filterStdDevMulThresh"]);
   fil.setInputCloud(query_cloud_);
   fil.filter(*filtered);
-  query_cloud_processed_ = filtered;
+  if (query_cloud_processed_)
+    copyPointCloud(*filtered, *query_cloud_processed_);
+  else
+    query_cloud_processed_ = filtered;
   if (params_["verbosity"]>1)
   {
-    print_highlight("[filtering]\t Total time elapsed during filter: ");
+    print_info("[filtering]\tTotal time elapsed during filter: ");
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::upsampling_()
 {
   StopWatch timer;
   if (params_["verbosity"] >1)
   {
-    print_info("[upsampling]\t Setting MLS with Random Uniform Density to preprocess query cloud...\n");
-    print_info("[upsampling]\t Setting polynomial order to %f\n", params_["mlsPolyOrder"]);
+    print_info("[upsampling]\tSetting MLS with Random Uniform Density to preprocess query cloud...\n");
+    print_info("[upsampling]\tSetting polynomial order to %f\n", params_["mlsPolyOrder"]);
     string t = params_["mlsPolyFit"] ? "true" : "false";
-    print_info("[upsampling]\t Setting polynomial fit to %s\n", t.c_str());
-    print_info("[upsampling]\t Setting desired point density to %f\n", params_["mlsPointDensity"]);
-    print_info("[upsampling]\t Setting search radius to %f\n", params_["mlsSearchRadius"]);
+    print_info("[upsampling]\tSetting polynomial fit to %s\n", t.c_str());
+    print_info("[upsampling]\tSetting desired point density to %f\n", params_["mlsPointDensity"]);
+    print_info("[upsampling]\tSetting search radius to %f\n", params_["mlsSearchRadius"]);
     timer.reset();
   }
   PointCloud<PointXYZRGBA>::Ptr upsampled (new PointCloud<PointXYZRGBA>);
@@ -277,22 +296,25 @@ void PoseEstimation::upsampling_()
   mls.setSearchRadius(params_["mlsSearchRadius"]);
   mls.setPointDensity(params_["mlsPointDensity"]);
   mls.process(*upsampled);
-  copyPointCloud(*upsampled, *query_cloud_processed_);
+  if (query_cloud_processed_)
+    copyPointCloud(*upsampled, *query_cloud_processed_);
+  else
+    query_cloud_processed_ = upsampled;
   if (params_["verbosity"]>1)
   {
-    print_highlight("[upsampling]\t Total time elapsed during upsampling: ");
+    print_info("[upsampling]\tTotal time elapsed during upsampling: ");
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::downsampling_()
 {
   StopWatch timer;
   if (params_["verbosity"] >1)
   {
-    print_info("[downsampling]\t Setting Voxel Grid to preprocess query cloud...\n");
-    print_info("[downsampling]\t Setting Leaf Size to %f\n", params_["vgridLeafSize"]);
+    print_info("[downsampling]\tSetting Voxel Grid to preprocess query cloud...\n");
+    print_info("[downsampling]\tSetting Leaf Size to %f\n", params_["vgridLeafSize"]);
     timer.reset();
   }
   PointCloud<PointXYZRGBA>::Ptr downsampled (new PointCloud<PointXYZRGBA>);
@@ -304,17 +326,269 @@ void PoseEstimation::downsampling_()
   vg.setLeafSize (params_["vgridLeafSize"], params_["vgridLeafSize"], params_["vgridLeafSize"]);
   vg.setDownsampleAllData (true);
   vg.filter(*downsampled);
-  copyPointCloud(*downsampled, *query_cloud_processed_);
+  if (query_cloud_processed_)
+    copyPointCloud(*downsampled, *query_cloud_processed_);
+  else
+    query_cloud_processed_ = downsampled;
   if (params_["verbosity"]>1)
   {
-    print_highlight("[downsampling]\t Total time elapsed during downsampling: ");
+    print_info("[downsampling]\tTotal time elapsed during downsampling: ");
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
 }
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::setQueryViewpoint(float x, float y, float z)
+{
+  vpx_ = x;
+  vpy_ = y;
+  vpz_ = z;
+  vp_supplied_ = true;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
+bool PoseEstimation::computeNormals_()
+{
+  StopWatch timer;
+  if (params_["verbosity"]>1)
+  {
+    print_info("[normalEstimation]\tSetting normal estimation to calculate query normals...\n");
+    print_info("[normalEstimation]\tSetting a neighborhood radius of %f\n", params_["neRadiusSearch"]);
+    timer.reset();
+  }
+  NormalEstimationOMP<PointXYZRGBA, Normal> ne;
+  search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+  ne.setSearchMethod(tree);
+  ne.setRadiusSearch(params_["neRadiusSearch"]);
+  ne.setNumberOfThreads(0); //use pcl autoallocation
+  ne.setInputCloud(query_cloud_processed_);
+  if (vp_supplied_)
+  {
+    //A Viewpoint was already supplied by setQueryViewpoint, so we use it
+    ne.setViewPoint (vpx_, vpy_, vpz_);
+    if (params_["verbosity"] >1)
+      print_info("[normalEstimation]\tUsing supplied viewpoint: %f, %f, %f\n", vpx_, vpy_, vpz_);
+  }
+  else if (params_["computeViewpointFromName"])
+  {
+    //Try to compute viewpoint from query name
+    try
+    {
+      //assume correct naming convection (name_lat_long)
+      //If something goes wrong an exception is catched
+      vector<string> vst;
+      split(vst, query_name_, boost::is_any_of("_"), boost::token_compress_on);
+      float vx,vy,vz;
+      int lat,lon;
+      lat = stoi(vst.at(1));
+      lon = stoi(vst.at(2));
+      //assume radius of one meter and reference frame in object center
+      vx = cos(lat*D2R)*sin(lon*D2R);
+      vy = sin(lat*D2R);
+      vz = cos(lat*D2R)*cos(lon*D2R);
+      setQueryViewpoint(vx,vy,vz);
+      if (vp_supplied_)
+      {
+        if (params_["verbosity"]>1)
+          print_info("[normalEstimation]\tUsing calculated viewpoint: %f, %f, %f\n", vpx_, vpy_, vpz_);
+        ne.setViewPoint(vpx_, vpy_, vpz_);
+      }
+    }
+    catch (...)
+    {
+      //something went wrong
+      print_error("[normalEstimation]\tCannot compute Viewpoint from query name... check naming convection and object reference frame!\n");
+      return false;
+    }
+  }
+  else if (params_["useSOasViewpoint"])
+  {
+    //Use Viewpoint stored in sensor_origin_ of query cloud
+    //However we want to save it in class designated spots so it can be used again by 
+    //other features
+    float vx,vy,vz;
+    vx = query_cloud_->sensor_origin_[0];
+    vy = query_cloud_->sensor_origin_[1];
+    vz = query_cloud_->sensor_origin_[2];
+    setQueryViewpoint(vx,vy,vz);
+    if (vp_supplied_)
+    {
+      ne.setViewPoint (vpx_, vpy_, vpz_);
+      if (params_["verbosity"]>1)
+        print_info("[normalEstimation]\tUsing viewpoint from sensor_origin_: %f, %f, %f\n", vpx_, vpy_, vpz_);
+    }
+    else
+    {
+      print_error("[normalEstimation]\tCannot set viewpoint from sensor_origin_...\n");
+      return false;
+    }
+  }
+  else
+  {
+    print_error("[normalEstimation]\tNo Viewpoint supplied!! Cannot continue!!\n");
+    print_error("[normalEstimation]\tEither use setQueryViewpoint or set 'useSOasViewpoint'/'computeViewpointFromName'\n");
+    return false;
+  }
+  ne.compute(normals_);
+  if (params_["verbosity"]>1)
+  {
+    print_info("[normalEstimation]\tTotal time elapsed during normal estimation: ");
+    print_value("%g", timer.getTime());
+    print_info(" ms\n");
+  }
+  return true;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::computeVFH_()
+{
+  if(!vp_supplied_)
+  {
+    //Should never happen, viewpoint was set by normal estimation
+    print_error("[VFH]\tCannot estimate VFH of query, viewpoint was not set...\n");
+    exit;
+  }
+  else
+  {
+    StopWatch timer;
+    if (params_["verbosity"]>1)
+    {
+      print_info("[VFH]\tEstimating VFH feature of query...\n");
+      timer.reset();
+    }
+    VFHEstimation<PointXYZRGBA, Normal, VFHSignature308> vfhE;
+    search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+    vfhE.setSearchMethod(tree);
+    vfhE.setInputCloud (query_cloud_processed_);
+    vfhE.setViewPoint (vpx_, vpy_, vpz_);
+    vfhE.setInputNormals (normals_.makeShared());
+    vfhE.compute (vfh_);
+    if (params_["verbosity"]>1)
+    {
+      print_info("[VFH]\tTotal time elapsed during VFH estimation: ");
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::computeESF_()
+{
+  StopWatch timer;
+  if (params_["verbosity"]>1)
+  {
+    print_info("[ESF]\tEstimating ESF feature of query...\n");
+    timer.reset();
+  }
+  ESFEstimation<PointXYZRGBA, ESFSignature640> esfE;
+  search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+  esfE.setSearchMethod(tree);
+  esfE.setInputCloud (query_cloud_processed_);
+  esfE.compute (esf_);
+  if (params_["verbosity"]>1)
+  {
+    print_info("[ESF]\tTotal time elapsed during ESF estimation: ");
+    print_value("%g", timer.getTime());
+    print_info(" ms\n");
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::computeCVFH_()
+{
+  if(!vp_supplied_)
+  {
+    //Should never happen, viewpoint was set by normal estimation
+    print_error("[CVFH]\tCannot estimate CVFH of query, viewpoint was not set...\n");
+    exit;
+  }
+  else
+  {
+    StopWatch timer;
+    if (params_["verbosity"]>1)
+    {
+      print_info("[CVFH]\tEstimating CVFH feature of query...\n");
+      print_info("[CVFH]\tUsing Angle Threshold of %f degress for normal deviation\n",params_["cvfhEPSAngThresh"]); 
+      print_info("[CVFH]\tUsing Curvature Threshold of %f\n",params_["cvfhCurvThresh"]); 
+      print_info("[CVFH]\tUsing Cluster Tolerance of %f\n",params_["cvfhClustTol"]); 
+      print_info("[CVFH]\tConsidering a minimum of %f points for a cluster\n",params_["cvfhMinPoints"]); 
+      timer.reset();
+    }
+    CVFHEstimation<PointXYZRGBA, Normal, VFHSignature308> cvfhE;
+    search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+    cvfhE.setSearchMethod(tree);
+    cvfhE.setInputCloud (query_cloud_processed_);
+    cvfhE.setViewPoint (vpx_, vpy_, vpz_);
+    cvfhE.setInputNormals (normals_.makeShared());
+    cvfhE.setEPSAngleThreshold(params_["cvfhEPSAngThresh"]*D2R); //angle needs to be supplied in radians
+    cvfhE.setCurvatureThreshold(params_["cvfhCurvThresh"]);
+    cvfhE.setClusterTolerance(params_["cvfhClustTol"]);
+    cvfhE.setMinPoints(params_["cvfhMinPoints"]);
+    cvfhE.setNormalizeBins(false);
+    cvfhE.compute (cvfh_);
+    if (params_["verbosity"]>1)
+    {
+      print_info("[CVFH]\tTotal of %d clusters were found on query\n", cvfh_.points.size());
+      print_info("[CVFH]\tTotal time elapsed during CVFH estimation: ");
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::computeOURCVFH_()
+{
+  if(!vp_supplied_)
+  {
+    //Should never happen, viewpoint was set by normal estimation
+    print_error("[OURCVFH]\tCannot estimate OURCVFH of query, viewpoint was not set...\n");
+    exit;
+  }
+  else
+  {
+    StopWatch timer;
+    if (params_["verbosity"]>1)
+    {
+      print_info("[OURCVFH]\tEstimating OURCVFH feature of query...\n");
+      print_info("[OURCVFH]\tUsing Angle Threshold of %f degress for normal deviation\n",params_["ourcvfhEPSAngThresh"]); 
+      print_info("[OURCVFH]\tUsing Curvature Threshold of %f\n",params_["ourcvfhCurvThresh"]); 
+      print_info("[OURCVFH]\tUsing Cluster Tolerance of %f\n",params_["ourcvfhClustTol"]); 
+      print_info("[OURCVFH]\tConsidering a minimum of %f points for a cluster\n",params_["ourcvfhMinPoints"]); 
+      print_info("[OURCVFH]\tUsing Axis Ratio of %f and Min Axis Value of %f during SGURF disambiguation\n",params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
+      print_info("[OURCVFH]\tUsing Refinement Factor of %f for clusters\n",params_["ourcvfhRefineClusters"]); 
+      timer.reset();
+    }
+    OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
+    search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ>);
+    PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
+    copyPointCloud(*query_cloud_processed_, *cloud);
+    ourcvfhE.setSearchMethod(tree);
+    ourcvfhE.setInputCloud (cloud);
+    ourcvfhE.setViewPoint (vpx_, vpy_, vpz_);
+    ourcvfhE.setInputNormals (normals_.makeShared());
+    ourcvfhE.setEPSAngleThreshold(params_["ourcvfhEPSAngThresh"]*D2R); //angle needs to be supplied in radians
+    ourcvfhE.setCurvatureThreshold(params_["ourcvfhCurvThresh"]);
+    ourcvfhE.setClusterTolerance(params_["ourcvfhClustTol"]);
+    ourcvfhE.setMinPoints(params_["ourcvfhMinPoints"]);
+    ourcvfhE.setAxisRatio(params_["ourcvfhAxisRatio"]);
+    ourcvfhE.setMinAxisValue(params_["ourcvfhMinAxisValue"]);
+    ourcvfhE.setRefineClusters(params_["ourcvfhRefineClusters"]);
+    ourcvfhE.compute (ourcvfh_);
+    if (params_["verbosity"]>1)
+    {
+      print_info("[OURCVFH]\tTotal of %d clusters were found on query\n", ourcvfh_.points.size());
+      print_info("[OURCVFH]\tTotal time elapsed during OURCVFH estimation: ");
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
 bool PoseEstimation::initQuery_()
 {
+  if (feature_count_ <=0)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("[initQuery]\tCannot initialize query, zero features chosen to estimate from query\n");
+    return false;
+  }
   //Check if a filter is needed
   if (params_["filtering"] >= 1)
     filtering_();
@@ -333,17 +607,31 @@ bool PoseEstimation::initQuery_()
   //Check if we need Normals
   if (params_["useVFH"] >=1 || params_["useCVFH"] >=1 || params_["useOURCVFH"] >=1)
   {
-    computeNormals_();
-    //And consequently other descriptors
-    if (params_["useVFH"] >=1)
-      computeVFH_();
-    if (params_["useCVFH"] >=1)
-      computeCVFH_();
-    if (params_["useOURCVFH"] >1)
-      computeOURCVFH_();
+    if (computeNormals_())
+    {
+      //And consequently other descriptors
+      if (params_["useVFH"] >=1)
+        computeVFH_();
+      if (params_["useCVFH"] >=1)
+        computeCVFH_();
+      if (params_["useOURCVFH"] >=1)
+        computeOURCVFH_();
+    }
+    else
+      return false;
   }
+  if (params_["verbosity"]>1)
+  {
+    print_info("[setQuery]\tQuery succesfully set and initialized:\n");
+    print_info("[setQuery]\t");
+    print_value("%s", query_name_.c_str());
+    print_info(" with ");
+    print_value("%d", query_cloud_processed_->points.size());
+    print_info(" points\n");
+  }
+  return true;
 }
-
+/////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setQuery(string& str, PointCloud<PointXYZRGBA>& cl)
 {
   query_name_ = str;
@@ -354,6 +642,7 @@ void PoseEstimation::setQuery(string& str, PointCloud<PointXYZRGBA>& cl)
   if (initQuery_())
     query_set_ = true;
 }
+/////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setQuery(string& str, PointCloud<PointXYZRGBA>::Ptr clp)
 {
   query_name_ = str;
@@ -363,5 +652,11 @@ void PoseEstimation::setQuery(string& str, PointCloud<PointXYZRGBA>::Ptr clp)
     query_cloud_ = clp;
   if (initQuery_())
     query_set_ = true;
+}
+/////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::printParams()
+{
+  for (auto &x : params_)
+    cout<< x.first.c_str() <<"="<< x.second<<endl;
 }
 #endif
