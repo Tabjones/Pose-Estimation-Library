@@ -1,0 +1,147 @@
+\hypertarget{classCandidate}{\section{Candidate Class Reference}
+\label{classCandidate}\index{Candidate@{Candidate}}
+}
+
+
+Describes a single candidate object to the query.  
+
+
+
+
+{\ttfamily \#include $<$Pose\-Estimation\-\_\-interface.\-h$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classCandidate_aa2747741fb662af5e8f3d01d1d1a43b6}{Candidate} ()
+\item 
+\hyperlink{classCandidate_a248d5d3260dd4de9fd4fc9d57c227556}{Candidate} (string \&, Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$ \&)
+\item 
+\hyperlink{classCandidate_aba6a77d6893cb406902baff0eb6c376c}{Candidate} (string \&, Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$\-::Ptr)
+\item 
+void \hyperlink{classCandidate_ae97329d23d392f22dc2cb5416e624921}{set\-Rank} (float)
+\item 
+void \hyperlink{classCandidate_add0268759b7a3b9037914e8435befac5}{get\-Rank} (float \&)
+\item 
+void \hyperlink{classCandidate_a3fdc5aa3bc0f7165db679c58b3db3ac0}{set\-Distance} (float)
+\item 
+void \hyperlink{classCandidate_a5d37e7b377ae89e90b9c621a861bc515}{get\-Distance} (float \&)
+\item 
+void \hyperlink{classCandidate_a99e4f7aa09cb990a63850c5661146f10}{set\-R\-M\-S\-E} (float)
+\item 
+void \hyperlink{classCandidate_a81d6749b43f4118dd4db68deee38e9ac}{get\-R\-M\-S\-E} (float \&)
+\item 
+void \hyperlink{classCandidate_aee22665fbda62ea1517400dca0c0c812}{get\-Transformation} (Eigen\-::\-Matrix4f \&)
+\item 
+void \hyperlink{classCandidate_a4ca96ab485de6e9b9d32902c40750096}{set\-Transformation} (Eigen\-::\-Matrix4f)
+\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classCandidate_acc93828d970ba58835be2e8221c7a669}{Pose\-Estimation}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Describes a single candidate object to the query. 
+
+\begin{DoxyAuthor}{Author}
+Federico Spinelli 
+\end{DoxyAuthor}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classCandidate_aa2747741fb662af5e8f3d01d1d1a43b6}{\index{Candidate@{Candidate}!Candidate@{Candidate}}
+\index{Candidate@{Candidate}!Candidate@{Candidate}}
+\subsubsection[{Candidate}]{\setlength{\rightskip}{0pt plus 5cm}Candidate\-::\-Candidate (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_aa2747741fb662af5e8f3d01d1d1a43b6}
+\hypertarget{classCandidate_a248d5d3260dd4de9fd4fc9d57c227556}{\index{Candidate@{Candidate}!Candidate@{Candidate}}
+\index{Candidate@{Candidate}!Candidate@{Candidate}}
+\subsubsection[{Candidate}]{\setlength{\rightskip}{0pt plus 5cm}Candidate\-::\-Candidate (
+\begin{DoxyParamCaption}
+\item[{string \&}]{str, }
+\item[{Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$ \&}]{cl}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_a248d5d3260dd4de9fd4fc9d57c227556}
+\hypertarget{classCandidate_aba6a77d6893cb406902baff0eb6c376c}{\index{Candidate@{Candidate}!Candidate@{Candidate}}
+\index{Candidate@{Candidate}!Candidate@{Candidate}}
+\subsubsection[{Candidate}]{\setlength{\rightskip}{0pt plus 5cm}Candidate\-::\-Candidate (
+\begin{DoxyParamCaption}
+\item[{string \&}]{str, }
+\item[{Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$\-::Ptr}]{clp}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_aba6a77d6893cb406902baff0eb6c376c}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classCandidate_a5d37e7b377ae89e90b9c621a861bc515}{\index{Candidate@{Candidate}!get\-Distance@{get\-Distance}}
+\index{get\-Distance@{get\-Distance}!Candidate@{Candidate}}
+\subsubsection[{get\-Distance}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-Distance (
+\begin{DoxyParamCaption}
+\item[{float \&}]{d}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_a5d37e7b377ae89e90b9c621a861bc515}
+\hypertarget{classCandidate_add0268759b7a3b9037914e8435befac5}{\index{Candidate@{Candidate}!get\-Rank@{get\-Rank}}
+\index{get\-Rank@{get\-Rank}!Candidate@{Candidate}}
+\subsubsection[{get\-Rank}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-Rank (
+\begin{DoxyParamCaption}
+\item[{float \&}]{r}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_add0268759b7a3b9037914e8435befac5}
+\hypertarget{classCandidate_a81d6749b43f4118dd4db68deee38e9ac}{\index{Candidate@{Candidate}!get\-R\-M\-S\-E@{get\-R\-M\-S\-E}}
+\index{get\-R\-M\-S\-E@{get\-R\-M\-S\-E}!Candidate@{Candidate}}
+\subsubsection[{get\-R\-M\-S\-E}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-R\-M\-S\-E (
+\begin{DoxyParamCaption}
+\item[{float \&}]{r}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_a81d6749b43f4118dd4db68deee38e9ac}
+\hypertarget{classCandidate_aee22665fbda62ea1517400dca0c0c812}{\index{Candidate@{Candidate}!get\-Transformation@{get\-Transformation}}
+\index{get\-Transformation@{get\-Transformation}!Candidate@{Candidate}}
+\subsubsection[{get\-Transformation}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-Transformation (
+\begin{DoxyParamCaption}
+\item[{Eigen\-::\-Matrix4f \&}]{t}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_aee22665fbda62ea1517400dca0c0c812}
+\hypertarget{classCandidate_a3fdc5aa3bc0f7165db679c58b3db3ac0}{\index{Candidate@{Candidate}!set\-Distance@{set\-Distance}}
+\index{set\-Distance@{set\-Distance}!Candidate@{Candidate}}
+\subsubsection[{set\-Distance}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-Distance (
+\begin{DoxyParamCaption}
+\item[{float}]{d}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_a3fdc5aa3bc0f7165db679c58b3db3ac0}
+\hypertarget{classCandidate_ae97329d23d392f22dc2cb5416e624921}{\index{Candidate@{Candidate}!set\-Rank@{set\-Rank}}
+\index{set\-Rank@{set\-Rank}!Candidate@{Candidate}}
+\subsubsection[{set\-Rank}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-Rank (
+\begin{DoxyParamCaption}
+\item[{float}]{r}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_ae97329d23d392f22dc2cb5416e624921}
+\hypertarget{classCandidate_a99e4f7aa09cb990a63850c5661146f10}{\index{Candidate@{Candidate}!set\-R\-M\-S\-E@{set\-R\-M\-S\-E}}
+\index{set\-R\-M\-S\-E@{set\-R\-M\-S\-E}!Candidate@{Candidate}}
+\subsubsection[{set\-R\-M\-S\-E}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-R\-M\-S\-E (
+\begin{DoxyParamCaption}
+\item[{float}]{r}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_a99e4f7aa09cb990a63850c5661146f10}
+\hypertarget{classCandidate_a4ca96ab485de6e9b9d32902c40750096}{\index{Candidate@{Candidate}!set\-Transformation@{set\-Transformation}}
+\index{set\-Transformation@{set\-Transformation}!Candidate@{Candidate}}
+\subsubsection[{set\-Transformation}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-Transformation (
+\begin{DoxyParamCaption}
+\item[{Eigen\-::\-Matrix4f}]{t}
+\end{DoxyParamCaption}
+)}}\label{classCandidate_a4ca96ab485de6e9b9d32902c40750096}
+
+
+\subsection{Friends And Related Function Documentation}
+\hypertarget{classCandidate_acc93828d970ba58835be2e8221c7a669}{\index{Candidate@{Candidate}!Pose\-Estimation@{Pose\-Estimation}}
+\index{Pose\-Estimation@{Pose\-Estimation}!Candidate@{Candidate}}
+\subsubsection[{Pose\-Estimation}]{\setlength{\rightskip}{0pt plus 5cm}friend class {\bf Pose\-Estimation}\hspace{0.3cm}{\ttfamily [friend]}}}\label{classCandidate_acc93828d970ba58835be2e8221c7a669}
+
+
+The documentation for this class was generated from the following files\-:\begin{DoxyCompactItemize}
+\item 
+include/\hyperlink{PoseEstimation__interface_8h}{Pose\-Estimation\-\_\-interface.\-h}\item 
+include/\hyperlink{PoseEstimation__interface_8hpp}{Pose\-Estimation\-\_\-interface.\-hpp}\end{DoxyCompactItemize}

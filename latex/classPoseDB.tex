@@ -1,0 +1,130 @@
+\hypertarget{classPoseDB}{\section{Pose\-D\-B Class Reference}
+\label{classPoseDB}\index{Pose\-D\-B@{Pose\-D\-B}}
+}
+
+
+Stores the database of poses for Pose Estimation.  
+
+
+
+
+{\ttfamily \#include $<$Pose\-Estimation\-\_\-interface.\-h$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classPoseDB_a48e3cf9cde2b5f6a1a87e0d4f666e13f}{Pose\-D\-B} ()
+\begin{DoxyCompactList}\small\item\em Default empty Constructor. \end{DoxyCompactList}\item 
+\hyperlink{classPoseDB_ac7c624b7de4a42c229a9a96e1b90b0d2}{Pose\-D\-B} (boost\-::filesystem\-::path path\-D\-B)
+\begin{DoxyCompactList}\small\item\em Constructor that loads database from disk. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseDB_a232d86fe04b8e6046c7fe90f285cfe8d}{load} (boost\-::filesystem\-::path path\-D\-B)
+\begin{DoxyCompactList}\small\item\em Load a database from disk, knowing its location. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseDB_a3bc7a3f5efdbf367bf1be91ec4272f60}{save} (boost\-::filesystem\-::path path\-D\-B)
+\begin{DoxyCompactList}\small\item\em Save a database to disk. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseDB_a90742e3484598d29d24250a0dfbd5ef1}{create} (boost\-::filesystempath\-::path path\-Clouds)
+\begin{DoxyCompactList}\small\item\em Compute the whole database from scratch and store it in memory, C\-A\-N T\-A\-K\-E S\-E\-V\-E\-R\-A\-L M\-I\-N\-U\-T\-E\-S... \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classPoseDB_acc93828d970ba58835be2e8221c7a669}{Pose\-Estimation}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Stores the database of poses for Pose Estimation. 
+
+\begin{DoxyAuthor}{Author}
+Federico Spinelli 
+\end{DoxyAuthor}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classPoseDB_a48e3cf9cde2b5f6a1a87e0d4f666e13f}{\index{Pose\-D\-B@{Pose\-D\-B}!Pose\-D\-B@{Pose\-D\-B}}
+\index{Pose\-D\-B@{Pose\-D\-B}!PoseDB@{Pose\-D\-B}}
+\subsubsection[{Pose\-D\-B}]{\setlength{\rightskip}{0pt plus 5cm}Pose\-D\-B\-::\-Pose\-D\-B (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{classPoseDB_a48e3cf9cde2b5f6a1a87e0d4f666e13f}
+
+
+Default empty Constructor. 
+
+\hypertarget{classPoseDB_ac7c624b7de4a42c229a9a96e1b90b0d2}{\index{Pose\-D\-B@{Pose\-D\-B}!Pose\-D\-B@{Pose\-D\-B}}
+\index{Pose\-D\-B@{Pose\-D\-B}!PoseDB@{Pose\-D\-B}}
+\subsubsection[{Pose\-D\-B}]{\setlength{\rightskip}{0pt plus 5cm}Pose\-D\-B\-::\-Pose\-D\-B (
+\begin{DoxyParamCaption}
+\item[{boost\-::filesystem\-::path}]{path\-D\-B}
+\end{DoxyParamCaption}
+)}}\label{classPoseDB_ac7c624b7de4a42c229a9a96e1b90b0d2}
+
+
+Constructor that loads database from disk. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em path\-D\-B} & Path to the directory containing the database of poses \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classPoseDB_a90742e3484598d29d24250a0dfbd5ef1}{\index{Pose\-D\-B@{Pose\-D\-B}!create@{create}}
+\index{create@{create}!PoseDB@{Pose\-D\-B}}
+\subsubsection[{create}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-D\-B\-::create (
+\begin{DoxyParamCaption}
+\item[{boost\-::filesystempath\-::path}]{path\-Clouds}
+\end{DoxyParamCaption}
+)}}\label{classPoseDB_a90742e3484598d29d24250a0dfbd5ef1}
+
+
+Compute the whole database from scratch and store it in memory, C\-A\-N T\-A\-K\-E S\-E\-V\-E\-R\-A\-L M\-I\-N\-U\-T\-E\-S... 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em path\-Clouds} & Path to a directory on disk that contains all the pcd files of object poses Note\-: pcd files must follow a naming convention, that is obj\-\_\-name\-\_\-latitude\-\_\-longitude.\-pcd (i.\-e. funnel\-\_\-20\-\_\-30.\-pcd) \\
+\hline
+\end{DoxyParams}
+\hypertarget{classPoseDB_a232d86fe04b8e6046c7fe90f285cfe8d}{\index{Pose\-D\-B@{Pose\-D\-B}!load@{load}}
+\index{load@{load}!PoseDB@{Pose\-D\-B}}
+\subsubsection[{load}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-D\-B\-::load (
+\begin{DoxyParamCaption}
+\item[{boost\-::filesystem\-::path}]{path\-D\-B}
+\end{DoxyParamCaption}
+)}}\label{classPoseDB_a232d86fe04b8e6046c7fe90f285cfe8d}
+
+
+Load a database from disk, knowing its location. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em path\-D\-B} & Path to the directory containing the database of poses \\
+\hline
+\end{DoxyParams}
+\hypertarget{classPoseDB_a3bc7a3f5efdbf367bf1be91ec4272f60}{\index{Pose\-D\-B@{Pose\-D\-B}!save@{save}}
+\index{save@{save}!PoseDB@{Pose\-D\-B}}
+\subsubsection[{save}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-D\-B\-::save (
+\begin{DoxyParamCaption}
+\item[{boost\-::filesystem\-::path}]{path\-D\-B}
+\end{DoxyParamCaption}
+)}}\label{classPoseDB_a3bc7a3f5efdbf367bf1be91ec4272f60}
+
+
+Save a database to disk. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em path\-D\-B} & Path to a directory on disk, inside which to save the database, directory must be empty or non existent \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Friends And Related Function Documentation}
+\hypertarget{classPoseDB_acc93828d970ba58835be2e8221c7a669}{\index{Pose\-D\-B@{Pose\-D\-B}!Pose\-Estimation@{Pose\-Estimation}}
+\index{Pose\-Estimation@{Pose\-Estimation}!PoseDB@{Pose\-D\-B}}
+\subsubsection[{Pose\-Estimation}]{\setlength{\rightskip}{0pt plus 5cm}friend class {\bf Pose\-Estimation}\hspace{0.3cm}{\ttfamily [friend]}}}\label{classPoseDB_acc93828d970ba58835be2e8221c7a669}
+
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+include/\hyperlink{PoseEstimation__interface_8h}{Pose\-Estimation\-\_\-interface.\-h}\end{DoxyCompactItemize}

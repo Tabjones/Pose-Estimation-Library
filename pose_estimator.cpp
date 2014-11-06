@@ -9,10 +9,8 @@ main (int argc, char *argv[])
   PointCloud<PointXYZRGBA> cloud;
   pcl::io::loadPCDFile(argv[1], cloud);
   PoseEstimation prova;
-  string par = "verbosity";
-  string name= "funnel_10_20";
-  //prova.setParam(par, 2.0f);
+  prova.setParam("verbosity", 2);
   //prova.printParams();
-  prova.setQuery(name, cloud);
+  prova.setQuery("funnel_20_30", cloud);
   return 1;
 }

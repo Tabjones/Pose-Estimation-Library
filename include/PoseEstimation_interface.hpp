@@ -36,9 +36,173 @@
 using namespace pcl::console;
 using namespace boost;
 using namespace boost::filesystem;
+using namespace flann;
 
+/* Class PoseDB Implementation */
+void PoseDB::load(path pathDB)
+{
+  //load should not be called if flann matrix(es) are already initialized
+  if ( exists(pathDB) && is_directory(pathDB) )
+  {
+    if (is_regular_file(pathDB.string()+ "/vfh.h5") && extension(pathDB.string()+ "/vfh.h5") == ".h5")
+      flann::load_from_file (vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
+    else
+    {
+      print_error("[Database]\tInvalid vfh.h5 file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/esf.h5") && extension(pathDB.string()+ "/esf.h5") == ".h5")
+      flann::load_from_file (esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
+    else
+    {
+      print_error("[Database]\tInvalid esf.h5 file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/cvfh.h5") && extension(pathDB.string()+ "/cvfh.h5") == ".h5")
+      flann::load_from_file (cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
+    else
+    {
+      print_error("[Database]\tInvalid cvfh.h5 file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/ourcvfh.h5") && extension(pathDB.string()+ "/ourcvfh.h5") == ".h5")
+      flann::load_from_file (ourcvfh_, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
+    else
+    {
+      print_error("[Database]\tInvalid ourcvfh.h5 file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/vfh.idx") && extension(pathDB.string()+ "/vfh.idx") == ".idx")
+    {
+      boost::shared_ptr<indexVFH> idx (new indexVFH(vfh_, SavedIndexParams(pathDB.string()+"/vfh.idx")));
+      idx_vfh_ = idx;
+      idx_vfh_->buildIndex();
+    }
+    else
+    {
+      print_error("[Database]\tInvalid vfh.idx file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/esf.idx") && extension(pathDB.string()+ "/esf.idx") == ".idx")
+    {
+      boost::shared_ptr<indexESF> idx (new indexESF(esf_, SavedIndexParams(pathDB.string()+"/esf.idx")));
+      idx_esf_ = idx;
+      idx_esf_->buildIndex();
+    }
+    else
+    {
+      print_error("[Database]\tInvalid esf.idx file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/names.list") && extension(pathDB.string()+ "/names.list") == ".list")
+    {
+      ifstream file ((pathDB.string()+"/names.list").c_str());
+      string line;
+      if (file.is_open())
+      {
+        names_.clear();
+        while (getline (file, line))
+        {
+          trim(line); //remove white spaces from line
+          names_.push_back(line);
+        }//end of file
+      }
+      else
+      {
+        print_error("[Database]\tCannot open names.list file... Try recreating the Database\n");
+        exit;
+      }
+    }
+    else
+    {
+      print_error("[Database]\tInvalid names.list file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/cvfh.cluster") && extension(pathDB.string()+ "/cvfh.cluster") == ".cluster")
+    {
+      ifstream file ((pathDB.string()+"/cvfh.cluster").c_str());
+      string line;
+      if (file.is_open())
+      {
+        clusters_cvfh_.clear();
+        while (getline (file, line))
+        {
+          trim(line); //remove white spaces from line
+          int c;
+          try
+          {
+            c=stoi(line);
+          }
+          catch (...)
+          {
+            print_error("[Database]\tCannot convert string in cvfh.cluster, file is likely corrupted... Try recreating the Database\n");
+            exit;
+          }
+          clusters_cvfh_.push_back(c);
+        }//end of file
+      }
+      else
+      {
+        print_error("[Database]\tCannot open cvfh.cluster file... Try recreating the Database\n");
+        exit;
+      }
+    }
+    else
+    {
+      print_error("[Database]\tInvalid cvfh.cluster file... Try recreating the Database\n");
+      exit;
+    }
+    if (is_regular_file(pathDB.string()+ "/ourcvfh.cluster") && extension(pathDB.string()+ "/ourcvfh.cluster") == ".cluster")
+    {
+      ifstream file ((pathDB.string()+"/ourcvfh.cluster").c_str());
+      string line;
+      if (file.is_open())
+      {
+        clusters_ourcvfh_.clear();
+        while (getline (file, line))
+        {
+          trim(line); //remove white spaces from line
+          int c;
+          try
+          {
+            c=stoi(line);
+          }
+          catch (...)
+          {
+            print_error("[Database]\tCannot convert string in ourcvfh.cluster, file is likely corrupted... Try recreating the Database\n");
+            exit;
+          }
+          clusters_ourcvfh_.push_back(c);
+        }//end of file
+      }
+      else
+      {
+        print_error("[Database]\tCannot open ourcvfh.cluster file... Try recreating the Database\n");
+        exit;
+      }
+    }
+    else
+    {
+      print_error("[Database]\tInvalid ourcvfh.cluster file... Try recreating the Database\n");
+      exit;
+    }
+  }
+  else
+    print_error("[Database]\t%s is not a valid database directory, or doesnt exists\n",pathDB.string().c_str());
+}
+///////////////////////////////////////
+/////////////////////////////////////////
+void PoseDB::save(path pathDB)
+{
+  //TODO
+}
+/////////////////////////////////////////
+void PoseDB::create(path pathClouds)
+{
+  //TODO
+}
+/////////////////////////////////////////
 /* Class Candidate Implementation */
-
 Candidate::Candidate ()
 {
   name_ = "UNSET";
@@ -139,13 +303,13 @@ PoseEstimation::PoseEstimation ()
   params_["ourcvfhRefineClusters"]=1;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setParam(string& key, float value)
+void PoseEstimation::setParam(string key, float value)
 {
   int size = params_.size();
   if (value < 0)
   {
     if (params_["verbosity"]>0)
-      print_warn("[setParam]\tParameter '%s' has a negative value (%f), ignoring...\n", key.c_str(), value);
+      print_warn("[setParam]\tParameter '%s' has a negative value (%g), ignoring...\n", key.c_str(), value);
     exit;
   }
   params_[key]=value;
@@ -158,7 +322,7 @@ void PoseEstimation::setParam(string& key, float value)
     params_.erase(key);
   }
   else if (params_["verbosity"]>1)
-    print_info("[setParam]\tSetting parameter: %s=%f\n",key.c_str(),value);
+    print_info("[setParam]\tSetting parameter: %s=%g\n",key.c_str(),value);
   //Recheck how many features we want
   int count(0);
   if (params_["useVFH"]>=1)
@@ -174,7 +338,7 @@ void PoseEstimation::setParam(string& key, float value)
     print_warn("[setParam]\tYou disabled all features, pose estimation will not initialize query...\n");
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setParam_ (string& key, string& value)
+void PoseEstimation::setParam_ (string key, string& value)
 {
   float f;
   try
@@ -246,8 +410,8 @@ void PoseEstimation::filtering_()
   if (params_["verbosity"] >1)
   {
     print_info("[filtering]\tSetting Statistical Outlier Filter to preprocess query cloud...\n");
-    print_info("[filtering]\tSetting mean K to %f\n", params_["filterMeanK"]);
-    print_info("[filtering]\tSetting Standard Deviation multiplier to %f\n", params_["filterStdDevMulThresh"]);
+    print_info("[filtering]\tSetting mean K to %g\n", params_["filterMeanK"]);
+    print_info("[filtering]\tSetting Standard Deviation multiplier to %g\n", params_["filterStdDevMulThresh"]);
     timer.reset();
   }
   PointCloud<PointXYZRGBA>::Ptr filtered (new PointCloud<PointXYZRGBA>);
@@ -274,11 +438,11 @@ void PoseEstimation::upsampling_()
   if (params_["verbosity"] >1)
   {
     print_info("[upsampling]\tSetting MLS with Random Uniform Density to preprocess query cloud...\n");
-    print_info("[upsampling]\tSetting polynomial order to %f\n", params_["mlsPolyOrder"]);
+    print_info("[upsampling]\tSetting polynomial order to %g\n", params_["mlsPolyOrder"]);
     string t = params_["mlsPolyFit"] ? "true" : "false";
     print_info("[upsampling]\tSetting polynomial fit to %s\n", t.c_str());
-    print_info("[upsampling]\tSetting desired point density to %f\n", params_["mlsPointDensity"]);
-    print_info("[upsampling]\tSetting search radius to %f\n", params_["mlsSearchRadius"]);
+    print_info("[upsampling]\tSetting desired point density to %g\n", params_["mlsPointDensity"]);
+    print_info("[upsampling]\tSetting search radius to %g\n", params_["mlsSearchRadius"]);
     timer.reset();
   }
   PointCloud<PointXYZRGBA>::Ptr upsampled (new PointCloud<PointXYZRGBA>);
@@ -314,7 +478,7 @@ void PoseEstimation::downsampling_()
   if (params_["verbosity"] >1)
   {
     print_info("[downsampling]\tSetting Voxel Grid to preprocess query cloud...\n");
-    print_info("[downsampling]\tSetting Leaf Size to %f\n", params_["vgridLeafSize"]);
+    print_info("[downsampling]\tSetting Leaf Size to %g\n", params_["vgridLeafSize"]);
     timer.reset();
   }
   PointCloud<PointXYZRGBA>::Ptr downsampled (new PointCloud<PointXYZRGBA>);
@@ -352,7 +516,7 @@ bool PoseEstimation::computeNormals_()
   if (params_["verbosity"]>1)
   {
     print_info("[normalEstimation]\tSetting normal estimation to calculate query normals...\n");
-    print_info("[normalEstimation]\tSetting a neighborhood radius of %f\n", params_["neRadiusSearch"]);
+    print_info("[normalEstimation]\tSetting a neighborhood radius of %g\n", params_["neRadiusSearch"]);
     timer.reset();
   }
   NormalEstimationOMP<PointXYZRGBA, Normal> ne;
@@ -366,7 +530,7 @@ bool PoseEstimation::computeNormals_()
     //A Viewpoint was already supplied by setQueryViewpoint, so we use it
     ne.setViewPoint (vpx_, vpy_, vpz_);
     if (params_["verbosity"] >1)
-      print_info("[normalEstimation]\tUsing supplied viewpoint: %f, %f, %f\n", vpx_, vpy_, vpz_);
+      print_info("[normalEstimation]\tUsing supplied viewpoint: %g, %g, %g\n", vpx_, vpy_, vpz_);
   }
   else if (params_["computeViewpointFromName"])
   {
@@ -389,7 +553,7 @@ bool PoseEstimation::computeNormals_()
       if (vp_supplied_)
       {
         if (params_["verbosity"]>1)
-          print_info("[normalEstimation]\tUsing calculated viewpoint: %f, %f, %f\n", vpx_, vpy_, vpz_);
+          print_info("[normalEstimation]\tUsing calculated viewpoint: %g, %g, %g\n", vpx_, vpy_, vpz_);
         ne.setViewPoint(vpx_, vpy_, vpz_);
       }
     }
@@ -414,7 +578,7 @@ bool PoseEstimation::computeNormals_()
     {
       ne.setViewPoint (vpx_, vpy_, vpz_);
       if (params_["verbosity"]>1)
-        print_info("[normalEstimation]\tUsing viewpoint from sensor_origin_: %f, %f, %f\n", vpx_, vpy_, vpz_);
+        print_info("[normalEstimation]\tUsing viewpoint from sensor_origin_: %g, %g, %g\n", vpx_, vpy_, vpz_);
     }
     else
     {
@@ -505,10 +669,10 @@ void PoseEstimation::computeCVFH_()
     if (params_["verbosity"]>1)
     {
       print_info("[CVFH]\tEstimating CVFH feature of query...\n");
-      print_info("[CVFH]\tUsing Angle Threshold of %f degress for normal deviation\n",params_["cvfhEPSAngThresh"]); 
-      print_info("[CVFH]\tUsing Curvature Threshold of %f\n",params_["cvfhCurvThresh"]); 
-      print_info("[CVFH]\tUsing Cluster Tolerance of %f\n",params_["cvfhClustTol"]); 
-      print_info("[CVFH]\tConsidering a minimum of %f points for a cluster\n",params_["cvfhMinPoints"]); 
+      print_info("[CVFH]\tUsing Angle Threshold of %g degress for normal deviation\n",params_["cvfhEPSAngThresh"]); 
+      print_info("[CVFH]\tUsing Curvature Threshold of %g\n",params_["cvfhCurvThresh"]); 
+      print_info("[CVFH]\tUsing Cluster Tolerance of %g\n",params_["cvfhClustTol"]); 
+      print_info("[CVFH]\tConsidering a minimum of %g points for a cluster\n",params_["cvfhMinPoints"]); 
       timer.reset();
     }
     CVFHEstimation<PointXYZRGBA, Normal, VFHSignature308> cvfhE;
@@ -547,12 +711,12 @@ void PoseEstimation::computeOURCVFH_()
     if (params_["verbosity"]>1)
     {
       print_info("[OURCVFH]\tEstimating OURCVFH feature of query...\n");
-      print_info("[OURCVFH]\tUsing Angle Threshold of %f degress for normal deviation\n",params_["ourcvfhEPSAngThresh"]); 
-      print_info("[OURCVFH]\tUsing Curvature Threshold of %f\n",params_["ourcvfhCurvThresh"]); 
-      print_info("[OURCVFH]\tUsing Cluster Tolerance of %f\n",params_["ourcvfhClustTol"]); 
-      print_info("[OURCVFH]\tConsidering a minimum of %f points for a cluster\n",params_["ourcvfhMinPoints"]); 
-      print_info("[OURCVFH]\tUsing Axis Ratio of %f and Min Axis Value of %f during SGURF disambiguation\n",params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
-      print_info("[OURCVFH]\tUsing Refinement Factor of %f for clusters\n",params_["ourcvfhRefineClusters"]); 
+      print_info("[OURCVFH]\tUsing Angle Threshold of %g degress for normal deviation\n",params_["ourcvfhEPSAngThresh"]); 
+      print_info("[OURCVFH]\tUsing Curvature Threshold of %g\n",params_["ourcvfhCurvThresh"]); 
+      print_info("[OURCVFH]\tUsing Cluster Tolerance of %g\n",params_["ourcvfhClustTol"]); 
+      print_info("[OURCVFH]\tConsidering a minimum of %g points for a cluster\n",params_["ourcvfhMinPoints"]); 
+      print_info("[OURCVFH]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
+      print_info("[OURCVFH]\tUsing Refinement Factor of %g for clusters\n",params_["ourcvfhRefineClusters"]); 
       timer.reset();
     }
     OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
@@ -583,6 +747,9 @@ void PoseEstimation::computeOURCVFH_()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 bool PoseEstimation::initQuery_()
 {
+  StopWatch timer;
+  if (params_["verbosity"]>1)
+    timer.reset();
   if (feature_count_ <=0)
   {
     if (params_["verbosity"]>0)
@@ -628,11 +795,14 @@ bool PoseEstimation::initQuery_()
     print_info(" with ");
     print_value("%d", query_cloud_processed_->points.size());
     print_info(" points\n");
+    print_info("[setQuery]\tTotal time elapsed to initialize a query: ");
+    print_value("%g", timer.getTime());
+    print_info(" ms\n");
   }
   return true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setQuery(string& str, PointCloud<PointXYZRGBA>& cl)
+void PoseEstimation::setQuery(string str, PointCloud<PointXYZRGBA>& cl)
 {
   query_name_ = str;
   if (query_cloud_)
@@ -643,7 +813,7 @@ void PoseEstimation::setQuery(string& str, PointCloud<PointXYZRGBA>& cl)
     query_set_ = true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setQuery(string& str, PointCloud<PointXYZRGBA>::Ptr clp)
+void PoseEstimation::setQuery(string str, PointCloud<PointXYZRGBA>::Ptr clp)
 {
   query_name_ = str;
   if (query_cloud_)
@@ -658,5 +828,35 @@ void PoseEstimation::printParams()
 {
   for (auto &x : params_)
     cout<< x.first.c_str() <<"="<< x.second<<endl;
+}
+/////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::setDatabase(path dbPath)
+{
+  database_.load(dbPath);
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::generateLists(path dbPath)
+{
+  if (!query_set_)
+  {
+    print_error("[generateLists]\tQuery is not set, cannot create lists of candidates, set it first!\n");
+    exit;
+  }
+  database_.load(dbPath);
+  if (params_["useVFH"]>=1)
+  {
+    flann::Matrix<float> vfh_query (new float[1*308],1,308);
+    for (size_t j=0; j < 308; ++j)
+      vfh_query[0][j]= vfh_.points[0].histogram[j];
+    int k = params_["kNeighbor"];
+    flann::Matrix<int> match_id (new int[k],1,k);
+    flann::Matrix<float> match_dist (new float[k],1,k);
+    database_.idx_vfh_->knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
+    // TODO build VFH list of candidates
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::generateLists()
+{
 }
 #endif
