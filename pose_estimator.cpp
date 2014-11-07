@@ -12,5 +12,7 @@ main (int argc, char *argv[])
   prova.setParam("verbosity", 2);
   //prova.printParams();
   prova.setQuery("funnel_20_30", cloud);
+  prova.setDatabase("../../Database");
+  prova.generateLists();
   return 1;
 }

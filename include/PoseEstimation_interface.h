@@ -16,20 +16,24 @@ using namespace std;
 
 typedef flann::Index<flann::ChiSquareDistance<float> > indexVFH;
 typedef flann::Index<flann::L2<float> > indexESF;
+typedef flann::Matrix<float> histograms;
 
 class PoseEstimation;
 
 /** \brief Stores the database of poses for Pose Estimation 
  * \author Federico Spinelli
+ * This class is used internally by PoseEstimation class, however it can be used to create or 
+ * load multiple databases and test pose estimation with them. I.e. with setDatabase method of PoseEstimation.
  */
 class PoseDB{
   
   friend class PoseEstimation;
-  flann::Matrix<float> vfh_, esf_, cvfh_, ourcvfh_;
+  boost::shared_ptr<histograms> vfh_db_, esf_db_, cvfh_db_, ourcvfh_db_;
   vector<string> names_;
   vector<int> clusters_cvfh_, clusters_ourcvfh_;
   boost::shared_ptr<indexVFH> idx_vfh_;
   boost::shared_ptr<indexESF> idx_esf_;
+  boost::filesystem::path dir_path_;
 
   public:
     /** \brief Default empty Constructor
@@ -50,51 +54,72 @@ class PoseDB{
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
      * 
-     * 1) Constructing a database from scratch can take several minutes, it is always preferred to create it a priori and then load it
-     *    with load method
-     * 2) In order to use this method pcd files MUST follow a naming convention, that is obj_name_latitude_longitude.pcd  (i.e. funnel_20_30.pcd)
-     *    Not using this naming convention may result in corrupted or unusable database
+     * Please note that:
+     *  -Constructing a database from scratch can take several minutes at least.
+     *  -In order to use this method, PCD files must follow a naming convention, that is obj_name_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
+     *  -PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
+     *  -PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
      */
     void create(boost::filesystem::path pathClouds);
     //TODO operator =
+    /** \brief Erase the database from memory, leaving it unset
+    */
+    void clear();
 };
 
 /** \brief Describes a single candidate object to the query 
  * \author Federico Spinelli
+ *
+ * This class is used internally by PoseEstimation a few methods are present to look at rank, distance, RMSE and transformation
  **/
 class Candidate{
   
   friend class PoseEstimation;
   string name_;
   PointCloud<PointXYZRGBA>::Ptr cloud_;
-  float rank_;
+  int rank_;
   float distance_;
+  float normalized_distance_;
   float rmse_;
   Eigen::Matrix4f transformation_;
 
   public:
-    //Default empty Constructor
+    /** \brief Default empty Constructor
+     */
     Candidate ();
-    //Constructor with name and cloud
-    Candidate (string& , PointCloud<PointXYZRGBA>& );
-    //Constructor with name and cloud pointer
-    Candidate (string& , PointCloud<PointXYZRGBA>::Ptr );
-    //Set Rank of Candidate
-    void setRank (float);
-    //Get Candidate Rank
-    void getRank (float&);
-    //Set Distance of Candidate from Query
-    void setDistance (float);
-    //Get Distance of Candidate from Query
-    void getDistance (float&);
-    //Set RMSE of Candidate
-    void setRMSE (float);
-    //Get Candidate RMSE 
-    void getRMSE (float&);
-    //Get Transformation that brings the Candidate over the Query into Eigen Matrix
-    void getTransformation (Eigen::Matrix4f&);
-    //Set Candidate Transformation 
-    void setTransformation (Eigen::Matrix4f);
+    /** \brief Constructor with name and cloud
+     * \param[in] str The object name the candidate will have
+     * \param[in] cl Point cloud which holds the object
+     */
+    Candidate (string str, PointCloud<PointXYZRGBA>& cl);
+    /** \brief Constructor with name and cloud pointer
+     * \param[in] str The object name the candidate will have
+     * \param[in] clp Shared pointer to the point cloud that contains the object
+     * Note that clp parameter should not be empty pointer, or the contructor will throw an error
+     */
+    Candidate (string str, PointCloud<PointXYZRGBA>::Ptr clp);
+    /** \brief Get Candidate Rank in the list of candidates
+     * \param[out] r The rank the candidate has in the list
+     */
+    void getRank (int& r);
+    /** \brief Get the distance of Candidate from Query in the metric chosen by the feature
+     * \param[out] d The distance the candidate has from the query
+     */
+    void getDistance (float& d);
+    /** \brief Get the Normalize distance of Candidate from Query
+     * \param[out] d The distance the candidate has from the query
+     * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k"
+     */
+    void getNormalizedDistance (float& d);
+    /** \brief Get Root Mean Square Error of Candidate as it was after the refinement
+     * \param[out] e The Root Mean Square Error of the Candidate
+     */
+    void getRMSE (float& e);
+    /** \brief Get Homogeneous Transformation that brings the Candidate over the Query
+     * \param[out] t Transformation that brings the Candidate over the Query
+     * The transformation is expressed in the Candidate Reference System
+     */
+    void getTransformation (Eigen::Matrix4f& t);
 };
 
 /*

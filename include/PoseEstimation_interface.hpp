@@ -45,28 +45,44 @@ void PoseDB::load(path pathDB)
   if ( exists(pathDB) && is_directory(pathDB) )
   {
     if (is_regular_file(pathDB.string()+ "/vfh.h5") && extension(pathDB.string()+ "/vfh.h5") == ".h5")
-      flann::load_from_file (vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
+    {
+      histograms matrix;
+      flann::load_from_file (matrix, pathDB.string() + "/vfh.h5", "VFH Histograms");
+      vfh_db_ = make_shared<histograms>(matrix);
+    }
     else
     {
       print_error("[Database]\tInvalid vfh.h5 file... Try recreating the Database\n");
       exit;
     }
     if (is_regular_file(pathDB.string()+ "/esf.h5") && extension(pathDB.string()+ "/esf.h5") == ".h5")
-      flann::load_from_file (esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
+    {
+      histograms matrix;
+      flann::load_from_file (matrix, pathDB.string() + "/esf.h5", "ESF Histograms");
+      esf_db_ = make_shared<histograms>(matrix);
+    }
     else
     {
       print_error("[Database]\tInvalid esf.h5 file... Try recreating the Database\n");
       exit;
     }
     if (is_regular_file(pathDB.string()+ "/cvfh.h5") && extension(pathDB.string()+ "/cvfh.h5") == ".h5")
-      flann::load_from_file (cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
+    {
+      histograms matrix;
+      flann::load_from_file (matrix, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
+      cvfh_db_ = make_shared<histograms>(matrix);
+    }
     else
     {
       print_error("[Database]\tInvalid cvfh.h5 file... Try recreating the Database\n");
       exit;
     }
     if (is_regular_file(pathDB.string()+ "/ourcvfh.h5") && extension(pathDB.string()+ "/ourcvfh.h5") == ".h5")
-      flann::load_from_file (ourcvfh_, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
+    {
+      histograms matrix;
+      flann::load_from_file (matrix, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
+      ourcvfh_db_ = make_shared<histograms>(matrix);
+    }
     else
     {
       print_error("[Database]\tInvalid ourcvfh.h5 file... Try recreating the Database\n");
@@ -74,8 +90,8 @@ void PoseDB::load(path pathDB)
     }
     if (is_regular_file(pathDB.string()+ "/vfh.idx") && extension(pathDB.string()+ "/vfh.idx") == ".idx")
     {
-      boost::shared_ptr<indexVFH> idx (new indexVFH(vfh_, SavedIndexParams(pathDB.string()+"/vfh.idx")));
-      idx_vfh_ = idx;
+      indexVFH idx (*vfh_db_, SavedIndexParams(pathDB.string()+"/vfh.idx"));
+      idx_vfh_ = make_shared<indexVFH>(idx);
       idx_vfh_->buildIndex();
     }
     else
@@ -85,8 +101,8 @@ void PoseDB::load(path pathDB)
     }
     if (is_regular_file(pathDB.string()+ "/esf.idx") && extension(pathDB.string()+ "/esf.idx") == ".idx")
     {
-      boost::shared_ptr<indexESF> idx (new indexESF(esf_, SavedIndexParams(pathDB.string()+"/esf.idx")));
-      idx_esf_ = idx;
+      indexESF idx (*esf_db_, SavedIndexParams(pathDB.string()+"/esf.idx"));
+      idx_esf_ = make_shared<indexESF>(idx);
       idx_esf_->buildIndex();
     }
     else
@@ -100,7 +116,6 @@ void PoseDB::load(path pathDB)
       string line;
       if (file.is_open())
       {
-        names_.clear();
         while (getline (file, line))
         {
           trim(line); //remove white spaces from line
@@ -124,7 +139,6 @@ void PoseDB::load(path pathDB)
       string line;
       if (file.is_open())
       {
-        clusters_cvfh_.clear();
         while (getline (file, line))
         {
           trim(line); //remove white spaces from line
@@ -158,7 +172,6 @@ void PoseDB::load(path pathDB)
       string line;
       if (file.is_open())
       {
-        clusters_ourcvfh_.clear();
         while (getline (file, line))
         {
           trim(line); //remove white spaces from line
@@ -186,11 +199,25 @@ void PoseDB::load(path pathDB)
       print_error("[Database]\tInvalid ourcvfh.cluster file... Try recreating the Database\n");
       exit;
     }
+    dir_path_ = pathDB;
   }
   else
     print_error("[Database]\t%s is not a valid database directory, or doesnt exists\n",pathDB.string().c_str());
 }
 ///////////////////////////////////////
+void PoseDB::clear()
+{
+  vfh_db_.reset();
+  esf_db_.reset();
+  cvfh_db_.reset();
+  ourcvfh_db_.reset();
+  names_.clear();
+  clusters_cvfh_.clear();
+  clusters_ourcvfh_.clear();
+  idx_vfh_.reset();
+  idx_esf_.reset();
+  dir_path_.clear();
+}
 /////////////////////////////////////////
 void PoseDB::save(path pathDB)
 {
@@ -209,64 +236,70 @@ Candidate::Candidate ()
   rank_ = -1;
   distance_ = -1;
   rmse_ = -1;
+  normalized_distance_=-1;
   transformation_.setIdentity();
 }
 ///////////////////////////////////////////////////////////////////
-Candidate::Candidate (string& str, PointCloud<PointXYZRGBA>& cl)
+Candidate::Candidate (string str, PointCloud<PointXYZRGBA>& cl)
 {
   name_ = str;
   cloud_ = cl.makeShared();
   rank_ = -1;
   distance_ = -1;
   rmse_ = -1;
+  normalized_distance_=-1;
   transformation_.setIdentity();
 }
 /////////////////////////////////////////////////////////////////////
-Candidate::Candidate (string& str, PointCloud<PointXYZRGBA>::Ptr clp)
+Candidate::Candidate (string str, PointCloud<PointXYZRGBA>::Ptr clp)
 {
   name_ = str;
-  cloud_ = clp;
+  if (clp)
+    cloud_ = clp;
+  else
+  {
+    print_error("[Candidate Constructor]\tShared pointer provided is empty... Aborting Candidate creation\n");
+    exit;
+  }
   rank_ = -1;
   distance_ = -1;
   rmse_ = -1;
+  normalized_distance_=-1;
   transformation_.setIdentity();
 }
 ///////////////////////////////////////////////////////////////////////
-void Candidate::setRank (float r) 
+void Candidate::getRank (int& r) 
 { 
-  rank_ = r; 
-}
-void Candidate::getRank (float& r) 
-{ 
+  if (rank_==-1)
+    print_warn("[getRank]\tCandidate is not part of any list (yet), thus it has no rank, writing -1 ...\n");
   r = rank_; 
-}
-void Candidate::setDistance (float d) 
-{ 
-  distance_ = d; 
 }
 void Candidate::getDistance (float& d) 
 { 
+  if (distance_==-1)
+    print_warn("[getDistance]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n");
   d = distance_; 
 }
-void Candidate::setRMSE (float r) 
+void Candidate::getNormalizedDistance (float& d) 
 { 
-  rmse_ = r; 
+  if (normalized_distance_==-1)
+    print_warn("[getDistance]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n");
+  d = normalized_distance_; 
 }
 void Candidate::getRMSE (float& r) 
 { 
+  if (rmse_==-1)
+    print_warn("[getRMSE]\tCandidate has not been refined (yet), thus it has no RMSE, writing -1 ...\n");
   r = rmse_; 
 }
 void Candidate::getTransformation (Eigen::Matrix4f& t) 
-{ 
+{
+  if (transformation_.isIdentity())
+    print_warn("[getTransformation]\tCandidate has Identity transformation, it probably hasn't been refined (yet)...\n");
   t = transformation_; 
-}
-void Candidate::setTransformation (Eigen::Matrix4f t) 
-{ 
-  transformation_ = t; 
 }
 
 /* Class PoseEstimation Implementation */
-
 PoseEstimation::PoseEstimation ()
 {
   vp_supplied_ = query_set_ = candidates_found_ = refinement_done_ = false;
@@ -752,8 +785,7 @@ bool PoseEstimation::initQuery_()
     timer.reset();
   if (feature_count_ <=0)
   {
-    if (params_["verbosity"]>0)
-      print_warn("[initQuery]\tCannot initialize query, zero features chosen to estimate from query\n");
+    print_error("[initQuery]\tCannot initialize query, zero features chosen to estimate\n");
     return false;
   }
   //Check if a filter is needed
@@ -832,31 +864,60 @@ void PoseEstimation::printParams()
 /////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setDatabase(path dbPath)
 {
+  database_.clear();
+  db_set_=false;
   database_.load(dbPath);
+  db_set_ = true;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::generateLists()
+{
+  if (!db_set_)
+  {
+    print_error("[generateLists]\tDatabase is not set, set it with setDatabase first! Exiting...\n");
+    exit;
+  }
+  if (!query_set_)
+  {
+    print_error("[generateLists]\tQuery is not set, set it with setQuery first! Exiting...\n");
+    exit;
+  }
+  if (params_["useVFH"]>=1)
+  {
+    VFH_list_.clear();
+    flann::Matrix<float> vfh_query (new float[1*308],1,308);
+    for (size_t j=0; j < 308; ++j)
+      vfh_query[0][j]= vfh_.points[0].histogram[j];
+    int k = params_["kNeighbor"];
+    flann::Matrix<int> match_id (new int[1*k],1,k);
+    flann::Matrix<float> match_dist (new float[1*k],1,k);
+    database_.idx_vfh_->knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
+    for (size_t i=0; i<k; ++i)
+    {
+      string name= database_.names_[match_id[0][i]];
+      PointCloud<PointXYZRGBA>::Ptr cloud (new PointCloud<PointXYZRGBA>);
+      pcl::io::loadPCDFile((database_.dir_path_.string()+"/Clouds/"+name).c_str(), *cloud);
+      Candidate c(name,cloud);
+      c.rank_=i+1;
+      c.distance_=match_dist[0][i];
+      c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
+      VFH_list_.push_back(c);
+    }
+  }
+  //TODO other features
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists(path dbPath)
 {
   if (!query_set_)
   {
-    print_error("[generateLists]\tQuery is not set, cannot create lists of candidates, set it first!\n");
+    print_error("[generateLists]\tQuery is not set, set it with setQuery first! Exiting...\n");
     exit;
   }
-  database_.load(dbPath);
-  if (params_["useVFH"]>=1)
-  {
-    flann::Matrix<float> vfh_query (new float[1*308],1,308);
-    for (size_t j=0; j < 308; ++j)
-      vfh_query[0][j]= vfh_.points[0].histogram[j];
-    int k = params_["kNeighbor"];
-    flann::Matrix<int> match_id (new int[k],1,k);
-    flann::Matrix<float> match_dist (new float[k],1,k);
-    database_.idx_vfh_->knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
-    // TODO build VFH list of candidates
-  }
-}
-//////////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::generateLists()
-{
+  if (db_set_ && params_["verbosity"]>0)
+    print_warn("[generateLists]\tDatabase was already set, but a new path was specified, loading the new database...\n"
+                "\t\t\t\tUse generateLists() without arguments if you want to keep using the previously loaded database\n");
+  setDatabase(dbPath);
+  generateLists();
 }
 #endif
