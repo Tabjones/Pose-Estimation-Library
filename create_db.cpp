@@ -452,7 +452,7 @@ main (int argc, char** argv)
     //Compute method
     cvfhE.compute (*output);
     cvfh_list.open ((data_dir.string() + "cvfh.list").c_str(), fstream::out | fstream::app);  //append mode
-    cvfh_list << orderedClouds[i].first + "_" + to_string(output->points.size())<<"\n";  //write name of the object and how many histogram it holds 
+    cvfh_list << to_string(output->points.size())<<"\n";  //write name of the object and how many histogram it holds 
     cvfh_list.close();
     for (size_t n=0; n < output->points.size(); ++n)
       descriptors.push_back(output->points[n]);
@@ -521,7 +521,7 @@ main (int argc, char** argv)
     //Compute method
     ourcvfhE.compute ( *output );
     ourcvfh_list.open ((data_dir.string() + "ourcvfh.list").c_str(), fstream::out | fstream::app);  //append mode
-    ourcvfh_list << orderedClouds[i].first + "_" + to_string(output->points.size())<<"\n";    
+    ourcvfh_list << to_string(output->points.size())<<"\n";    
     ourcvfh_list.close();
     for (size_t n=0; n < output->points.size(); ++n)
       descriptors.push_back(output->points[n]);

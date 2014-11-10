@@ -38,76 +38,89 @@ using namespace boost;
 using namespace boost::filesystem;
 using namespace flann;
 
+/**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
+ * \param[in] a The first histogram
+ * \param[in] b The second histogram
+ * Returns the computed norm (D), defined as follows:
+ * \f[
+ *  D = 1 - \frac{1+\sum_i^n{min\lef(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
+ * \f]
+ * where n=308 for CVFH/OURCVFH histograms
+ */
+float MinMaxDistance (vector<float>& a, vector<float>& b)
+{
+  if (a.size() != b.size())
+  {
+    print_error("%*s]\tVectors size mismatch!\n",20,__func__);
+    return (-1);
+  }
+  else
+  {
+    int size = a.size();
+    float num(1.0f), den(1.0f);
+    ///Process 11 items with each loop for efficency (since it should be applied to vectors of 308 elements)
+    int i=0;
+    for (; i<(size-10); i+=11)
+    { 
+      num += min(a[i],b[i]) + min(a[i+1],b[i+1]) + min(a[i+2],b[i+2]) + min(a[i+3],b[i+3]) + min(a[i+4],b[i+4]) + min(a[i+5],b[i+5]);
+      num += min(a[i+6],b[i+6]) + min(a[i+7],b[i+7]) + min(a[i+8],b[i+8]) + min(a[i+9],b[i+9]) + min(a[i+10],b[i+10]);
+      den += max(a[i],b[i]) + max(a[i+1],b[i+1]) + max(a[i+2],b[i+2]) + max(a[i+3],b[i+3]) + max(a[i+4],b[i+4]) + max(a[i+5],b[i+5]);
+      den += max(a[i+6],b[i+6]) + max(a[i+7],b[i+7]) + max(a[i+8],b[i+8]) + max(a[i+9],b[i+9]) + max(a[i+10],b[i+10]);
+    }
+    ///process last 0-10 elements (if size!=308)
+    while ( i < size)
+    {
+      num += min(a[i],b[i]);
+      den += max(a[i],b[i]);
+      ++i;
+    }
+    return (1 - (num/den));
+  }
+}
+
 /* Class PoseDB Implementation */
 bool PoseDB::load(path pathDB)
 {
   //load should not be called if flann matrix(es) are already initialized
   if ( exists(pathDB) && is_directory(pathDB) )
   {
-    if (is_regular_file(pathDB.string()+ "/vfh.h5") && extension(pathDB.string()+ "/vfh.h5") == ".h5")
+    path Pclouds(pathDB.string()+"/Clouds");
+    if ( exists(Pclouds) && is_directory(Pclouds) )
     {
-      histograms matrix;
-      flann::load_from_file (matrix, pathDB.string() + "/vfh.h5", "VFH Histograms");
-      vfh_db_ = make_shared<histograms>(matrix);
+      vector<path> pvec;
+      copy (directory_iterator(Pclouds), directory_iterator(), back_inserter(pvec));
+      sort (pvec.begin(), pvec.end());
+      clouds_.resize(pvec.size());
+      int i(0);
+      for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
+        pcl::io::loadPCDFile (it->string().c_str(),clouds_[i]);
     }
+    if (is_regular_file(pathDB.string()+ "/vfh.h5") && extension(pathDB.string()+ "/vfh.h5") == ".h5")
+      flann::load_from_file (vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
     else
     {
-      print_error("[Database]\tInvalid vfh.h5 file... Try recreating the Database\n");
+      print_error("%*s]\tInvalid vfh.h5 file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/esf.h5") && extension(pathDB.string()+ "/esf.h5") == ".h5")
-    {
-      histograms matrix;
-      flann::load_from_file (matrix, pathDB.string() + "/esf.h5", "ESF Histograms");
-      esf_db_ = make_shared<histograms>(matrix);
-    }
+      flann::load_from_file (esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
     else
     {
-      print_error("[Database]\tInvalid esf.h5 file... Try recreating the Database\n");
+      print_error("%*s]\tInvalid esf.h5 file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/cvfh.h5") && extension(pathDB.string()+ "/cvfh.h5") == ".h5")
-    {
-      histograms matrix;
-      flann::load_from_file (matrix, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
-      cvfh_db_ = make_shared<histograms>(matrix);
-    }
+      flann::load_from_file (cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
     else
     {
-      print_error("[Database]\tInvalid cvfh.h5 file... Try recreating the Database\n");
+      print_error("%*s]\tInvalid cvfh.h5 file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/ourcvfh.h5") && extension(pathDB.string()+ "/ourcvfh.h5") == ".h5")
-    {
-      histograms matrix;
-      flann::load_from_file (matrix, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
-      ourcvfh_db_ = make_shared<histograms>(matrix);
-    }
+      flann::load_from_file (ourcvfh_, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
     else
     {
-      print_error("[Database]\tInvalid ourcvfh.h5 file... Try recreating the Database\n");
-      return false;
-    }
-    if (is_regular_file(pathDB.string()+ "/vfh.idx") && extension(pathDB.string()+ "/vfh.idx") == ".idx")
-    {
-      indexVFH idx (*vfh_db_, SavedIndexParams(pathDB.string()+"/vfh.idx"));
-      idx_vfh_ = make_shared<indexVFH>(idx);
-      idx_vfh_->buildIndex();
-    }
-    else
-    {
-      print_error("[Database]\tInvalid vfh.idx file... Try recreating the Database\n");
-      return false;
-    }
-    if (is_regular_file(pathDB.string()+ "/esf.idx") && extension(pathDB.string()+ "/esf.idx") == ".idx")
-    {
-      indexESF idx (*esf_db_, SavedIndexParams(pathDB.string()+"/esf.idx"));
-      idx_esf_ = make_shared<indexESF>(idx);
-      idx_esf_->buildIndex();
-    }
-    else
-    {
-      print_error("[Database]\tInvalid esf.idx file... Try recreating the Database\n");
+      print_error("%*s]\tInvalid ourcvfh.h5 file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/names.list") && extension(pathDB.string()+ "/names.list") == ".list")
@@ -124,13 +137,13 @@ bool PoseDB::load(path pathDB)
       }
       else
       {
-        print_error("[Database]\tCannot open names.list file... Try recreating the Database\n");
+        print_error("%*s]\tCannot open names.list file... Try recreating the Database\n",20,__func__);
         return false;
       }
     }
     else
     {
-      print_error("[Database]\tInvalid names.list file... Try recreating the Database\n");
+      print_error("%*s]\tInvalid names.list file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/cvfh.cluster") && extension(pathDB.string()+ "/cvfh.cluster") == ".cluster")
@@ -149,21 +162,21 @@ bool PoseDB::load(path pathDB)
           }
           catch (...)
           {
-            print_error("[Database]\tCannot convert string in cvfh.cluster, file is likely corrupted... Try recreating the Database\n");
-            exit;
+            print_error("%*s]\tCannot convert string in cvfh.cluster, file is likely corrupted... Try recreating the Database\n",20,__func__);
+            return false;
           }
           clusters_cvfh_.push_back(c);
         }//end of file
       }
       else
       {
-        print_error("[Database]\tCannot open cvfh.cluster file... Try recreating the Database\n");
+        print_error("%*s]\tCannot open cvfh.cluster file... Try recreating the Database\n",20,__func__);
         return false;
       }
     }
     else
     {
-      print_error("[Database]\tInvalid cvfh.cluster file... Try recreating the Database\n");
+      print_error("%*s]\tInvalid cvfh.cluster file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/ourcvfh.cluster") && extension(pathDB.string()+ "/ourcvfh.cluster") == ".cluster")
@@ -182,45 +195,96 @@ bool PoseDB::load(path pathDB)
           }
           catch (...)
           {
-            print_error("[Database]\tCannot convert string in ourcvfh.cluster, file is likely corrupted... Try recreating the Database\n");
-            exit;
+            print_error("%*s]\tCannot convert string in ourcvfh.cluster, file is likely corrupted... Try recreating the Database\n",20,__func__);
+            return false;
           }
           clusters_ourcvfh_.push_back(c);
         }//end of file
       }
       else
       {
-        print_error("[Database]\tCannot open ourcvfh.cluster file... Try recreating the Database\n");
+        print_error("%*s]\tCannot open ourcvfh.cluster file... Try recreating the Database\n",20,__func__);
         return false;
       }
     }
     else
     {
-      print_error("[Database]\tInvalid ourcvfh.cluster file... Try recreating the Database\n");
+      print_error("%*s]\tInvalid ourcvfh.cluster file... Try recreating the Database\n",20,__func__);
       return false;
     }
-    dir_path_ = pathDB;
   }
   else
   {
-    print_error("[Database]\t%s is not a valid database directory, or doesnt exists\n",pathDB.string().c_str());
+    print_error("%*s]\t%s is not a valid database directory, or doesnt exists\n",20,__func__,pathDB.string().c_str());
     return false;
   }
   return true;
 }
+//////////////////////////////////////
+void PoseDB::computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query, int idx, string feature, float& distance)
+{
+  int clusters_query = query->points.size();
+  int clusters;
+  distance = 0;
+  bool cvfh(false), ourcvfh(false);
+  if ( feature.compare("CVFH")==0 )
+  {
+    cvfh=true;
+    clusters = clusters_cvfh_[idx];
+  }
+  else if ( feature.compare("OURCVFH")==0 )
+  {
+    ourcvfh=true;
+    clusters = clusters_ourcvfh_[idx];
+  }
+  else
+  {
+    print_error("%*s]\tFeature must be 'CVFH' or 'OURCVFH'! Exiting...\n",20,__func__);
+    return;
+  }
+  for (int i=0; i< clusters_query; ++i)
+  {
+    vector<float> tmp_dist;
+    vector<float> hist_query;
+    for (int n=0; n<308; ++n)
+      hist_query.push_back(query->points[i].histogram[n]);
+    for (int j=0; j< clusters; ++j)
+    {
+      vector<float> hist;
+      if (cvfh)
+      {
+        int idxc=0;
+        for (int m=0; m<idx; ++m)
+          idxc+=clusters_cvfh_[m];
+        for (int n=0; n<cvfh_.cols; ++n)
+          hist.push_back(cvfh_[idxc+j][n]);
+      }
+      else if (ourcvfh)
+      {
+        int idxc=0;
+        for (int m=0; m<idx; ++m)
+          idxc+=clusters_ourcvfh_[m];
+        for (int n=0; n<ourcvfh_.cols; ++n)
+          hist.push_back(ourcvfh_[idxc+j][n]);
+      }
+      tmp_dist.push_back(MinMaxDistance(hist_query, hist));
+    }
+    distance += *min_element(tmp_dist.begin(), tmp_dist.end());
+  }
+}
 ///////////////////////////////////////
 void PoseDB::clear()
 {
-  vfh_db_.reset();
-  esf_db_.reset();
-  cvfh_db_.reset();
-  ourcvfh_db_.reset();
+  //vfh_.reset();
+  //esf_db_.reset();
+  //cvfh_db_.reset();
+  //ourcvfh_db_.reset();
   names_.clear();
   clusters_cvfh_.clear();
   clusters_ourcvfh_.clear();
-  idx_vfh_.reset();
-  idx_esf_.reset();
-  dir_path_.clear();
+  //idx_vfh_.reset();
+  //idx_esf_.reset();
+  clouds_.clear();
 }
 /////////////////////////////////////////
 void PoseDB::save(path pathDB)
@@ -228,9 +292,66 @@ void PoseDB::save(path pathDB)
   //TODO
 }
 /////////////////////////////////////////
-void PoseDB::create(path pathClouds)
+void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
 {
-  //TODO
+  ///Parameters correctness are not checked for now... assume they are correct (TODO add checks)
+  if (exists(pathClouds) && is_directory(pathClouds))
+  {
+    this->clear();
+    vector<path> pvec;
+    copy(directory_iterator(pathClouds), directory_iterator(), back_inserter(pvec));
+    sort(pvec.begin(), pvec.end());
+    int i(0);
+    for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
+    {
+      if (is_regular_file (*it) && it->extension() == ".pcd")
+        pcl::io::loadPCDFile(it->string().c_str(), clouds_[i]);
+      else
+      {
+        print_warn("%*s]\tLoaded File (%s) is not a pcd, skipping...\n",20,__func__,it->string().c_str());
+        continue;
+      }
+      vector<string> vst;
+      split (vst,it->string(),boost::is_any_of("../\\"), boost::token_compress_on);
+      names_.push_back(vst.at(vst.size()-2)); ///filename without extension and path
+      PC::Ptr input (clouds_[i].makeShared()); 
+      PC::Ptr output (new PC);
+      if ((*params)["filtering"] >0)
+      {
+        StatisticalOutlierRemoval<PointXYZRGBA> filter;
+        filter.setMeanK ( (*params)["filterMeanK"] );
+        filter.setStddevMulThresh ( (*params)["filterStdDevMulThresh"] );
+        filter.setInputCloud(input);
+        filter.filter(*output);
+        copyPointCloud(*output, *input);
+      }
+      if ((*params)["upsampling"] >0)
+      {
+        MovingLeastSquares<PointXYZRGBA, PointXYZRGBA> mls;
+        search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+        mls.setInputCloud (input);
+        mls.setSearchMethod (tree);
+        mls.setUpsamplingMethod (MovingLeastSquares<PointXYZRGBA, PointXYZRGBA>::RANDOM_UNIFORM_DENSITY);
+        mls.setComputeNormals (false);
+        mls.setPolynomialOrder ( (*params)["mlsPolyOrder"] );
+        mls.setPolynomialFit ( (*params)["mlsPolyFit"] );
+        mls.setSearchRadius ( (*params)["mlsSearchRadius"] );
+        mls.setPointDensity( (*params)["mlsPointDensity"] );
+        mls.process (*output); //Process Upsampling
+        copyPointCloud(*output, *input);
+      }
+      if ((*params)["downsampling"]>0)
+      {
+        VoxelGrid <PointXYZRGBA> vgrid;
+        vgrid.setInputCloud (input);
+        vgrid.setLeafSize ( (*params)["vgridLeafSize"], (*params)["vgridLeafSize"], (*params)["vgridLeafSize"]); //Downsample to 3mm
+        vgrid.setDownsampleAllData (true);
+        vgrid.filter (*output); //Process Downsampling
+        copyPointCloud(*output, *input);
+      }
+    //TODO normals and features
+    }
+  }
 }
 /////////////////////////////////////////
 /* Class Candidate Implementation */
@@ -244,7 +365,7 @@ Candidate::Candidate ()
   transformation_.setIdentity();
 }
 ///////////////////////////////////////////////////////////////////
-Candidate::Candidate (string str, PointCloud<PointXYZRGBA>& cl)
+Candidate::Candidate (string str, PC& cl)
 {
   name_ = str;
   cloud_ = cl.makeShared();
@@ -255,15 +376,15 @@ Candidate::Candidate (string str, PointCloud<PointXYZRGBA>& cl)
   transformation_.setIdentity();
 }
 /////////////////////////////////////////////////////////////////////
-Candidate::Candidate (string str, PointCloud<PointXYZRGBA>::Ptr clp)
+Candidate::Candidate (string str, PC::Ptr clp)
 {
   name_ = str;
   if (clp)
     cloud_ = clp;
   else
   {
-    print_error("[Candidate Constructor]\tShared pointer provided is empty... Aborting Candidate creation\n");
-    exit;
+    print_error("%*s]\tShared pointer provided is empty... Aborting Candidate creation\n",20,__func__);
+    return;
   }
   rank_ = -1;
   distance_ = -1;
@@ -272,34 +393,34 @@ Candidate::Candidate (string str, PointCloud<PointXYZRGBA>::Ptr clp)
   transformation_.setIdentity();
 }
 ///////////////////////////////////////////////////////////////////////
-void Candidate::getRank (int& r) 
+void Candidate::getRank (int& r) const
 { 
   if (rank_==-1)
-    print_warn("[getRank]\tCandidate is not part of any list (yet), thus it has no rank, writing -1 ...\n");
+    print_warn("%*s]\tCandidate is not part of any list (yet), thus it has no rank, writing -1 ...\n",20,__func__);
   r = rank_; 
 }
-void Candidate::getDistance (float& d) 
+void Candidate::getDistance (float& d) const
 { 
   if (distance_==-1)
-    print_warn("[getDistance]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n");
+    print_warn("%*s]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n",20,__func__);
   d = distance_; 
 }
-void Candidate::getNormalizedDistance (float& d) 
+void Candidate::getNormalizedDistance (float& d) const 
 { 
   if (normalized_distance_==-1)
-    print_warn("[getDistance]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n");
+    print_warn("%*s]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n",20,__func__);
   d = normalized_distance_; 
 }
-void Candidate::getRMSE (float& r) 
+void Candidate::getRMSE (float& r) const
 { 
   if (rmse_==-1)
-    print_warn("[getRMSE]\tCandidate has not been refined (yet), thus it has no RMSE, writing -1 ...\n");
+    print_warn("%*s]\tCandidate has not been refined (yet), thus it has no RMSE, writing -1 ...\n",20,__func__);
   r = rmse_; 
 }
-void Candidate::getTransformation (Eigen::Matrix4f& t) 
+void Candidate::getTransformation (Eigen::Matrix4f& t) const
 {
   if (transformation_.isIdentity())
-    print_warn("[getTransformation]\tCandidate has Identity transformation, it probably hasn't been refined (yet)...\n");
+    print_warn("%*s]\tCandidate has Identity transformation, it probably hasn't been refined (yet)...\n",20,__func__);
   t = transformation_; 
 }
 
@@ -346,8 +467,8 @@ void PoseEstimation::setParam(string key, float value)
   if (value < 0)
   {
     if (params_["verbosity"]>0)
-      print_warn("[setParam]\tParameter '%s' has a negative value (%g), ignoring...\n", key.c_str(), value);
-    exit;
+      print_warn("%*s]\tParameter '%s' has a negative value (%g), ignoring...\n", 20,__func__, key.c_str(), value);
+    return;
   }
   params_[key]=value;
   //Check if key was a valid one, since the class has fixed number of parameters, 
@@ -355,11 +476,11 @@ void PoseEstimation::setParam(string key, float value)
   if (params_.size() != size)
   {
     if (params_["verbosity"]>0)
-      print_warn("[setParam]\tInvalid key parameter '%s', ignoring...\n", key.c_str());
+      print_warn("%*s]\tInvalid key parameter '%s', ignoring...\n", 20,__func__, key.c_str());
     params_.erase(key);
   }
   else if (params_["verbosity"]>1)
-    print_info("[setParam]\tSetting parameter: %s=%g\n",key.c_str(),value);
+    print_info("%*s]\tSetting parameter: %s=%g\n",20,__func__,key.c_str(),value);
   //Recheck how many features we want
   int count(0);
   if (params_["useVFH"]>=1)
@@ -372,7 +493,7 @@ void PoseEstimation::setParam(string key, float value)
     count++;
   feature_count_ = count;
   if (feature_count_ <=0 && params_["verbosity"]>0)
-    print_warn("[setParam]\tYou disabled all features, pose estimation will not initialize query...\n");
+    print_warn("%*s]\tYou disabled all features, pose estimation will not initialize query...\n",20,__func__);
 }
 /////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setParam_ (string key, string& value)
@@ -385,12 +506,12 @@ void PoseEstimation::setParam_ (string key, string& value)
   catch (const std::invalid_argument& ia)
   {
     if (params_["verbosity"] > 0)
-      print_warn("[setParam_]\tInvalid %s=%s : %s \n", key.c_str(), value.c_str(), ia.what());
+      print_warn("%*s]\tInvalid %s=%s : %s \n",20,__func__, key.c_str(), value.c_str(), ia.what());
   }
   catch (const std::out_of_range& oor)
   {
     if (params_["verbosity"] > 0)
-      print_warn("[setParam]\tInvalid %s=%s : %s \n", key.c_str(), value.c_str(), oor.what());
+      print_warn("%*s]\tInvalid %s=%s : %s \n", 20,__func__, key.c_str(), value.c_str(), oor.what());
   }
   setParam(key, f); 
 }
@@ -424,7 +545,7 @@ void PoseEstimation::initParams(path config_file)
             if (vst.size()!=2)
             {
               if (params_["verbosity"]>0)
-                print_warn("[initParams]\tInvalid configuration line (%s), ignoring... Must be [Token]=[Value]\n", line.c_str());
+                print_warn("%*s]\tInvalid configuration line (%s), ignoring... Must be [Token]=[Value]\n", 20,__func__, line.c_str());
               continue;
             }
             setParam_(vst.at(0), vst.at(1));
@@ -432,13 +553,13 @@ void PoseEstimation::initParams(path config_file)
         }//end of config file
       }
       else
-        print_error("[initParams]\tCannot open config file! (%s)\n", config_file.string().c_str());
+        print_error("%*s]\tCannot open config file! (%s)\n", 20,__func__, config_file.string().c_str());
     }  
     else
-      print_error("[initParams]\tConfig file provided (%s) has no valid extension! (must be .conf)\n", config_file.string().c_str());
+      print_error("%*s]\tConfig file provided (%s) has no valid extension! (must be .conf)\n", 20,__func__, config_file.string().c_str());
   }
   else
-    print_error("[initParams]\tPath to Config File is not valid ! (%s)\n", config_file.string().c_str());
+    print_error("%*s]\tPath to Config File is not valid ! (%s)\n", 20,__func__, config_file.string().c_str());
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::filtering_()
@@ -446,12 +567,12 @@ void PoseEstimation::filtering_()
   StopWatch timer;
   if (params_["verbosity"] >1)
   {
-    print_info("[filtering]\tSetting Statistical Outlier Filter to preprocess query cloud...\n");
-    print_info("[filtering]\tSetting mean K to %g\n", params_["filterMeanK"]);
-    print_info("[filtering]\tSetting Standard Deviation multiplier to %g\n", params_["filterStdDevMulThresh"]);
+    print_info("%*s]\tSetting Statistical Outlier Filter to preprocess query cloud...\n",20,__func__);
+    print_info("%*s]\tSetting mean K to %g\n",20,__func__, params_["filterMeanK"]);
+    print_info("%*s]\tSetting Standard Deviation multiplier to %g\n",20,__func__, params_["filterStdDevMulThresh"]);
     timer.reset();
   }
-  PointCloud<PointXYZRGBA>::Ptr filtered (new PointCloud<PointXYZRGBA>);
+  PC::Ptr filtered (new PC);
   StatisticalOutlierRemoval<PointXYZRGBA> fil;
   fil.setMeanK (params_["filterMeanK"]);
   fil.setStddevMulThresh (params_["filterStdDevMulThresh"]);
@@ -463,7 +584,7 @@ void PoseEstimation::filtering_()
     query_cloud_processed_ = filtered;
   if (params_["verbosity"]>1)
   {
-    print_info("[filtering]\tTotal time elapsed during filter: ");
+    print_info("%*s]\tTotal time elapsed during filter: ",20,__func__);
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
@@ -474,15 +595,15 @@ void PoseEstimation::upsampling_()
   StopWatch timer;
   if (params_["verbosity"] >1)
   {
-    print_info("[upsampling]\tSetting MLS with Random Uniform Density to preprocess query cloud...\n");
-    print_info("[upsampling]\tSetting polynomial order to %g\n", params_["mlsPolyOrder"]);
+    print_info("%*s]\tSetting MLS with Random Uniform Density to preprocess query cloud...\n",20,__func__);
+    print_info("%*s]\tSetting polynomial order to %g\n",20,__func__, params_["mlsPolyOrder"]);
     string t = params_["mlsPolyFit"] ? "true" : "false";
-    print_info("[upsampling]\tSetting polynomial fit to %s\n", t.c_str());
-    print_info("[upsampling]\tSetting desired point density to %g\n", params_["mlsPointDensity"]);
-    print_info("[upsampling]\tSetting search radius to %g\n", params_["mlsSearchRadius"]);
+    print_info("%*s]\tSetting polynomial fit to %s\n",20,__func__, t.c_str());
+    print_info("%*s]\tSetting desired point density to %g\n",20,__func__, params_["mlsPointDensity"]);
+    print_info("%*s]\tSetting search radius to %g\n",20,__func__, params_["mlsSearchRadius"]);
     timer.reset();
   }
-  PointCloud<PointXYZRGBA>::Ptr upsampled (new PointCloud<PointXYZRGBA>);
+  PC::Ptr upsampled (new PC);
   search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
   MovingLeastSquares<PointXYZRGBA, PointXYZRGBA> mls;
   if (query_cloud_processed_)
@@ -503,7 +624,7 @@ void PoseEstimation::upsampling_()
     query_cloud_processed_ = upsampled;
   if (params_["verbosity"]>1)
   {
-    print_info("[upsampling]\tTotal time elapsed during upsampling: ");
+    print_info("%*s]\tTotal time elapsed during upsampling: ",20,__func__);
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
@@ -514,11 +635,11 @@ void PoseEstimation::downsampling_()
   StopWatch timer;
   if (params_["verbosity"] >1)
   {
-    print_info("[downsampling]\tSetting Voxel Grid to preprocess query cloud...\n");
-    print_info("[downsampling]\tSetting Leaf Size to %g\n", params_["vgridLeafSize"]);
+    print_info("%*s]\tSetting Voxel Grid to preprocess query cloud...\n",20,__func__);
+    print_info("%*s]\tSetting Leaf Size to %g\n",20,__func__, params_["vgridLeafSize"]);
     timer.reset();
   }
-  PointCloud<PointXYZRGBA>::Ptr downsampled (new PointCloud<PointXYZRGBA>);
+  PC::Ptr downsampled (new PC);
   VoxelGrid<PointXYZRGBA> vg;
   if (query_cloud_processed_)
     vg.setInputCloud(query_cloud_processed_);
@@ -533,7 +654,7 @@ void PoseEstimation::downsampling_()
     query_cloud_processed_ = downsampled;
   if (params_["verbosity"]>1)
   {
-    print_info("[downsampling]\tTotal time elapsed during downsampling: ");
+    print_info("%*s]\tTotal time elapsed during downsampling: ",20,__func__);
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
@@ -552,8 +673,8 @@ bool PoseEstimation::computeNormals_()
   StopWatch timer;
   if (params_["verbosity"]>1)
   {
-    print_info("[normalEstimation]\tSetting normal estimation to calculate query normals...\n");
-    print_info("[normalEstimation]\tSetting a neighborhood radius of %g\n", params_["neRadiusSearch"]);
+    print_info("%*s]\tSetting normal estimation to calculate query normals...\n",20,__func__);
+    print_info("%*s]\tSetting a neighborhood radius of %g\n",20,__func__, params_["neRadiusSearch"]);
     timer.reset();
   }
   NormalEstimationOMP<PointXYZRGBA, Normal> ne;
@@ -567,7 +688,7 @@ bool PoseEstimation::computeNormals_()
     //A Viewpoint was already supplied by setQueryViewpoint, so we use it
     ne.setViewPoint (vpx_, vpy_, vpz_);
     if (params_["verbosity"] >1)
-      print_info("[normalEstimation]\tUsing supplied viewpoint: %g, %g, %g\n", vpx_, vpy_, vpz_);
+      print_info("%*s]\tUsing supplied viewpoint: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
   }
   else if (params_["computeViewpointFromName"])
   {
@@ -590,14 +711,14 @@ bool PoseEstimation::computeNormals_()
       if (vp_supplied_)
       {
         if (params_["verbosity"]>1)
-          print_info("[normalEstimation]\tUsing calculated viewpoint: %g, %g, %g\n", vpx_, vpy_, vpz_);
+          print_info("%*s]\tUsing calculated viewpoint: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
         ne.setViewPoint(vpx_, vpy_, vpz_);
       }
     }
     catch (...)
     {
       //something went wrong
-      print_error("[normalEstimation]\tCannot compute Viewpoint from query name... check naming convection and object reference frame!\n");
+      print_error("%*s]\tCannot compute Viewpoint from query name... Check naming convention and object reference frame!\n",20,__func__);
       return false;
     }
   }
@@ -615,24 +736,24 @@ bool PoseEstimation::computeNormals_()
     {
       ne.setViewPoint (vpx_, vpy_, vpz_);
       if (params_["verbosity"]>1)
-        print_info("[normalEstimation]\tUsing viewpoint from sensor_origin_: %g, %g, %g\n", vpx_, vpy_, vpz_);
+        print_info("%*s]\tUsing viewpoint from sensor_origin_: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
     }
     else
     {
-      print_error("[normalEstimation]\tCannot set viewpoint from sensor_origin_...\n");
+      print_error("%*s]\tCannot set viewpoint from sensor_origin_...\n",20,__func__);
       return false;
     }
   }
   else
   {
-    print_error("[normalEstimation]\tNo Viewpoint supplied!! Cannot continue!!\n");
-    print_error("[normalEstimation]\tEither use setQueryViewpoint or set 'useSOasViewpoint'/'computeViewpointFromName'\n");
+    print_error("%*s]\tNo Viewpoint supplied!! Cannot continue!!\n",20,__func__);
+    print_error("%*s]\tEither use setQueryViewpoint or set 'useSOasViewpoint'/'computeViewpointFromName'\n",20,__func__);
     return false;
   }
   ne.compute(normals_);
   if (params_["verbosity"]>1)
   {
-    print_info("[normalEstimation]\tTotal time elapsed during normal estimation: ");
+    print_info("%*s]\tTotal time elapsed during normal estimation: ",20,__func__);
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
@@ -644,15 +765,15 @@ void PoseEstimation::computeVFH_()
   if(!vp_supplied_)
   {
     //Should never happen, viewpoint was set by normal estimation
-    print_error("[VFH]\tCannot estimate VFH of query, viewpoint was not set...\n");
-    exit;
+    print_error("%*s]\tCannot estimate VFH of query, viewpoint was not set...\n",20,__func__);
+    return;
   }
   else
   {
     StopWatch timer;
     if (params_["verbosity"]>1)
     {
-      print_info("[VFH]\tEstimating VFH feature of query...\n");
+      print_info("%*s]\tEstimating VFH feature of query...\n",20,__func__);
       timer.reset();
     }
     VFHEstimation<PointXYZRGBA, Normal, VFHSignature308> vfhE;
@@ -664,7 +785,7 @@ void PoseEstimation::computeVFH_()
     vfhE.compute (vfh_);
     if (params_["verbosity"]>1)
     {
-      print_info("[VFH]\tTotal time elapsed during VFH estimation: ");
+      print_info("%*s]\tTotal time elapsed during VFH estimation: ",20,__func__);
       print_value("%g", timer.getTime());
       print_info(" ms\n");
     }
@@ -676,7 +797,7 @@ void PoseEstimation::computeESF_()
   StopWatch timer;
   if (params_["verbosity"]>1)
   {
-    print_info("[ESF]\tEstimating ESF feature of query...\n");
+    print_info("%*s]\tEstimating ESF feature of query...\n",20,__func__);
     timer.reset();
   }
   ESFEstimation<PointXYZRGBA, ESFSignature640> esfE;
@@ -686,7 +807,7 @@ void PoseEstimation::computeESF_()
   esfE.compute (esf_);
   if (params_["verbosity"]>1)
   {
-    print_info("[ESF]\tTotal time elapsed during ESF estimation: ");
+    print_info("%*s]\tTotal time elapsed during ESF estimation: ",20,__func__);
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
@@ -697,19 +818,19 @@ void PoseEstimation::computeCVFH_()
   if(!vp_supplied_)
   {
     //Should never happen, viewpoint was set by normal estimation
-    print_error("[CVFH]\tCannot estimate CVFH of query, viewpoint was not set...\n");
-    exit;
+    print_error("%*s]\tCannot estimate CVFH of query, viewpoint was not set...\n",20,__func__);
+    return;
   }
   else
   {
     StopWatch timer;
     if (params_["verbosity"]>1)
     {
-      print_info("[CVFH]\tEstimating CVFH feature of query...\n");
-      print_info("[CVFH]\tUsing Angle Threshold of %g degress for normal deviation\n",params_["cvfhEPSAngThresh"]); 
-      print_info("[CVFH]\tUsing Curvature Threshold of %g\n",params_["cvfhCurvThresh"]); 
-      print_info("[CVFH]\tUsing Cluster Tolerance of %g\n",params_["cvfhClustTol"]); 
-      print_info("[CVFH]\tConsidering a minimum of %g points for a cluster\n",params_["cvfhMinPoints"]); 
+      print_info("%*s]\tEstimating CVFH feature of query...\n",20,__func__);
+      print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["cvfhEPSAngThresh"]); 
+      print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["cvfhCurvThresh"]); 
+      print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["cvfhClustTol"]); 
+      print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["cvfhMinPoints"]); 
       timer.reset();
     }
     CVFHEstimation<PointXYZRGBA, Normal, VFHSignature308> cvfhE;
@@ -726,8 +847,8 @@ void PoseEstimation::computeCVFH_()
     cvfhE.compute (cvfh_);
     if (params_["verbosity"]>1)
     {
-      print_info("[CVFH]\tTotal of %d clusters were found on query\n", cvfh_.points.size());
-      print_info("[CVFH]\tTotal time elapsed during CVFH estimation: ");
+      print_info("%*s]\tTotal of %d clusters were found on query\n",20,__func__, cvfh_.points.size());
+      print_info("%*s]\tTotal time elapsed during CVFH estimation: ",20,__func__);
       print_value("%g", timer.getTime());
       print_info(" ms\n");
     }
@@ -739,21 +860,21 @@ void PoseEstimation::computeOURCVFH_()
   if(!vp_supplied_)
   {
     //Should never happen, viewpoint was set by normal estimation
-    print_error("[OURCVFH]\tCannot estimate OURCVFH of query, viewpoint was not set...\n");
-    exit;
+    print_error("%*s]\tCannot estimate OURCVFH of query, viewpoint was not set...\n",20,__func__);
+    return;
   }
   else
   {
     StopWatch timer;
     if (params_["verbosity"]>1)
     {
-      print_info("[OURCVFH]\tEstimating OURCVFH feature of query...\n");
-      print_info("[OURCVFH]\tUsing Angle Threshold of %g degress for normal deviation\n",params_["ourcvfhEPSAngThresh"]); 
-      print_info("[OURCVFH]\tUsing Curvature Threshold of %g\n",params_["ourcvfhCurvThresh"]); 
-      print_info("[OURCVFH]\tUsing Cluster Tolerance of %g\n",params_["ourcvfhClustTol"]); 
-      print_info("[OURCVFH]\tConsidering a minimum of %g points for a cluster\n",params_["ourcvfhMinPoints"]); 
-      print_info("[OURCVFH]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
-      print_info("[OURCVFH]\tUsing Refinement Factor of %g for clusters\n",params_["ourcvfhRefineClusters"]); 
+      print_info("%*s]\tEstimating OURCVFH feature of query...\n",20,__func__);
+      print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["ourcvfhEPSAngThresh"]); 
+      print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["ourcvfhCurvThresh"]); 
+      print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["ourcvfhClustTol"]); 
+      print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["ourcvfhMinPoints"]); 
+      print_info("%*s]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",20,__func__,params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
+      print_info("%*s]\tUsing Refinement Factor of %g for clusters\n",20,__func__,params_["ourcvfhRefineClusters"]); 
       timer.reset();
     }
     OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
@@ -774,8 +895,8 @@ void PoseEstimation::computeOURCVFH_()
     ourcvfhE.compute (ourcvfh_);
     if (params_["verbosity"]>1)
     {
-      print_info("[OURCVFH]\tTotal of %d clusters were found on query\n", ourcvfh_.points.size());
-      print_info("[OURCVFH]\tTotal time elapsed during OURCVFH estimation: ");
+      print_info("%*s]\tTotal of %d clusters were found on query\n",20,__func__, ourcvfh_.points.size());
+      print_info("%*s]\tTotal time elapsed during OURCVFH estimation: ",20,__func__);
       print_value("%g", timer.getTime());
       print_info(" ms\n");
     }
@@ -789,7 +910,7 @@ bool PoseEstimation::initQuery_()
     timer.reset();
   if (feature_count_ <=0)
   {
-    print_error("[initQuery]\tCannot initialize query, zero features chosen to estimate\n");
+    print_error("%*s]\tCannot initialize query, zero features chosen to estimate\n",20,__func__);
     return false;
   }
   //Check if a filter is needed
@@ -825,20 +946,20 @@ bool PoseEstimation::initQuery_()
   }
   if (params_["verbosity"]>1)
   {
-    print_info("[setQuery]\tQuery succesfully set and initialized:\n");
-    print_info("[setQuery]\t");
+    print_info("%*s]\tQuery succesfully set and initialized:\n",20,__func__);
+    print_info("%*s]\t",20,__func__);
     print_value("%s", query_name_.c_str());
     print_info(" with ");
     print_value("%d", query_cloud_processed_->points.size());
     print_info(" points\n");
-    print_info("[setQuery]\tTotal time elapsed to initialize a query: ");
+    print_info("%*s]\tTotal time elapsed to initialize a query: ",20,__func__);
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
   return true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setQuery(string str, PointCloud<PointXYZRGBA>& cl)
+void PoseEstimation::setQuery(string str, PC& cl)
 {
   query_name_ = str;
   if (query_cloud_)
@@ -849,7 +970,7 @@ void PoseEstimation::setQuery(string str, PointCloud<PointXYZRGBA>& cl)
     query_set_ = true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setQuery(string str, PointCloud<PointXYZRGBA>::Ptr clp)
+void PoseEstimation::setQuery(string str, PC::Ptr clp)
 {
   query_name_ = str;
   if (query_cloud_)
@@ -871,84 +992,216 @@ void PoseEstimation::setDatabase(path dbPath)
   database_.clear();
   db_set_=false;
   if (database_.load(dbPath))
-    db_set_ = true;
-  if (params_["verbosity"]>1)
   {
-    print_info("[setDatabase]\tDatabase loaded and set from location %s\n",dbPath.string().c_str());
-    print_info("[setDatabase]\tTotal number of poses found: ");
-    print_value("%d\n",database_.names_.size());
+    db_set_ = true;
+    if (params_["verbosity"]>1)
+    {
+      print_info("%*s]\tDatabase loaded and set from location %s\n",20,__func__,dbPath.string().c_str());
+      print_info("%*s]\tTotal number of poses found: ",20,__func__);
+      print_value("%d\n",database_.names_.size());
+    }
   }
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists()
 {
+  int k = params_["kNeighbor"];
   if (!db_set_)
   {
-    print_error("[generateLists]\tDatabase is not set, set it with setDatabase first! Exiting...\n");
-    exit;
+    print_error("%*s]\tDatabase is not set, set it with setDatabase first! Exiting...\n",20,__func__);
+    return;
   }
   if (!query_set_)
   {
-    print_error("[generateLists]\tQuery is not set, set it with setQuery first! Exiting...\n");
-    exit;
+    print_error("%*s]\tQuery is not set, set it with setQuery first! Exiting...\n",20,__func__);
+    return;
   }
   if (params_["useVFH"]>=1)
   {
-    VFH_list_.clear();
-    flann::Matrix<float> vfh_query (new float[1*308],1,308);
-    for (size_t j=0; j < 308; ++j)
-      vfh_query[0][j]= vfh_.points[0].histogram[j];
-    int k = params_["kNeighbor"];
-    flann::Matrix<int> match_id (new int[1*k],1,k);
-    flann::Matrix<float> match_dist (new float[1*k],1,k);
-    database_.idx_vfh_->knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
-    for (size_t i=0; i<k; ++i)
+    try
     {
-      string name= database_.names_[match_id[0][i]];
-      PointCloud<PointXYZRGBA>::Ptr cloud (new PointCloud<PointXYZRGBA>);
-      pcl::io::loadPCDFile((database_.dir_path_.string()+"/Clouds/"+name).c_str(), *cloud);
-      Candidate c(name,cloud);
-      c.rank_=i+1;
-      c.distance_=match_dist[0][i];
-      c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
-      VFH_list_.push_back(c);
+      VFH_list_.clear();
+      flann::Matrix<float> vfh_query (new float[1*308],1,308);
+      for (size_t j=0; j < 308; ++j)
+        vfh_query[0][j]= vfh_.points[0].histogram[j];
+      flann::Matrix<int> match_id (new int[1*k],1,k);
+      flann::Matrix<float> match_dist (new float[1*k],1,k);
+      /**Unfortunately FLANN has to initialize the index the moment you use it, Index doesn't have 
+       * a default empty constructor, so you can't put it inside PoseDB class. Instead we load it here
+       * with its constructor.
+       */
+      if (is_regular_file(database_.dbPath.string()+ "/vfh.idx") && extension(database_.dbPath.string()+ "/vfh.idx") == ".idx")
+      {
+        flann::Index vfh_idx (database.vfh_, SavedIndexParams(database_.dbPath.string()+"/vfh.idx"));
+        vfh_idx.buildIndex();
+        cout<<"vfh knnsearch BEFORE"<<endl;
+        vfh_idx.knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
+        cout<<"vfh knnsearch AFTER"<<endl;
+        for (size_t i=0; i<k; ++i)
+        {
+          string name= database_.names_[match_id[0][i]];
+          Candidate c(name,database_.clouds_[match_id[0][i]]);
+          c.rank_=i+1;
+          c.distance_=match_dist[0][i];
+          c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
+          VFH_list_.push_back(c);
+        }
+      }
+      else
+      {
+        print_error("%*s]\tInvalid vfh.idx file... Try recreating the Database\n",20,__func__);
+        return false;
+      }
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError Computing VFH list\n",20,__func__);
+      return;
     }
   }
   if (params_["useESF"]>=1)
   {
-    ESF_list_.clear();
-    flann::Matrix<float> esf_query (new float[1*640],1,640);
-    for (size_t j=0; j < 640; ++j)
-      esf_query[0][j]= esf_.points[0].histogram[j];
-    int k = params_["kNeighbor"];
-    flann::Matrix<int> match_id (new int[1*k],1,k);
-    flann::Matrix<float> match_dist (new float[1*k],1,k);
-    database_.idx_esf_->knnSearch (esf_query, match_id, match_dist, k, SearchParams(256));
-    for (size_t i=0; i<k; ++i)
+    try
     {
-      string name= database_.names_[match_id[0][i]];
-      PointCloud<PointXYZRGBA>::Ptr cloud (new PointCloud<PointXYZRGBA>);
-      pcl::io::loadPCDFile((database_.dir_path_.string()+"/Clouds/"+name).c_str(), *cloud);
-      Candidate c(name,cloud);
-      c.rank_=i+1;
-      c.distance_=match_dist[0][i];
-      c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
-      ESF_list_.push_back(c);
+      ESF_list_.clear();
+      flann::Matrix<float> esf_query (new float[1*640],1,640);
+      for (size_t j=0; j < 640; ++j)
+        esf_query[0][j]= esf_.points[0].histogram[j];
+      flann::Matrix<int> match_id (new int[1*k],1,k);
+      flann::Matrix<float> match_dist (new float[1*k],1,k);
+      /**Unfortunately FLANN has to initialize the index the moment you use it, Index doesn't have 
+       * a default empty constructor, so you can't put it inside PoseDB class. Instead we load it here
+       * with its constructor.
+       */
+      if (is_regular_file(database_.dbPath.string()+ "/esf.idx") && extension(database_.dbPath.string()+ "/esf.idx") == ".idx")
+    {
+      indexESF idx (esf_, SavedIndexParams(pathDB.string()+"/esf.idx"));
+      idx_esf_ = make_shared<indexESF>(idx);
+      idx_esf_->buildIndex();
+    }
+    else
+    {
+      print_error("%*s]\tInvalid esf.idx file... Try recreating the Database\n",20,__func__);
+      return false;
+    }
+      database_.idx_esf_->knnSearch (esf_query, match_id, match_dist, k, SearchParams(256) );
+      for (size_t i=0; i<k; ++i)
+      {
+        string name= database_.names_[match_id[0][i]];
+        Candidate c(name,database_.clouds_[match_id[0][i]]);
+        c.rank_=i+1;
+        c.distance_=match_dist[0][i];
+        c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
+        ESF_list_.push_back(c);
+      }
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError Computing ESF list\n",20,__func__);
+      return;
     }
   }
-  //TODO other features
+  if (params_["useCVFH"]>=1)
+  {
+    try
+    {
+      CVFH_list_.clear();
+      for (int i=0; i<database_.names_.size(); ++i)
+      {
+        cout<<"i-for "<<i<<endl; //
+        Candidate c;
+        c.name_ = database_.names_[i];
+        database_.computeDistanceFromClusters_(cvfh_.makeShared() ,i ,"CVFH", c.distance_);
+        CVFH_list_.push_back(c);
+      }
+      if ( CVFH_list_.size() >=k )
+      {
+        sort(CVFH_list_.begin(), CVFH_list_.end(),
+            [](Candidate const &a, Candidate const &b)
+            {
+            float d,e;
+            a.getDistance(d);
+            b.getDistance(e);
+            return (d < e);
+            });
+        CVFH_list_.resize(k);
+        cout<<"resize done"<<endl;
+      }
+      else
+      {
+        print_error("%*s]\tNot enough candidates to select in CVFH list (kNeighbor is too big)...\n",20,__func__);
+        return;
+      }
+      for (int i=0; i<k; ++i)
+      {
+        cout<<"normalizing "<<i<<endl;
+        CVFH_list_[i].rank_ = i+1;
+        CVFH_list_[i].setCloud_(database_.clouds_[i]);
+        CVFH_list_[i].normalized_distance_=(CVFH_list_[i].distance_ - CVFH_list_[0].distance_)/(CVFH_list_[k-1].distance_ - CVFH_list_[0].distance_);
+      }
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError computing CVFH list\n",20,__func__);
+      return;
+    }
+  }
+  if (params_["useOURCVFH"]>=1)
+  {
+    try
+    {
+      OURCVFH_list_.clear();
+      for (int i=0; i<database_.names_.size(); ++i)
+      {
+        Candidate c;
+        c.name_ = database_.names_[i];
+        database_.computeDistanceFromClusters_(ourcvfh_.makeShared() ,i ,"OURCVFH", c.distance_);
+        OURCVFH_list_.push_back(c);
+      }
+      if ( OURCVFH_list_.size() >=k )
+      {
+        sort(OURCVFH_list_.begin(), OURCVFH_list_.end(),
+            [](Candidate const &a, Candidate const &b)
+            {
+            float d,e;
+            a.getDistance(d);
+            b.getDistance(e);
+            return (d < e);
+            });
+        OURCVFH_list_.resize(k);
+      }
+      else
+      {
+        print_error("%*s]\tNot enough candidates to select in OURCVFH list (kNeighbor is too big)...\n",20,__func__);
+        return;
+      }
+      for (int i=0; i<k; ++i)
+      {
+        OURCVFH_list_[i].rank_ = i+1;
+        OURCVFH_list_[i].setCloud_(database_.clouds_[i]);
+        OURCVFH_list_[i].normalized_distance_=(OURCVFH_list_[i].distance_ - OURCVFH_list_[0].distance_)/(OURCVFH_list_[k-1].distance_ - OURCVFH_list_[0].distance_);
+      }
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError computing OURCVFH list\n",20,__func__);
+      return;
+    }
+  }
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists(path dbPath)
 {
   if (!query_set_)
   {
-    print_error("[generateLists]\tQuery is not set, set it with setQuery first! Exiting...\n");
-    exit;
+    print_error("%*s]\tQuery is not set, set it with setQuery first! Exiting...\n",20,__func__);
+    return;
   }
   if (db_set_ && params_["verbosity"]>0)
-    print_warn("[generateLists]\tDatabase was already set, but a new path was specified, loading the new database...\n"
-                "\t\t\t\tUse generateLists() without arguments if you want to keep using the previously loaded database\n");
+  {
+    print_warn("%*s]\tDatabase was already set, but a new path was specified, loading the new database...\n",20,__func__);
+    print_warn("%*s\tUse generateLists() without arguments if you want to keep using the previously loaded database\n",20,__func__);
+  }
   setDatabase(dbPath);
   generateLists();
 }

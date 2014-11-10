@@ -14,9 +14,16 @@
 using namespace pcl;
 using namespace std;
 
+/**Chosen metric for VFH, typedef for easy writing*/
 typedef flann::Index<flann::ChiSquareDistance<float> > indexVFH;
+/**Chosen metric for ESF, typedef for easy writing*/
 typedef flann::Index<flann::L2<float> > indexESF;
+/**FLANN matrix used to store database histograms, typedef for easy writing*/
 typedef flann::Matrix<float> histograms;
+/**Chosen PointCloudType, change here if you want to change PointType*/
+typedef PointCloud<PointXYZRGBA> PC;
+/**Map that stores configuration parameters*/
+typedef unordered_map<string,float> parameters;
 
 class PoseEstimation;
 
@@ -28,12 +35,19 @@ class PoseEstimation;
 class PoseDB{
   
   friend class PoseEstimation;
-  boost::shared_ptr<histograms> vfh_db_, esf_db_, cvfh_db_, ourcvfh_db_;
+  histograms vfh_, esf_, cvfh_, ourcvfh_;
   vector<string> names_;
   vector<int> clusters_cvfh_, clusters_ourcvfh_;
-  boost::shared_ptr<indexVFH> idx_vfh_;
-  boost::shared_ptr<indexESF> idx_esf_;
-  boost::filesystem::path dir_path_;
+  boost::filesystem::path dbPath; 
+  vector<PC> clouds_;
+
+  /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
+   * \param[in] query Pointer to the query histogram(s)
+   * \param[in] idx Index of object to compare with
+   * \param[in] feature String containing either "CVFH" or "OURCVFH", to tell the method which feature is involved
+   * \param[out] distance Unnormalized distance of object at index from query
+   */
+  void computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query, int idx, string feature, float& distance);
 
   public:
     /** \brief Default empty Constructor
@@ -54,14 +68,15 @@ class PoseDB{
     void save(boost::filesystem::path pathDB);
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
-     * 
+     * \param[in] params Shared pointer to unordered map that holds configuration parameters, in a same way as those of PoseEstimation
+     *  
      * Please note that:
      *  -Constructing a database from scratch can take several minutes at least.
      *  -In order to use this method, PCD files must follow a naming convention, that is obj_name_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
      *  -PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
      *  -PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
      */
-    void create(boost::filesystem::path pathClouds);
+    void create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
     //TODO operator =
     /** \brief Erase the database from memory, leaving it unset
     */
@@ -77,12 +92,17 @@ class Candidate{
   
   friend class PoseEstimation;
   string name_;
-  PointCloud<PointXYZRGBA>::Ptr cloud_;
+  PC::Ptr cloud_;
   int rank_;
   float distance_;
   float normalized_distance_;
   float rmse_;
   Eigen::Matrix4f transformation_;
+
+  /**\brief Set Candidate cloud. Internal use
+   * \param[in] cl Point cloud of the candidate
+   */
+  void setCloud_(PC& cl) {cloud_=cl.makeShared(); }
 
   public:
     /** \brief Default empty Constructor
@@ -92,35 +112,35 @@ class Candidate{
      * \param[in] str The object name the candidate will have
      * \param[in] cl Point cloud which holds the object
      */
-    Candidate (string str, PointCloud<PointXYZRGBA>& cl);
+    Candidate (string str, PC& cl);
     /** \brief Constructor with name and cloud pointer
      * \param[in] str The object name the candidate will have
      * \param[in] clp Shared pointer to the point cloud that contains the object
      * Note that clp parameter should not be empty pointer, or the contructor will throw an error
      */
-    Candidate (string str, PointCloud<PointXYZRGBA>::Ptr clp);
+    Candidate (string str, PC::Ptr clp);
     /** \brief Get Candidate Rank in the list of candidates
      * \param[out] r The rank the candidate has in the list
      */
-    void getRank (int& r);
+    void getRank (int& r) const;
     /** \brief Get the distance of Candidate from Query in the metric chosen by the feature
      * \param[out] d The distance the candidate has from the query
      */
-    void getDistance (float& d);
+    void getDistance (float& d) const;
     /** \brief Get the Normalize distance of Candidate from Query
      * \param[out] d The distance the candidate has from the query
      * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k"
      */
-    void getNormalizedDistance (float& d);
+    void getNormalizedDistance (float& d) const;
     /** \brief Get Root Mean Square Error of Candidate as it was after the refinement
      * \param[out] e The Root Mean Square Error of the Candidate
      */
-    void getRMSE (float& e);
+    void getRMSE (float& e) const;
     /** \brief Get Homogeneous Transformation that brings the Candidate over the Query
      * \param[out] t Transformation that brings the Candidate over the Query
      * The transformation is expressed in the Candidate Reference System
      */
-    void getTransformation (Eigen::Matrix4f& t);
+    void getTransformation (Eigen::Matrix4f& t) const;
 };
 
 /**\brief Implements the procedure to achieve pose estimation of a given query object.
@@ -167,7 +187,7 @@ class Candidate{
  */
 class PoseEstimation {
   ///Map to store all parameters as key=value pairs
-  unordered_map<string,float> params_;
+  parameters params_;
   
   ///Database used for Pose Estimation
   PoseDB database_;
@@ -179,10 +199,10 @@ class PoseEstimation {
   string query_name_;
   
   ///The cloud pointer that represent the query to estimate as supplied before any computation
-  PointCloud<PointXYZRGBA>::Ptr query_cloud_;
+  PC::Ptr query_cloud_;
   
   ///Cloud pointer to query pre-processed cloud (if preprocessing is made, otherwise it's the same as query_cloud
-  PointCloud<PointXYZRGBA>::Ptr query_cloud_processed_;
+  PC::Ptr query_cloud_processed_;
   
   ///List of candidates to the query
   vector<Candidate> VFH_list_, ESF_list_, CVFH_list_, OURCVFH_list_, composite_list_;
@@ -275,12 +295,12 @@ class PoseEstimation {
   //Set the poseEstimation query to be an object of point cloud and name passed
   // 1) string& the name the query should assume
   // 2) PointCloud& a point cloud containing ONLY the object to be estimated (i.e. already segmented)
-  void setQuery (string, PointCloud<PointXYZRGBA>& );
+  void setQuery (string, PC& );
   
   //Set the poseEstimation query to be an object of pointcloud shared pointer and name passed
   // 1) string& the name the query should assume
   // 2) PointCloud::Ptr Shared pointer containing ONLY the pointcloud of the object to be estimated (i.e. already segmented)
-  void setQuery (string str, PointCloud<PointXYZRGBA>::Ptr clp);
+  void setQuery (string str, PC::Ptr clp);
 
   //Print parameters value on screen
   void printParams();
