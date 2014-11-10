@@ -39,7 +39,7 @@ using namespace boost::filesystem;
 using namespace flann;
 
 /* Class PoseDB Implementation */
-void PoseDB::load(path pathDB)
+bool PoseDB::load(path pathDB)
 {
   //load should not be called if flann matrix(es) are already initialized
   if ( exists(pathDB) && is_directory(pathDB) )
@@ -53,7 +53,7 @@ void PoseDB::load(path pathDB)
     else
     {
       print_error("[Database]\tInvalid vfh.h5 file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/esf.h5") && extension(pathDB.string()+ "/esf.h5") == ".h5")
     {
@@ -64,7 +64,7 @@ void PoseDB::load(path pathDB)
     else
     {
       print_error("[Database]\tInvalid esf.h5 file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/cvfh.h5") && extension(pathDB.string()+ "/cvfh.h5") == ".h5")
     {
@@ -75,7 +75,7 @@ void PoseDB::load(path pathDB)
     else
     {
       print_error("[Database]\tInvalid cvfh.h5 file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/ourcvfh.h5") && extension(pathDB.string()+ "/ourcvfh.h5") == ".h5")
     {
@@ -86,7 +86,7 @@ void PoseDB::load(path pathDB)
     else
     {
       print_error("[Database]\tInvalid ourcvfh.h5 file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/vfh.idx") && extension(pathDB.string()+ "/vfh.idx") == ".idx")
     {
@@ -97,7 +97,7 @@ void PoseDB::load(path pathDB)
     else
     {
       print_error("[Database]\tInvalid vfh.idx file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/esf.idx") && extension(pathDB.string()+ "/esf.idx") == ".idx")
     {
@@ -108,7 +108,7 @@ void PoseDB::load(path pathDB)
     else
     {
       print_error("[Database]\tInvalid esf.idx file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/names.list") && extension(pathDB.string()+ "/names.list") == ".list")
     {
@@ -125,13 +125,13 @@ void PoseDB::load(path pathDB)
       else
       {
         print_error("[Database]\tCannot open names.list file... Try recreating the Database\n");
-        exit;
+        return false;
       }
     }
     else
     {
       print_error("[Database]\tInvalid names.list file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/cvfh.cluster") && extension(pathDB.string()+ "/cvfh.cluster") == ".cluster")
     {
@@ -158,13 +158,13 @@ void PoseDB::load(path pathDB)
       else
       {
         print_error("[Database]\tCannot open cvfh.cluster file... Try recreating the Database\n");
-        exit;
+        return false;
       }
     }
     else
     {
       print_error("[Database]\tInvalid cvfh.cluster file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     if (is_regular_file(pathDB.string()+ "/ourcvfh.cluster") && extension(pathDB.string()+ "/ourcvfh.cluster") == ".cluster")
     {
@@ -191,18 +191,22 @@ void PoseDB::load(path pathDB)
       else
       {
         print_error("[Database]\tCannot open ourcvfh.cluster file... Try recreating the Database\n");
-        exit;
+        return false;
       }
     }
     else
     {
       print_error("[Database]\tInvalid ourcvfh.cluster file... Try recreating the Database\n");
-      exit;
+      return false;
     }
     dir_path_ = pathDB;
   }
   else
+  {
     print_error("[Database]\t%s is not a valid database directory, or doesnt exists\n",pathDB.string().c_str());
+    return false;
+  }
+  return true;
 }
 ///////////////////////////////////////
 void PoseDB::clear()
@@ -866,8 +870,14 @@ void PoseEstimation::setDatabase(path dbPath)
 {
   database_.clear();
   db_set_=false;
-  database_.load(dbPath);
-  db_set_ = true;
+  if (database_.load(dbPath))
+    db_set_ = true;
+  if (params_["verbosity"]>1)
+  {
+    print_info("[setDatabase]\tDatabase loaded and set from location %s\n",dbPath.string().c_str());
+    print_info("[setDatabase]\tTotal number of poses found: ");
+    print_value("%d\n",database_.names_.size());
+  }
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists()
@@ -902,6 +912,28 @@ void PoseEstimation::generateLists()
       c.distance_=match_dist[0][i];
       c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
       VFH_list_.push_back(c);
+    }
+  }
+  if (params_["useESF"]>=1)
+  {
+    ESF_list_.clear();
+    flann::Matrix<float> esf_query (new float[1*640],1,640);
+    for (size_t j=0; j < 640; ++j)
+      esf_query[0][j]= esf_.points[0].histogram[j];
+    int k = params_["kNeighbor"];
+    flann::Matrix<int> match_id (new int[1*k],1,k);
+    flann::Matrix<float> match_dist (new float[1*k],1,k);
+    database_.idx_esf_->knnSearch (esf_query, match_id, match_dist, k, SearchParams(256));
+    for (size_t i=0; i<k; ++i)
+    {
+      string name= database_.names_[match_id[0][i]];
+      PointCloud<PointXYZRGBA>::Ptr cloud (new PointCloud<PointXYZRGBA>);
+      pcl::io::loadPCDFile((database_.dir_path_.string()+"/Clouds/"+name).c_str(), *cloud);
+      Candidate c(name,cloud);
+      c.rank_=i+1;
+      c.distance_=match_dist[0][i];
+      c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
+      ESF_list_.push_back(c);
     }
   }
   //TODO other features

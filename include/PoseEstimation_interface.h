@@ -46,9 +46,10 @@ class PoseDB{
     /** \brief Load a database from disk, knowing its location
      * \param[in] pathDB Path to the directory containing the database of poses
      */
-    void load(boost::filesystem::path pathDB);
+    bool load(boost::filesystem::path pathDB);
     /** \brief Save a database to disk
      * \param[in] pathDB Path to a directory on disk, inside which to save the database, directory must be empty or non existent
+     * Return true if succesfull, false otherwise
      */
     void save(boost::filesystem::path pathDB);
     /** \brief Compute the whole database from scratch and store it in memory.
@@ -122,8 +123,7 @@ class Candidate{
     void getTransformation (Eigen::Matrix4f& t);
 };
 
-/*
- * \brief Implements the procedure to achieve pose estimation of a given query object.
+/**\brief Implements the procedure to achieve pose estimation of a given query object.
  * The ideal procedure can be summarized as follows:
  *    -Initialize the class parameters either with the constructors or with initParams
  *    \code
@@ -166,85 +166,86 @@ class Candidate{
  * \author Federico Spinelli
  */
 class PoseEstimation {
-  //Map to store all parameters as key=value pairs
+  ///Map to store all parameters as key=value pairs
   unordered_map<string,float> params_;
   
-  //Database used for Pose Estimation
+  ///Database used for Pose Estimation
   PoseDB database_;
 
-  //internal counter used to count how many feature the class uses
+  ///Internal counter used to count how many feature the class uses
   int feature_count_;
   
-  //The name of the query to estimate
+  ///The name of the query to estimate
   string query_name_;
   
-  //The cloud pointer that represent the query to estimate as supplied before any computation
+  ///The cloud pointer that represent the query to estimate as supplied before any computation
   PointCloud<PointXYZRGBA>::Ptr query_cloud_;
   
-  //Cloud pointer to query pre-processed cloud (if preprocessing is made, otherwise it's the same as query_cloud
+  ///Cloud pointer to query pre-processed cloud (if preprocessing is made, otherwise it's the same as query_cloud
   PointCloud<PointXYZRGBA>::Ptr query_cloud_processed_;
   
-  //List of candidates to the query
+  ///List of candidates to the query
   vector<Candidate> VFH_list_, ESF_list_, CVFH_list_, OURCVFH_list_, composite_list_;
 
-  //Path to the directory containing the database of known poses, created previously
+  ///Path to the directory containing the database of known poses, created previously
   boost::filesystem::path dbPath_;
   
-  //Viewpoint coordinates, used in computations like VFH and Normal estimation
+  ///Viewpoint coordinates, used in computations like VFH and Normal estimation
   float vpx_, vpy_, vpz_;
   
-  //Internal parameters to check if various stages of pose estimation are completed correctly
+  ///Internal parameters to check if various stages of pose estimation are completed correctly
   bool vp_supplied_, query_set_, candidates_found_, refinement_done_, db_set_;
   
-  //Containers that hold the query features
+  ///Containers that hold the query features
   PointCloud<VFHSignature308> vfh_, cvfh_, ourcvfh_;
   PointCloud<ESFSignature640> esf_;
   PointCloud<Normal> normals_;
   
-  //Set a parameter of Pose Estimation from a string representing its value,
-  //used internally when reading parameters from a file
+  ///Set a parameter of Pose Estimation from a string representing its value, used internally when reading parameters from a file
   void setParam_ (string, string&);
   
-  //Initialize the Query by computing preprocessing and features, returns true if success, internal use
+  ///Initialize the Query by computing preprocessing and features, returns true if success, internal use
   bool initQuery_();
   
-  //Internal member to filter the query with Statistical Outlier Removal, internal use
+  ///Internal member to filter the query with Statistical Outlier Removal, internal use
   void filtering_();
   
-  //Internal member to upsample the query with MLS Random Uniform Density, internal use
+  ///Internal member to upsample the query with MLS Random Uniform Density, internal use
   void upsampling_();
   
-  //Internal member to downsample the query with VoxelGrid, internal use
+  ///Internal member to downsample the query with VoxelGrid, internal use
   void downsampling_();
   
-  //Internal member to compute Surface Normals of the query, internal use, return true if success
+  ///Internal member to compute Surface Normals of the query, internal use, return true if success
   bool computeNormals_();
   
-  //Internal member to compute VFH feature of the query, internal use
+  ///Internal member to compute VFH feature of the query, internal use
   void computeVFH_();
   
-  //Internal member to compute ESF feature of the query, internal use
+  ///Internal member to compute ESF feature of the query, internal use
   void computeESF_();
   
-  //Internal member to compute CVFH feature of the query, internal use
+  ///Internal member to compute CVFH feature of the query, internal use
   void computeCVFH_();
   
-  //Internal member to compute OURCVFH feature of the query, internal use
+  ///Internal member to compute OURCVFH feature of the query, internal use
   void computeOURCVFH_();
 
   public:
-  //Default Empty Constructor that sets default parameters (see them in config file)
+  ///Default Empty Constructor that sets default parameters (see them in config file)
   PoseEstimation(); 
   
-  //Set a parameter of the Class directly, knowing its name
-  // 1) string& the parameter name to change ([key] in config file)
-  // 2) float the value that key should assume
-  // Example Usage:
-  // PoseEstimation pe; //construct and sets default parameters
-  // pe.setParam("useVFH", 0); //pe will now skip VFH computation
-  // See Config File for a complete description of parameters
-  void setParam (string, float);
-  void setParam (string str, int v) {this->setParam(str, (float)v);}
+  /**\brief Set a parameter of the Class directly, knowing its name
+  * \param[in] key the parameter name to change
+  * \param[in] value the value that key should assume
+  * Example Usage:
+  * \code
+  * PoseEstimation pe; //construct and sets default parameters
+  * pe.setParam("useVFH", 0); //pe will now skip VFH computation
+  * \endcode
+  */
+  void setParam (string key, float value);
+  void setParam (string key, int value) {this->setParam(key, (float)value);}
   
   //Initialize the class with parameters found in config file
   //  1) path the location of config file to use (i.e "config/params.config")
