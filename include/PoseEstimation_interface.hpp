@@ -218,6 +218,7 @@ bool PoseDB::load(path pathDB)
     print_error("%*s]\t%s is not a valid database directory, or doesnt exists\n",20,__func__,pathDB.string().c_str());
     return false;
   }
+  dbPath_=pathDB;
   return true;
 }
 //////////////////////////////////////
@@ -1005,7 +1006,7 @@ void PoseEstimation::setDatabase(path dbPath)
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists()
 {
-  int k = params_["kNeighbor"];
+  int k = params_["kNeighbors"];
   if (!db_set_)
   {
     print_error("%*s]\tDatabase is not set, set it with setDatabase first! Exiting...\n",20,__func__);
@@ -1030,13 +1031,11 @@ void PoseEstimation::generateLists()
        * a default empty constructor, so you can't put it inside PoseDB class. Instead we load it here
        * with its constructor.
        */
-      if (is_regular_file(database_.dbPath.string()+ "/vfh.idx") && extension(database_.dbPath.string()+ "/vfh.idx") == ".idx")
+      if (is_regular_file(database_.dbPath_.string()+ "/vfh.idx") && extension(database_.dbPath_.string()+ "/vfh.idx") == ".idx")
       {
-        flann::Index vfh_idx (database.vfh_, SavedIndexParams(database_.dbPath.string()+"/vfh.idx"));
+        indexVFH vfh_idx (database_.vfh_, SavedIndexParams(database_.dbPath_.string()+"/vfh.idx"));
         vfh_idx.buildIndex();
-        cout<<"vfh knnsearch BEFORE"<<endl;
         vfh_idx.knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
-        cout<<"vfh knnsearch AFTER"<<endl;
         for (size_t i=0; i<k; ++i)
         {
           string name= database_.names_[match_id[0][i]];
@@ -1050,7 +1049,7 @@ void PoseEstimation::generateLists()
       else
       {
         print_error("%*s]\tInvalid vfh.idx file... Try recreating the Database\n",20,__func__);
-        return false;
+        return;
       }
     }
     catch (...)
@@ -1073,26 +1072,25 @@ void PoseEstimation::generateLists()
        * a default empty constructor, so you can't put it inside PoseDB class. Instead we load it here
        * with its constructor.
        */
-      if (is_regular_file(database_.dbPath.string()+ "/esf.idx") && extension(database_.dbPath.string()+ "/esf.idx") == ".idx")
-    {
-      indexESF idx (esf_, SavedIndexParams(pathDB.string()+"/esf.idx"));
-      idx_esf_ = make_shared<indexESF>(idx);
-      idx_esf_->buildIndex();
-    }
-    else
-    {
-      print_error("%*s]\tInvalid esf.idx file... Try recreating the Database\n",20,__func__);
-      return false;
-    }
-      database_.idx_esf_->knnSearch (esf_query, match_id, match_dist, k, SearchParams(256) );
-      for (size_t i=0; i<k; ++i)
+      if (is_regular_file(database_.dbPath_.string()+ "/esf.idx") && extension(database_.dbPath_.string()+ "/esf.idx") == ".idx")
       {
-        string name= database_.names_[match_id[0][i]];
-        Candidate c(name,database_.clouds_[match_id[0][i]]);
-        c.rank_=i+1;
-        c.distance_=match_dist[0][i];
-        c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
-        ESF_list_.push_back(c);
+        indexESF esf_idx (database_.esf_, SavedIndexParams(database_.dbPath_.string()+"/esf.idx"));
+        esf_idx.buildIndex();
+        esf_idx.knnSearch (esf_query, match_id, match_dist, k, SearchParams(256) );
+        for (size_t i=0; i<k; ++i)
+        {
+          string name= database_.names_[match_id[0][i]];
+          Candidate c(name,database_.clouds_[match_id[0][i]]);
+          c.rank_=i+1;
+          c.distance_=match_dist[0][i];
+          c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
+          ESF_list_.push_back(c);
+        }
+      }
+      else
+      {
+        print_error("%*s]\tInvalid esf.idx file... Try recreating the Database\n",20,__func__);
+        return;
       }
     }
     catch (...)
@@ -1108,7 +1106,6 @@ void PoseEstimation::generateLists()
       CVFH_list_.clear();
       for (int i=0; i<database_.names_.size(); ++i)
       {
-        cout<<"i-for "<<i<<endl; //
         Candidate c;
         c.name_ = database_.names_[i];
         database_.computeDistanceFromClusters_(cvfh_.makeShared() ,i ,"CVFH", c.distance_);
@@ -1125,16 +1122,14 @@ void PoseEstimation::generateLists()
             return (d < e);
             });
         CVFH_list_.resize(k);
-        cout<<"resize done"<<endl;
       }
       else
       {
-        print_error("%*s]\tNot enough candidates to select in CVFH list (kNeighbor is too big)...\n",20,__func__);
+        print_error("%*s]\tNot enough candidates to select in CVFH list (kNeighbors is too big)...\n",20,__func__);
         return;
       }
       for (int i=0; i<k; ++i)
       {
-        cout<<"normalizing "<<i<<endl;
         CVFH_list_[i].rank_ = i+1;
         CVFH_list_[i].setCloud_(database_.clouds_[i]);
         CVFH_list_[i].normalized_distance_=(CVFH_list_[i].distance_ - CVFH_list_[0].distance_)/(CVFH_list_[k-1].distance_ - CVFH_list_[0].distance_);
@@ -1172,7 +1167,7 @@ void PoseEstimation::generateLists()
       }
       else
       {
-        print_error("%*s]\tNot enough candidates to select in OURCVFH list (kNeighbor is too big)...\n",20,__func__);
+        print_error("%*s]\tNot enough candidates to select in OURCVFH list (kNeighbors is too big)...\n",20,__func__);
         return;
       }
       for (int i=0; i<k; ++i)
@@ -1188,6 +1183,7 @@ void PoseEstimation::generateLists()
       return;
     }
   }
+  candidates_found_ = true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists(path dbPath)
@@ -1204,5 +1200,36 @@ void PoseEstimation::generateLists(path dbPath)
   }
   setDatabase(dbPath);
   generateLists();
+}
+////////////////////////////////////////////////77
+void PoseEstimation::printCandidates()
+{
+  if (!candidates_found_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to print them!\n",20,__func__); 
+    return;
+  }
+  print_info("%-6s","Rank");
+  if (params_["useVFH"] >0)
+    print_info("%-15s","VFH");
+  if (params_["useESF"] >0)
+    print_info("%-15s","ESF");
+  if (params_["useCVFH"] >0)
+    print_info("%-15s","CVFH");
+  if (params_["useOURCVFH"] >0)
+    print_info("%-15s","OURCVFH");
+  print_info("\n");
+  for ( int i=0; i< params_["kNeighbors"]; ++i)
+  {
+    print_value("%-6d", i+1);
+    if (params_["useVFH"] >0)
+    {
+      print_info("%-12s D:",VFH_list[i].name_.c_str());
+      print_value("%-3g",VFH_list[i].normalized_distance_);
+    }
+
+
+  }
 }
 #endif

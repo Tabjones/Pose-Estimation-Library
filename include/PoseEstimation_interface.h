@@ -38,7 +38,7 @@ class PoseDB{
   histograms vfh_, esf_, cvfh_, ourcvfh_;
   vector<string> names_;
   vector<int> clusters_cvfh_, clusters_ourcvfh_;
-  boost::filesystem::path dbPath; 
+  boost::filesystem::path dbPath_; 
   vector<PC> clouds_;
 
   /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
@@ -302,8 +302,11 @@ class PoseEstimation {
   // 2) PointCloud::Ptr Shared pointer containing ONLY the pointcloud of the object to be estimated (i.e. already segmented)
   void setQuery (string str, PC::Ptr clp);
 
-  //Print parameters value on screen
+  /// \brief Print current parameter values on screen
   void printParams();
+
+  /// \brief Print List of Candidates to the query on screen
+  void printCandidates();
 
   /* \brief Set a database of known poses to be used for pose estimation procedure.
    * \param[in] dbPath The path to the directory containing the database
