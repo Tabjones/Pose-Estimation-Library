@@ -1212,24 +1212,38 @@ void PoseEstimation::printCandidates()
   }
   print_info("%-6s","Rank");
   if (params_["useVFH"] >0)
-    print_info("%-15s","VFH");
+    print_info("%-30s","VFH");
   if (params_["useESF"] >0)
-    print_info("%-15s","ESF");
+    print_info("%-30s","ESF");
   if (params_["useCVFH"] >0)
-    print_info("%-15s","CVFH");
+    print_info("%-30s","CVFH");
   if (params_["useOURCVFH"] >0)
-    print_info("%-15s","OURCVFH");
+    print_info("%-30s","OURCVFH");
   print_info("\n");
   for ( int i=0; i< params_["kNeighbors"]; ++i)
   {
     print_value("%-6d", i+1);
     if (params_["useVFH"] >0)
     {
-      print_info("%-12s D:",VFH_list[i].name_.c_str());
-      print_value("%-3g",VFH_list[i].normalized_distance_);
+      print_info("%-15s D:",VFH_list_[i].name_.c_str());
+      print_value("%-9g   ",VFH_list_[i].normalized_distance_);
     }
-
-
+    if (params_["useESF"] >0)
+    {
+      print_info("%-15s D:",ESF_list_[i].name_.c_str());
+      print_value("%-9g   ",ESF_list_[i].normalized_distance_);
+    }
+    if (params_["useCVFH"] >0)
+    {
+      print_info("%-15s D:",CVFH_list_[i].name_.c_str());
+      print_value("%-9g   ",CVFH_list_[i].normalized_distance_);
+    }
+    if (params_["useOURCVFH"] >0)
+    {
+      print_info("%-15s D:",OURCVFH_list_[i].name_.c_str());
+      print_value("%-9g   ",OURCVFH_list_[i].normalized_distance_);
+    }
+    print_info("\n");
   }
 }
 #endif
