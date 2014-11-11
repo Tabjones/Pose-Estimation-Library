@@ -1503,7 +1503,6 @@ void PoseEstimation::refineCandidates()
         //no convergence, resize list
         int size = list.size();
         size *= params_["progFraction"];
-        cout<<size<<endl; //debug
         list.resize(size);
       }
     }
@@ -1522,6 +1521,47 @@ void PoseEstimation::refineCandidates()
   else
   {
     //BruteForce
+    IterativeClosestPoint<PT, PT> icp;
+    icp.setInputTarget(query_cloud_processed_); //query
+    icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
+    icp.setTransformationEpsilon (1e-9); //not using it (difference between consecutive transformations)
+    icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2)); 
+    for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
+    {
+      PC::Ptr aligned (new PC);
+      //icp align source over target, result in aligned
+      icp.setInputSource(it->cloud_); //the candidate
+      icp.align(*aligned);
+      it->transformation_ = icp.getFinalTransformation();
+      it->rmse_ = sqrt(icp.getFitnessScore());
+      if (params_["verbosity"]>1)
+      {
+        print_info("%*s]\tCandidate: ",20,__func__);
+        print_value("%-15s",it->name_.c_str());
+        print_info(" just performed ICP alignment, its RMSE is: ");
+        print_value("%g\n",it->rmse_);
+      }
+      if (it->rmse_ < params_["rmseThreshold"])
+      {
+        //convergence
+        pose_estimation_.reset();
+        pose_estimation_ = boost::make_shared<Candidate>(*it);
+        refinement_done_=true;
+        if (params_["verbosity"]>1)
+        {
+          print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
+          print_info("%*s]\tFinal transformation is:\n",20,__func__);
+          cout<<pose_estimation_->transformation_<<endl;
+        }
+        return;
+      }
+    }
+    //no candidate converged, pose estimation failed
+    pose_estimation_.reset();
+    refinement_done_=false;
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tCannot find a suitable candidate, try raising the rmse threshold\n",20,__func__);
+    return;
   }
 }
 #endif

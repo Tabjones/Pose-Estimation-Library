@@ -17,5 +17,9 @@ main (int argc, char *argv[])
   prova.generateLists();
   prova.printCandidates();
   prova.refineCandidates();
+  prova.setParam("progBisection", 0); //try bruteforce now
+  prova.refineCandidates();
+  prova.setParam("wrongey", 3); //check errors on wrong key
+  prova.setParam("filtering", -0.5); //check errors on wrong value
   return 1;
 }

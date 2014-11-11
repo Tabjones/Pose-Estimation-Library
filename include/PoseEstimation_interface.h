@@ -297,6 +297,14 @@ class PoseEstimation {
   */
   void setParam (string key, int value) {this->setParam(key, (float)value);}
   
+  /**\brief Set a parameter of the Class directly, knowing its name
+  * \param[in] key the parameter name to change
+  * \param[in] value the value that key should assume
+  *
+  * Overloaded for double
+  */
+  void setParam (string key, double value) {this->setParam(key, (float)value);}
+  
   /** \brief Initialize the class with parameters found in config file
   * \param[in] config_file Path to a config file to use 
   *
