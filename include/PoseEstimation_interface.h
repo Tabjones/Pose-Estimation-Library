@@ -35,11 +35,13 @@ class PoseEstimation;
 class PoseDB{
   
   friend class PoseEstimation;
-  histograms vfh_, esf_, cvfh_, ourcvfh_;
+  boost::shared_ptr<histograms> vfh_, esf_, cvfh_, ourcvfh_;
   vector<string> names_;
   vector<int> clusters_cvfh_, clusters_ourcvfh_;
   boost::filesystem::path dbPath_; 
   vector<PC> clouds_;
+  boost::shared_ptr<indexVFH> vfh_idx_;
+  boost::shared_ptr<indexESF> esf_idx_;
 
   /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
    * \param[in] query Pointer to the query histogram(s)

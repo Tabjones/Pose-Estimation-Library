@@ -96,31 +96,69 @@ bool PoseDB::load(path pathDB)
         pcl::io::loadPCDFile (it->string().c_str(),clouds_[i]);
     }
     if (is_regular_file(pathDB.string()+ "/vfh.h5") && extension(pathDB.string()+ "/vfh.h5") == ".h5")
-      flann::load_from_file (vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
+    {
+      histograms m;
+      flann::load_from_file (m, pathDB.string() + "/vfh.h5", "VFH Histograms");
+      vfh_ = boost::make_shared<histograms>(m);
+    }
     else
     {
       print_error("%*s]\tInvalid vfh.h5 file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/esf.h5") && extension(pathDB.string()+ "/esf.h5") == ".h5")
-      flann::load_from_file (esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
+    {
+      histograms m;
+      flann::load_from_file (m, pathDB.string() + "/esf.h5", "ESF Histograms");
+      esf_ = boost::make_shared<histograms>(m);
+    }
     else
     {
       print_error("%*s]\tInvalid esf.h5 file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/cvfh.h5") && extension(pathDB.string()+ "/cvfh.h5") == ".h5")
-      flann::load_from_file (cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
+    {
+      histograms m;
+      flann::load_from_file (m, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
+      cvfh_ = boost::make_shared<histograms>(m);
+    }
     else
     {
       print_error("%*s]\tInvalid cvfh.h5 file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/ourcvfh.h5") && extension(pathDB.string()+ "/ourcvfh.h5") == ".h5")
-      flann::load_from_file (ourcvfh_, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
+    {
+      histograms m;
+      flann::load_from_file (m, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
+      ourcvfh_ = boost::make_shared<histograms>(m);
+    }
     else
     {
       print_error("%*s]\tInvalid ourcvfh.h5 file... Try recreating the Database\n",20,__func__);
+      return false;
+    }
+    if (is_regular_file(pathDB.string()+ "/vfh.idx") && extension(pathDB.string()+ "/vfh.idx") == ".idx")
+    {
+      indexVFH idx (*vfh_, SavedIndexParams(pathDB.string()+"/vfh.idx"));
+      vfh_idx_ = boost::make_shared<indexVFH>(idx);
+      vfh_idx_ -> buildIndex();
+    }
+    else
+    {
+      print_error("%*s]\tInvalid vfh.idx file... Try recreating the Database\n",20,__func__);
+      return false;
+    }
+    if (is_regular_file(pathDB.string()+ "/esf.idx") && extension(pathDB.string()+ "/esf.idx") == ".idx")
+    {
+      indexESF idx (*esf_, SavedIndexParams(pathDB.string()+"/esf.idx"));
+      esf_idx_ = boost::make_shared<indexESF>(idx);
+      esf_idx_ -> buildIndex();
+    }
+    else
+    {
+      print_error("%*s]\tInvalid esf.idx file... Try recreating the Database\n",20,__func__);
       return false;
     }
     if (is_regular_file(pathDB.string()+ "/names.list") && extension(pathDB.string()+ "/names.list") == ".list")
@@ -257,16 +295,16 @@ void PoseDB::computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query
         int idxc=0;
         for (int m=0; m<idx; ++m)
           idxc+=clusters_cvfh_[m];
-        for (int n=0; n<cvfh_.cols; ++n)
-          hist.push_back(cvfh_[idxc+j][n]);
+        for (int n=0; n<cvfh_->cols; ++n)
+          hist.push_back((*cvfh_)[idxc+j][n]);
       }
       else if (ourcvfh)
       {
         int idxc=0;
         for (int m=0; m<idx; ++m)
           idxc+=clusters_ourcvfh_[m];
-        for (int n=0; n<ourcvfh_.cols; ++n)
-          hist.push_back(ourcvfh_[idxc+j][n]);
+        for (int n=0; n<ourcvfh_->cols; ++n)
+          hist.push_back((*ourcvfh_)[idxc+j][n]);
       }
       tmp_dist.push_back(MinMaxDistance(hist_query, hist));
     }
@@ -276,15 +314,15 @@ void PoseDB::computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query
 ///////////////////////////////////////
 void PoseDB::clear()
 {
-  //vfh_.reset();
-  //esf_db_.reset();
-  //cvfh_db_.reset();
-  //ourcvfh_db_.reset();
+  vfh_.reset();
+  esf_.reset();
+  cvfh_.reset();
+  ourcvfh_.reset();
   names_.clear();
   clusters_cvfh_.clear();
   clusters_ourcvfh_.clear();
-  //idx_vfh_.reset();
-  //idx_esf_.reset();
+  vfh_idx_.reset();
+  esf_idx_.reset();
   clouds_.clear();
 }
 /////////////////////////////////////////
@@ -1027,29 +1065,15 @@ void PoseEstimation::generateLists()
         vfh_query[0][j]= vfh_.points[0].histogram[j];
       flann::Matrix<int> match_id (new int[1*k],1,k);
       flann::Matrix<float> match_dist (new float[1*k],1,k);
-      /**Unfortunately FLANN has to initialize the index the moment you use it, Index doesn't have 
-       * a default empty constructor, so you can't put it inside PoseDB class. Instead we load it here
-       * with its constructor.
-       */
-      if (is_regular_file(database_.dbPath_.string()+ "/vfh.idx") && extension(database_.dbPath_.string()+ "/vfh.idx") == ".idx")
+      database_.vfh_idx_->knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
+      for (size_t i=0; i<k; ++i)
       {
-        indexVFH vfh_idx (database_.vfh_, SavedIndexParams(database_.dbPath_.string()+"/vfh.idx"));
-        vfh_idx.buildIndex();
-        vfh_idx.knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
-        for (size_t i=0; i<k; ++i)
-        {
-          string name= database_.names_[match_id[0][i]];
-          Candidate c(name,database_.clouds_[match_id[0][i]]);
-          c.rank_=i+1;
-          c.distance_=match_dist[0][i];
-          c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
-          VFH_list_.push_back(c);
-        }
-      }
-      else
-      {
-        print_error("%*s]\tInvalid vfh.idx file... Try recreating the Database\n",20,__func__);
-        return;
+        string name= database_.names_[match_id[0][i]];
+        Candidate c(name,database_.clouds_[match_id[0][i]]);
+        c.rank_=i+1;
+        c.distance_=match_dist[0][i];
+        c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
+        VFH_list_.push_back(c);
       }
     }
     catch (...)
@@ -1068,29 +1092,15 @@ void PoseEstimation::generateLists()
         esf_query[0][j]= esf_.points[0].histogram[j];
       flann::Matrix<int> match_id (new int[1*k],1,k);
       flann::Matrix<float> match_dist (new float[1*k],1,k);
-      /**Unfortunately FLANN has to initialize the index the moment you use it, Index doesn't have 
-       * a default empty constructor, so you can't put it inside PoseDB class. Instead we load it here
-       * with its constructor.
-       */
-      if (is_regular_file(database_.dbPath_.string()+ "/esf.idx") && extension(database_.dbPath_.string()+ "/esf.idx") == ".idx")
+      database_.esf_idx_->knnSearch (esf_query, match_id, match_dist, k, SearchParams(256) );
+      for (size_t i=0; i<k; ++i)
       {
-        indexESF esf_idx (database_.esf_, SavedIndexParams(database_.dbPath_.string()+"/esf.idx"));
-        esf_idx.buildIndex();
-        esf_idx.knnSearch (esf_query, match_id, match_dist, k, SearchParams(256) );
-        for (size_t i=0; i<k; ++i)
-        {
-          string name= database_.names_[match_id[0][i]];
-          Candidate c(name,database_.clouds_[match_id[0][i]]);
-          c.rank_=i+1;
-          c.distance_=match_dist[0][i];
-          c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
-          ESF_list_.push_back(c);
-        }
-      }
-      else
-      {
-        print_error("%*s]\tInvalid esf.idx file... Try recreating the Database\n",20,__func__);
-        return;
+        string name= database_.names_[match_id[0][i]];
+        Candidate c(name,database_.clouds_[match_id[0][i]]);
+        c.rank_=i+1;
+        c.distance_=match_dist[0][i];
+        c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
+        ESF_list_.push_back(c);
       }
     }
     catch (...)
@@ -1183,6 +1193,150 @@ void PoseEstimation::generateLists()
       return;
     }
   }
+  
+ ///oldcode 
+  print_highlight("[Database]\tProducing Composite list...\n");
+    vector<Candidate> tmp_esf, tmp_cvfh, tmp_ourcvfh;
+    for (size_t i=0; i<k;++i)
+    {
+      if(!no_ESF)
+        tmp_esf.push_back(candidates_esf.at(n*k + i));
+      tmp_cvfh.push_back(candidates_cvfh.at(n*k + i));
+      tmp_ourcvfh.push_back(candidates_ourcvfh.at(n*k + i));
+    }
+    bool gt_match (false);
+    for (cand_iter it=(candidates_vfh.begin()+ k*n); it!=(candidates_vfh.begin() + k*n +k); ++it)
+    {
+      float dist(it->dist);
+      float d,r;
+      if(!no_ESF)
+      {
+        if (findCandidate(tmp_esf, it->name, r, d))
+          dist += d;
+        else
+          dist += 1;
+      }
+      if (findCandidate(tmp_cvfh, it->name, r, d))
+        dist += d;
+      else
+        dist += 1;
+      if (findCandidate(tmp_ourcvfh, it->name, r, d))
+        dist += d;
+      else
+        dist += 1;
+      candidate cand;
+      cand.name = it->name;
+      cand.rank = 0;
+      if (!no_ESF)
+        cand.dist = dist/4; 
+      else
+        cand.dist = dist/3;
+      cand.rmse = 0;
+      cand.transformation.setIdentity();
+      comp_list.push_back(cand);
+    }
+    if (!tmp_esf.empty() && !no_ESF) //still some candidates in esf to check
+      for (cand_iter it=tmp_esf.begin(); it!= tmp_esf.end(); ++it)
+      {
+        float dist(it->dist + 1);
+        float r,d;
+        if (findCandidate(tmp_cvfh, it->name, r, d))
+          dist += d;
+        else
+          dist += 1;
+        if (findCandidate(tmp_ourcvfh, it->name, r, d))
+          dist += d;
+        else
+          dist += 1;
+        candidate cand;
+        cand.name = it->name;
+        cand.rank = 0;
+        if (!no_ESF)
+          cand.dist = dist/4; 
+        else
+          cand.dist = dist/3;
+        cand.rmse = 0;
+        cand.transformation.setIdentity();
+        comp_list.push_back(cand);
+      }
+    if (!tmp_cvfh.empty())
+      for (cand_iter it=tmp_cvfh.begin(); it!= tmp_cvfh.end(); ++it)
+      {
+        float dist(it->dist + 2);
+        float r,d;
+        if (findCandidate(tmp_ourcvfh, it->name, r, d))
+          dist += d;
+        else
+          dist += 1;
+        candidate cand;
+        cand.name = it->name;
+        cand.rank = 0;
+        if (!no_ESF)
+          cand.dist = dist/4;
+        else
+          cand.dist = dist/3;
+        cand.rmse = 0;
+        cand.transformation.setIdentity();
+        comp_list.push_back(cand);
+      }
+    if (!tmp_ourcvfh.empty()) //last check
+      for (cand_iter it=tmp_ourcvfh.begin(); it!= tmp_ourcvfh.end(); ++it)
+      {
+        float dist(it->dist);
+        candidate cand;
+        cand.name = it->name;
+        cand.rank = 0;
+        if (!no_ESF)
+          cand.dist = (dist + 3)/4; 
+        else
+          cand.dist = (dist + 2)/3;
+        cand.rmse = 0;
+        cand.transformation.setIdentity();
+        comp_list.push_back(cand);
+      }
+    sort(comp_list.begin()+ k*n, comp_list.end(),
+        [](candidate const & a, candidate const & b)
+        {
+          return (a.dist < b.dist);
+        });  //sort them by min rank
+    comp_list.resize((n+1)*k);
+    for (cand_iter it=(comp_list.begin()+ n*k); it!=(comp_list.begin()+ n*k +k) ; ++it)
+    {
+      //store in dist the median rank calculated, and rerank the list from 1 to k for each query
+      it->rank = it - comp_list.begin() +1 -n*k; //get the rank of the candidate in the list
+      print_value("%20s",it->name.c_str());
+      print_info("\trank:");
+      print_value("%3g", it->rank);
+      print_info("\tmedian distance:");
+      print_value("%3g ", it->dist);
+      if (query_name.compare(it->name) == 0) //match gt
+      { 
+        print_highlight(" Ground Truth Match (%s)\n",query_name.c_str());
+        gt_match = true;
+        if (test_f)
+        {
+          ofstream composite_result;
+          composite_result.open("composite.test", fstream::out | fstream::app);
+          composite_result<<it->rank<<"_";
+          composite_result.close();
+        }
+      }
+      else
+        cout<<endl;
+    }
+    if (test_f && !gt_match)
+    {
+      ofstream composite_result;
+      composite_result.open("composite.test", fstream::out | fstream::app);
+      composite_result<<"0_";
+      composite_result.close();
+    }
+  }
+  cout<<endl;
+  print_info ("\tTotal composition time: ");
+  print_value ("%g", timer.getTime());
+  print_info (" ms\n");
+  
   candidates_found_ = true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
