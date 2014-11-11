@@ -14,27 +14,21 @@ Describes a single candidate object to the query.
 \begin{DoxyCompactItemize}
 \item 
 \hyperlink{classCandidate_aa2747741fb662af5e8f3d01d1d1a43b6}{Candidate} ()
-\item 
-\hyperlink{classCandidate_a248d5d3260dd4de9fd4fc9d57c227556}{Candidate} (string \&, Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$ \&)
-\item 
-\hyperlink{classCandidate_aba6a77d6893cb406902baff0eb6c376c}{Candidate} (string \&, Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$\-::Ptr)
-\item 
-void \hyperlink{classCandidate_ae97329d23d392f22dc2cb5416e624921}{set\-Rank} (float)
-\item 
-void \hyperlink{classCandidate_add0268759b7a3b9037914e8435befac5}{get\-Rank} (float \&)
-\item 
-void \hyperlink{classCandidate_a3fdc5aa3bc0f7165db679c58b3db3ac0}{set\-Distance} (float)
-\item 
-void \hyperlink{classCandidate_a5d37e7b377ae89e90b9c621a861bc515}{get\-Distance} (float \&)
-\item 
-void \hyperlink{classCandidate_a99e4f7aa09cb990a63850c5661146f10}{set\-R\-M\-S\-E} (float)
-\item 
-void \hyperlink{classCandidate_a81d6749b43f4118dd4db68deee38e9ac}{get\-R\-M\-S\-E} (float \&)
-\item 
-void \hyperlink{classCandidate_aee22665fbda62ea1517400dca0c0c812}{get\-Transformation} (Eigen\-::\-Matrix4f \&)
-\item 
-void \hyperlink{classCandidate_a4ca96ab485de6e9b9d32902c40750096}{set\-Transformation} (Eigen\-::\-Matrix4f)
-\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Default empty Constructor. \end{DoxyCompactList}\item 
+\hyperlink{classCandidate_ab11f2b0e931e233a97331802dedcdae1}{Candidate} (string str, \hyperlink{PoseEstimation__interface_8h_a62eb21fcfa3189c5de50fb62a2a7a79e}{P\-C} \&cl)
+\begin{DoxyCompactList}\small\item\em Constructor with name and cloud. \end{DoxyCompactList}\item 
+\hyperlink{classCandidate_aa875b9c8439139764cf2216bf549abb2}{Candidate} (string str, P\-C\-::\-Ptr clp)
+\begin{DoxyCompactList}\small\item\em Constructor with name and cloud pointer. \end{DoxyCompactList}\item 
+void \hyperlink{classCandidate_ad66fdb55b874a43a6bd09ac64fb78931}{get\-Rank} (int \&r) const 
+\begin{DoxyCompactList}\small\item\em Get \hyperlink{classCandidate}{Candidate} Rank in the list of candidates. \end{DoxyCompactList}\item 
+void \hyperlink{classCandidate_a4424e1c6f6d8a739f5a0ea3b8721586f}{get\-Distance} (float \&d) const 
+\begin{DoxyCompactList}\small\item\em Get the distance of \hyperlink{classCandidate}{Candidate} from Query in the metric chosen by the feature. \end{DoxyCompactList}\item 
+void \hyperlink{classCandidate_aa68e39163876a510ff4b8687fdfed5bd}{get\-Normalized\-Distance} (float \&d) const 
+\begin{DoxyCompactList}\small\item\em Get the Normalize distance of \hyperlink{classCandidate}{Candidate} from Query. \end{DoxyCompactList}\item 
+void \hyperlink{classCandidate_a7edea7828ccbc682d177f8a060a93d8c}{get\-R\-M\-S\-E} (float \&e) const 
+\begin{DoxyCompactList}\small\item\em Get Root Mean Square Error of \hyperlink{classCandidate}{Candidate} as it was after the refinement. \end{DoxyCompactList}\item 
+void \hyperlink{classCandidate_ae5669e4112e92fcb119c2a06cc8904c0}{get\-Transformation} (Eigen\-::\-Matrix4f \&t) const 
+\begin{DoxyCompactList}\small\item\em Get Homogeneous Transformation that brings the \hyperlink{classCandidate}{Candidate} over the Query. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
@@ -45,7 +39,7 @@ class \hyperlink{classCandidate_acc93828d970ba58835be2e8221c7a669}{Pose\-Estimat
 \subsection{Detailed Description}
 Describes a single candidate object to the query. 
 
-\begin{DoxyAuthor}{Author}
+This class is used internally by \hyperlink{classPoseEstimation}{Pose\-Estimation}, a few methods are present to look at rank, distance, R\-M\-S\-E and transformation, if needed. However it is not meant to be used directly \begin{DoxyAuthor}{Author}
 Federico Spinelli 
 \end{DoxyAuthor}
 
@@ -58,81 +52,131 @@ Federico Spinelli
 {}
 \end{DoxyParamCaption}
 )}}\label{classCandidate_aa2747741fb662af5e8f3d01d1d1a43b6}
-\hypertarget{classCandidate_a248d5d3260dd4de9fd4fc9d57c227556}{\index{Candidate@{Candidate}!Candidate@{Candidate}}
+
+
+Default empty Constructor. 
+
+\hypertarget{classCandidate_ab11f2b0e931e233a97331802dedcdae1}{\index{Candidate@{Candidate}!Candidate@{Candidate}}
 \index{Candidate@{Candidate}!Candidate@{Candidate}}
 \subsubsection[{Candidate}]{\setlength{\rightskip}{0pt plus 5cm}Candidate\-::\-Candidate (
 \begin{DoxyParamCaption}
-\item[{string \&}]{str, }
-\item[{Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$ \&}]{cl}
+\item[{string}]{str, }
+\item[{{\bf P\-C} \&}]{cl}
 \end{DoxyParamCaption}
-)}}\label{classCandidate_a248d5d3260dd4de9fd4fc9d57c227556}
-\hypertarget{classCandidate_aba6a77d6893cb406902baff0eb6c376c}{\index{Candidate@{Candidate}!Candidate@{Candidate}}
+)}}\label{classCandidate_ab11f2b0e931e233a97331802dedcdae1}
+
+
+Constructor with name and cloud. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em str} & The object name the candidate will have \\
+\hline
+\mbox{\tt in}  & {\em cl} & Point cloud which holds the object \\
+\hline
+\end{DoxyParams}
+\hypertarget{classCandidate_aa875b9c8439139764cf2216bf549abb2}{\index{Candidate@{Candidate}!Candidate@{Candidate}}
 \index{Candidate@{Candidate}!Candidate@{Candidate}}
 \subsubsection[{Candidate}]{\setlength{\rightskip}{0pt plus 5cm}Candidate\-::\-Candidate (
 \begin{DoxyParamCaption}
-\item[{string \&}]{str, }
-\item[{Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$\-::Ptr}]{clp}
+\item[{string}]{str, }
+\item[{P\-C\-::\-Ptr}]{clp}
 \end{DoxyParamCaption}
-)}}\label{classCandidate_aba6a77d6893cb406902baff0eb6c376c}
+)}}\label{classCandidate_aa875b9c8439139764cf2216bf549abb2}
+
+
+Constructor with name and cloud pointer. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em str} & The object name the candidate will have \\
+\hline
+\mbox{\tt in}  & {\em clp} & Shared pointer to the point cloud that contains the object Note that clp parameter should not be empty pointer, or the contructor will throw an error \\
+\hline
+\end{DoxyParams}
 
 
 \subsection{Member Function Documentation}
-\hypertarget{classCandidate_a5d37e7b377ae89e90b9c621a861bc515}{\index{Candidate@{Candidate}!get\-Distance@{get\-Distance}}
+\hypertarget{classCandidate_a4424e1c6f6d8a739f5a0ea3b8721586f}{\index{Candidate@{Candidate}!get\-Distance@{get\-Distance}}
 \index{get\-Distance@{get\-Distance}!Candidate@{Candidate}}
 \subsubsection[{get\-Distance}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-Distance (
 \begin{DoxyParamCaption}
 \item[{float \&}]{d}
 \end{DoxyParamCaption}
-)}}\label{classCandidate_a5d37e7b377ae89e90b9c621a861bc515}
-\hypertarget{classCandidate_add0268759b7a3b9037914e8435befac5}{\index{Candidate@{Candidate}!get\-Rank@{get\-Rank}}
+) const}}\label{classCandidate_a4424e1c6f6d8a739f5a0ea3b8721586f}
+
+
+Get the distance of \hyperlink{classCandidate}{Candidate} from Query in the metric chosen by the feature. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em d} & The distance the candidate has from the query \\
+\hline
+\end{DoxyParams}
+\hypertarget{classCandidate_aa68e39163876a510ff4b8687fdfed5bd}{\index{Candidate@{Candidate}!get\-Normalized\-Distance@{get\-Normalized\-Distance}}
+\index{get\-Normalized\-Distance@{get\-Normalized\-Distance}!Candidate@{Candidate}}
+\subsubsection[{get\-Normalized\-Distance}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-Normalized\-Distance (
+\begin{DoxyParamCaption}
+\item[{float \&}]{d}
+\end{DoxyParamCaption}
+) const}}\label{classCandidate_aa68e39163876a510ff4b8687fdfed5bd}
+
+
+Get the Normalize distance of \hyperlink{classCandidate}{Candidate} from Query. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em d} & The distance the candidate has from the query Normalized distances range from 0 to 1, zero at \char`\"{}rank 1\char`\"{} and one at \char`\"{}rank k\char`\"{} \\
+\hline
+\end{DoxyParams}
+\hypertarget{classCandidate_ad66fdb55b874a43a6bd09ac64fb78931}{\index{Candidate@{Candidate}!get\-Rank@{get\-Rank}}
 \index{get\-Rank@{get\-Rank}!Candidate@{Candidate}}
 \subsubsection[{get\-Rank}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-Rank (
 \begin{DoxyParamCaption}
-\item[{float \&}]{r}
+\item[{int \&}]{r}
 \end{DoxyParamCaption}
-)}}\label{classCandidate_add0268759b7a3b9037914e8435befac5}
-\hypertarget{classCandidate_a81d6749b43f4118dd4db68deee38e9ac}{\index{Candidate@{Candidate}!get\-R\-M\-S\-E@{get\-R\-M\-S\-E}}
+) const}}\label{classCandidate_ad66fdb55b874a43a6bd09ac64fb78931}
+
+
+Get \hyperlink{classCandidate}{Candidate} Rank in the list of candidates. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em r} & The rank the candidate has in the list \\
+\hline
+\end{DoxyParams}
+\hypertarget{classCandidate_a7edea7828ccbc682d177f8a060a93d8c}{\index{Candidate@{Candidate}!get\-R\-M\-S\-E@{get\-R\-M\-S\-E}}
 \index{get\-R\-M\-S\-E@{get\-R\-M\-S\-E}!Candidate@{Candidate}}
 \subsubsection[{get\-R\-M\-S\-E}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-R\-M\-S\-E (
 \begin{DoxyParamCaption}
-\item[{float \&}]{r}
+\item[{float \&}]{e}
 \end{DoxyParamCaption}
-)}}\label{classCandidate_a81d6749b43f4118dd4db68deee38e9ac}
-\hypertarget{classCandidate_aee22665fbda62ea1517400dca0c0c812}{\index{Candidate@{Candidate}!get\-Transformation@{get\-Transformation}}
+) const}}\label{classCandidate_a7edea7828ccbc682d177f8a060a93d8c}
+
+
+Get Root Mean Square Error of \hyperlink{classCandidate}{Candidate} as it was after the refinement. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em e} & The Root Mean Square Error of the \hyperlink{classCandidate}{Candidate} \\
+\hline
+\end{DoxyParams}
+\hypertarget{classCandidate_ae5669e4112e92fcb119c2a06cc8904c0}{\index{Candidate@{Candidate}!get\-Transformation@{get\-Transformation}}
 \index{get\-Transformation@{get\-Transformation}!Candidate@{Candidate}}
 \subsubsection[{get\-Transformation}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::get\-Transformation (
 \begin{DoxyParamCaption}
 \item[{Eigen\-::\-Matrix4f \&}]{t}
 \end{DoxyParamCaption}
-)}}\label{classCandidate_aee22665fbda62ea1517400dca0c0c812}
-\hypertarget{classCandidate_a3fdc5aa3bc0f7165db679c58b3db3ac0}{\index{Candidate@{Candidate}!set\-Distance@{set\-Distance}}
-\index{set\-Distance@{set\-Distance}!Candidate@{Candidate}}
-\subsubsection[{set\-Distance}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-Distance (
-\begin{DoxyParamCaption}
-\item[{float}]{d}
-\end{DoxyParamCaption}
-)}}\label{classCandidate_a3fdc5aa3bc0f7165db679c58b3db3ac0}
-\hypertarget{classCandidate_ae97329d23d392f22dc2cb5416e624921}{\index{Candidate@{Candidate}!set\-Rank@{set\-Rank}}
-\index{set\-Rank@{set\-Rank}!Candidate@{Candidate}}
-\subsubsection[{set\-Rank}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-Rank (
-\begin{DoxyParamCaption}
-\item[{float}]{r}
-\end{DoxyParamCaption}
-)}}\label{classCandidate_ae97329d23d392f22dc2cb5416e624921}
-\hypertarget{classCandidate_a99e4f7aa09cb990a63850c5661146f10}{\index{Candidate@{Candidate}!set\-R\-M\-S\-E@{set\-R\-M\-S\-E}}
-\index{set\-R\-M\-S\-E@{set\-R\-M\-S\-E}!Candidate@{Candidate}}
-\subsubsection[{set\-R\-M\-S\-E}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-R\-M\-S\-E (
-\begin{DoxyParamCaption}
-\item[{float}]{r}
-\end{DoxyParamCaption}
-)}}\label{classCandidate_a99e4f7aa09cb990a63850c5661146f10}
-\hypertarget{classCandidate_a4ca96ab485de6e9b9d32902c40750096}{\index{Candidate@{Candidate}!set\-Transformation@{set\-Transformation}}
-\index{set\-Transformation@{set\-Transformation}!Candidate@{Candidate}}
-\subsubsection[{set\-Transformation}]{\setlength{\rightskip}{0pt plus 5cm}void Candidate\-::set\-Transformation (
-\begin{DoxyParamCaption}
-\item[{Eigen\-::\-Matrix4f}]{t}
-\end{DoxyParamCaption}
-)}}\label{classCandidate_a4ca96ab485de6e9b9d32902c40750096}
+) const}}\label{classCandidate_ae5669e4112e92fcb119c2a06cc8904c0}
+
+
+Get Homogeneous Transformation that brings the \hyperlink{classCandidate}{Candidate} over the Query. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em t} & Transformation that brings the \hyperlink{classCandidate}{Candidate} over the Query The transformation is expressed in the \hyperlink{classCandidate}{Candidate} Reference System \\
+\hline
+\end{DoxyParams}
 
 
 \subsection{Friends And Related Function Documentation}

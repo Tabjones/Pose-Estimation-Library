@@ -417,7 +417,7 @@ main (int argc, char** argv)
   PointCloud<VFHSignature308> descriptors;
   descriptors.clear();
   ofstream cvfh_list;
-  cvfh_list.open((data_dir.string()+ "cvfh.list").c_str(), fstream::trunc); //truncate contents of the file, if it already exists
+  cvfh_list.open((data_dir.string()+ "cvfh.cluster").c_str(), fstream::trunc); //truncate contents of the file, if it already exists
   cvfh_list.close();
   j=0;
   for (size_t i=0; i<orderedClouds.size(); ++i, j+=10)
@@ -451,8 +451,8 @@ main (int argc, char** argv)
     cvfhE.setMinPoints (50); //at least 50 points to consider a cluster to be valid (as stated in the paper)
     //Compute method
     cvfhE.compute (*output);
-    cvfh_list.open ((data_dir.string() + "cvfh.list").c_str(), fstream::out | fstream::app);  //append mode
-    cvfh_list << to_string(output->points.size())<<"\n";  //write name of the object and how many histogram it holds 
+    cvfh_list.open ((data_dir.string() + "cvfh.cluster").c_str(), fstream::out | fstream::app);  //append mode
+    cvfh_list <<output->points.size()<<endl;  //write how many clusters found 
     cvfh_list.close();
     for (size_t n=0; n < output->points.size(); ++n)
       descriptors.push_back(output->points[n]);
@@ -478,7 +478,7 @@ main (int argc, char** argv)
   //
   descriptors.clear();
   ofstream ourcvfh_list;
-  ourcvfh_list.open((data_dir.string()+ "ourcvfh.list").c_str(), fstream::trunc); //truncate contents of the file, if it already exists
+  ourcvfh_list.open((data_dir.string()+ "ourcvfh.cluster").c_str(), fstream::trunc); //truncate contents of the file, if it already exists
   ourcvfh_list.close();
   j=0;
   for (size_t i=0; i<orderedClouds.size(); ++i, j+=10)
@@ -520,8 +520,8 @@ main (int argc, char** argv)
     ourcvfhE.setRefineClusters (1.0); //dont refine clusters
     //Compute method
     ourcvfhE.compute ( *output );
-    ourcvfh_list.open ((data_dir.string() + "ourcvfh.list").c_str(), fstream::out | fstream::app);  //append mode
-    ourcvfh_list << to_string(output->points.size())<<"\n";    
+    ourcvfh_list.open ((data_dir.string() + "ourcvfh.cluster").c_str(), fstream::out | fstream::app);  //append mode
+    ourcvfh_list <<output->points.size()<<endl;    
     ourcvfh_list.close();
     for (size_t n=0; n < output->points.size(); ++n)
       descriptors.push_back(output->points[n]);

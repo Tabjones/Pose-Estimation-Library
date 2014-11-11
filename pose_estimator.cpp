@@ -16,5 +16,6 @@ main (int argc, char *argv[])
   prova.setDatabase("../../../Objects/Database");
   prova.generateLists();
   prova.printCandidates();
+  prova.refineCandidates();
   return 1;
 }

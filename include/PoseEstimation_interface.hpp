@@ -23,6 +23,7 @@
 #include <flann/io/hdf5.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/range/algorithm/copy.hpp>
 #include <algorithm>
 #include <fstream>
 #include <cmath>
@@ -31,7 +32,8 @@
 //Definition header
 #include "PoseEstimation_interface.h"
 
-#define D2R 0.017453293 //degrees to radians conversion
+///Degrees to radians conversion
+#define D2R 0.017453293 
 
 using namespace pcl::console;
 using namespace boost;
@@ -43,7 +45,7 @@ using namespace flann;
  * \param[in] b The second histogram
  * Returns the computed norm (D), defined as follows:
  * \f[
- *  D = 1 - \frac{1+\sum_i^n{min\lef(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
+ *  D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
  * \f]
  * where n=308 for CVFH/OURCVFH histograms
  */
@@ -58,7 +60,7 @@ float MinMaxDistance (vector<float>& a, vector<float>& b)
   {
     int size = a.size();
     float num(1.0f), den(1.0f);
-    ///Process 11 items with each loop for efficency (since it should be applied to vectors of 308 elements)
+    //Process 11 items with each loop for efficency (since it should be applied to vectors of 308 elements)
     int i=0;
     for (; i<(size-10); i+=11)
     { 
@@ -67,7 +69,7 @@ float MinMaxDistance (vector<float>& a, vector<float>& b)
       den += max(a[i],b[i]) + max(a[i+1],b[i+1]) + max(a[i+2],b[i+2]) + max(a[i+3],b[i+3]) + max(a[i+4],b[i+4]) + max(a[i+5],b[i+5]);
       den += max(a[i+6],b[i+6]) + max(a[i+7],b[i+7]) + max(a[i+8],b[i+8]) + max(a[i+9],b[i+9]) + max(a[i+10],b[i+10]);
     }
-    ///process last 0-10 elements (if size!=308)
+    //process last 0-10 elements (if size!=308)
     while ( i < size)
     {
       num += min(a[i],b[i]);
@@ -292,6 +294,7 @@ void PoseDB::computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query
       vector<float> hist;
       if (cvfh)
       {
+        //find index in matrix, because it is different from the one in names cause of clusters
         int idxc=0;
         for (int m=0; m<idx; ++m)
           idxc+=clusters_cvfh_[m];
@@ -300,6 +303,7 @@ void PoseDB::computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query
       }
       else if (ourcvfh)
       {
+        //find index in matrix, because it is different from the one in names cause of clusters
         int idxc=0;
         for (int m=0; m<idx; ++m)
           idxc+=clusters_ourcvfh_[m];
@@ -333,7 +337,7 @@ void PoseDB::save(path pathDB)
 /////////////////////////////////////////
 void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
 {
-  ///Parameters correctness are not checked for now... assume they are correct (TODO add checks)
+  //Parameters correctness are not checked for now... assume they are correct (TODO add checks)
   if (exists(pathClouds) && is_directory(pathClouds))
   {
     this->clear();
@@ -352,12 +356,12 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
       }
       vector<string> vst;
       split (vst,it->string(),boost::is_any_of("../\\"), boost::token_compress_on);
-      names_.push_back(vst.at(vst.size()-2)); ///filename without extension and path
+      names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
       PC::Ptr input (clouds_[i].makeShared()); 
       PC::Ptr output (new PC);
       if ((*params)["filtering"] >0)
       {
-        StatisticalOutlierRemoval<PointXYZRGBA> filter;
+        StatisticalOutlierRemoval<PT> filter;
         filter.setMeanK ( (*params)["filterMeanK"] );
         filter.setStddevMulThresh ( (*params)["filterStdDevMulThresh"] );
         filter.setInputCloud(input);
@@ -366,11 +370,11 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
       }
       if ((*params)["upsampling"] >0)
       {
-        MovingLeastSquares<PointXYZRGBA, PointXYZRGBA> mls;
-        search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+        MovingLeastSquares<PT, PT> mls;
+        search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
         mls.setInputCloud (input);
         mls.setSearchMethod (tree);
-        mls.setUpsamplingMethod (MovingLeastSquares<PointXYZRGBA, PointXYZRGBA>::RANDOM_UNIFORM_DENSITY);
+        mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
         mls.setComputeNormals (false);
         mls.setPolynomialOrder ( (*params)["mlsPolyOrder"] );
         mls.setPolynomialFit ( (*params)["mlsPolyFit"] );
@@ -381,7 +385,7 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
       }
       if ((*params)["downsampling"]>0)
       {
-        VoxelGrid <PointXYZRGBA> vgrid;
+        VoxelGrid <PT> vgrid;
         vgrid.setInputCloud (input);
         vgrid.setLeafSize ( (*params)["vgridLeafSize"], (*params)["vgridLeafSize"], (*params)["vgridLeafSize"]); //Downsample to 3mm
         vgrid.setDownsampleAllData (true);
@@ -612,7 +616,7 @@ void PoseEstimation::filtering_()
     timer.reset();
   }
   PC::Ptr filtered (new PC);
-  StatisticalOutlierRemoval<PointXYZRGBA> fil;
+  StatisticalOutlierRemoval<PT> fil;
   fil.setMeanK (params_["filterMeanK"]);
   fil.setStddevMulThresh (params_["filterStdDevMulThresh"]);
   fil.setInputCloud(query_cloud_);
@@ -643,14 +647,14 @@ void PoseEstimation::upsampling_()
     timer.reset();
   }
   PC::Ptr upsampled (new PC);
-  search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
-  MovingLeastSquares<PointXYZRGBA, PointXYZRGBA> mls;
+  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+  MovingLeastSquares<PT, PT> mls;
   if (query_cloud_processed_)
     mls.setInputCloud(query_cloud_processed_);
   else
     mls.setInputCloud(query_cloud_);
   mls.setSearchMethod(tree);
-  mls.setUpsamplingMethod (MovingLeastSquares<PointXYZRGBA, PointXYZRGBA>::RANDOM_UNIFORM_DENSITY);
+  mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
   mls.setComputeNormals (false);
   mls.setPolynomialOrder(params_["mlsPolyOrder"]);
   mls.setPolynomialFit(params_["mlsPolyFit"]);
@@ -679,7 +683,7 @@ void PoseEstimation::downsampling_()
     timer.reset();
   }
   PC::Ptr downsampled (new PC);
-  VoxelGrid<PointXYZRGBA> vg;
+  VoxelGrid<PT> vg;
   if (query_cloud_processed_)
     vg.setInputCloud(query_cloud_processed_);
   else
@@ -716,8 +720,8 @@ bool PoseEstimation::computeNormals_()
     print_info("%*s]\tSetting a neighborhood radius of %g\n",20,__func__, params_["neRadiusSearch"]);
     timer.reset();
   }
-  NormalEstimationOMP<PointXYZRGBA, Normal> ne;
-  search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+  NormalEstimationOMP<PT, Normal> ne;
+  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
   ne.setSearchMethod(tree);
   ne.setRadiusSearch(params_["neRadiusSearch"]);
   ne.setNumberOfThreads(0); //use pcl autoallocation
@@ -815,8 +819,8 @@ void PoseEstimation::computeVFH_()
       print_info("%*s]\tEstimating VFH feature of query...\n",20,__func__);
       timer.reset();
     }
-    VFHEstimation<PointXYZRGBA, Normal, VFHSignature308> vfhE;
-    search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+    VFHEstimation<PT, Normal, VFHSignature308> vfhE;
+    search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
     vfhE.setSearchMethod(tree);
     vfhE.setInputCloud (query_cloud_processed_);
     vfhE.setViewPoint (vpx_, vpy_, vpz_);
@@ -839,8 +843,8 @@ void PoseEstimation::computeESF_()
     print_info("%*s]\tEstimating ESF feature of query...\n",20,__func__);
     timer.reset();
   }
-  ESFEstimation<PointXYZRGBA, ESFSignature640> esfE;
-  search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+  ESFEstimation<PT, ESFSignature640> esfE;
+  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
   esfE.setSearchMethod(tree);
   esfE.setInputCloud (query_cloud_processed_);
   esfE.compute (esf_);
@@ -872,8 +876,8 @@ void PoseEstimation::computeCVFH_()
       print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["cvfhMinPoints"]); 
       timer.reset();
     }
-    CVFHEstimation<PointXYZRGBA, Normal, VFHSignature308> cvfhE;
-    search::KdTree<PointXYZRGBA>::Ptr tree (new search::KdTree<PointXYZRGBA>);
+    CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
+    search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
     cvfhE.setSearchMethod(tree);
     cvfhE.setInputCloud (query_cloud_processed_);
     cvfhE.setViewPoint (vpx_, vpy_, vpz_);
@@ -916,6 +920,8 @@ void PoseEstimation::computeOURCVFH_()
       print_info("%*s]\tUsing Refinement Factor of %g for clusters\n",20,__func__,params_["ourcvfhRefineClusters"]); 
       timer.reset();
     }
+    //For some reason OURCVFHEstimation is not templated to treat PointXYZRGBA point types...
+    //Using PointXYZ...
     OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
     search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ>);
     PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
@@ -1041,6 +1047,23 @@ void PoseEstimation::setDatabase(path dbPath)
     }
   }
 }
+bool PoseEstimation::findCandidate_(vector<Candidate>& list, string name, float& dist)
+{
+  if (list.empty())
+  {
+    return false;
+  }
+  for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
+  {
+    if (it->name_.compare(name)==0)
+    {
+      dist = it->normalized_distance_;
+      list.erase(it);
+      return true;
+    }
+  }
+  return false;
+}
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists()
 {
@@ -1059,7 +1082,7 @@ void PoseEstimation::generateLists()
   {
     try
     {
-      VFH_list_.clear();
+      vfh_list_.clear();
       flann::Matrix<float> vfh_query (new float[1*308],1,308);
       for (size_t j=0; j < 308; ++j)
         vfh_query[0][j]= vfh_.points[0].histogram[j];
@@ -1073,7 +1096,7 @@ void PoseEstimation::generateLists()
         c.rank_=i+1;
         c.distance_=match_dist[0][i];
         c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
-        VFH_list_.push_back(c);
+        vfh_list_.push_back(c);
       }
     }
     catch (...)
@@ -1086,7 +1109,7 @@ void PoseEstimation::generateLists()
   {
     try
     {
-      ESF_list_.clear();
+      esf_list_.clear();
       flann::Matrix<float> esf_query (new float[1*640],1,640);
       for (size_t j=0; j < 640; ++j)
         esf_query[0][j]= esf_.points[0].histogram[j];
@@ -1100,7 +1123,7 @@ void PoseEstimation::generateLists()
         c.rank_=i+1;
         c.distance_=match_dist[0][i];
         c.normalized_distance_=(match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]);
-        ESF_list_.push_back(c);
+        esf_list_.push_back(c);
       }
     }
     catch (...)
@@ -1113,17 +1136,17 @@ void PoseEstimation::generateLists()
   {
     try
     {
-      CVFH_list_.clear();
+      cvfh_list_.clear();
       for (int i=0; i<database_.names_.size(); ++i)
       {
         Candidate c;
         c.name_ = database_.names_[i];
         database_.computeDistanceFromClusters_(cvfh_.makeShared() ,i ,"CVFH", c.distance_);
-        CVFH_list_.push_back(c);
+        cvfh_list_.push_back(c);
       }
-      if ( CVFH_list_.size() >=k )
+      if ( cvfh_list_.size() >=k )
       {
-        sort(CVFH_list_.begin(), CVFH_list_.end(),
+        sort(cvfh_list_.begin(), cvfh_list_.end(),
             [](Candidate const &a, Candidate const &b)
             {
             float d,e;
@@ -1131,7 +1154,7 @@ void PoseEstimation::generateLists()
             b.getDistance(e);
             return (d < e);
             });
-        CVFH_list_.resize(k);
+        cvfh_list_.resize(k);
       }
       else
       {
@@ -1140,9 +1163,9 @@ void PoseEstimation::generateLists()
       }
       for (int i=0; i<k; ++i)
       {
-        CVFH_list_[i].rank_ = i+1;
-        CVFH_list_[i].setCloud_(database_.clouds_[i]);
-        CVFH_list_[i].normalized_distance_=(CVFH_list_[i].distance_ - CVFH_list_[0].distance_)/(CVFH_list_[k-1].distance_ - CVFH_list_[0].distance_);
+        cvfh_list_[i].rank_ = i+1;
+        cvfh_list_[i].setCloud_(database_.clouds_[i]);
+        cvfh_list_[i].normalized_distance_=(cvfh_list_[i].distance_ - cvfh_list_[0].distance_)/(cvfh_list_[k-1].distance_ - cvfh_list_[0].distance_);
       }
     }
     catch (...)
@@ -1155,17 +1178,17 @@ void PoseEstimation::generateLists()
   {
     try
     {
-      OURCVFH_list_.clear();
+      ourcvfh_list_.clear();
       for (int i=0; i<database_.names_.size(); ++i)
       {
         Candidate c;
         c.name_ = database_.names_[i];
         database_.computeDistanceFromClusters_(ourcvfh_.makeShared() ,i ,"OURCVFH", c.distance_);
-        OURCVFH_list_.push_back(c);
+        ourcvfh_list_.push_back(c);
       }
-      if ( OURCVFH_list_.size() >=k )
+      if ( ourcvfh_list_.size() >=k )
       {
-        sort(OURCVFH_list_.begin(), OURCVFH_list_.end(),
+        sort(ourcvfh_list_.begin(), ourcvfh_list_.end(),
             [](Candidate const &a, Candidate const &b)
             {
             float d,e;
@@ -1173,7 +1196,7 @@ void PoseEstimation::generateLists()
             b.getDistance(e);
             return (d < e);
             });
-        OURCVFH_list_.resize(k);
+        ourcvfh_list_.resize(k);
       }
       else
       {
@@ -1182,9 +1205,9 @@ void PoseEstimation::generateLists()
       }
       for (int i=0; i<k; ++i)
       {
-        OURCVFH_list_[i].rank_ = i+1;
-        OURCVFH_list_[i].setCloud_(database_.clouds_[i]);
-        OURCVFH_list_[i].normalized_distance_=(OURCVFH_list_[i].distance_ - OURCVFH_list_[0].distance_)/(OURCVFH_list_[k-1].distance_ - OURCVFH_list_[0].distance_);
+        ourcvfh_list_[i].rank_ = i+1;
+        ourcvfh_list_[i].setCloud_(database_.clouds_[i]);
+        ourcvfh_list_[i].normalized_distance_=(ourcvfh_list_[i].distance_ - ourcvfh_list_[0].distance_)/(ourcvfh_list_[k-1].distance_ - ourcvfh_list_[0].distance_);
       }
     }
     catch (...)
@@ -1193,151 +1216,154 @@ void PoseEstimation::generateLists()
       return;
     }
   }
-  
- ///oldcode 
-  print_highlight("[Database]\tProducing Composite list...\n");
-    vector<Candidate> tmp_esf, tmp_cvfh, tmp_ourcvfh;
-    for (size_t i=0; i<k;++i)
+  //Composite list generation
+  composite_list_.clear();
+  vector<Candidate> tmp_esf, tmp_cvfh, tmp_ourcvfh, tmp_vfh;
+  if(params_["useVFH"]>0)
+  {
+    if (feature_count_ == 1)
     {
-      if(!no_ESF)
-        tmp_esf.push_back(candidates_esf.at(n*k + i));
-      tmp_cvfh.push_back(candidates_cvfh.at(n*k + i));
-      tmp_ourcvfh.push_back(candidates_ourcvfh.at(n*k + i));
+      boost::copy(vfh_list_, back_inserter(composite_list_) );
+      candidates_found_ = true;
+      return;
     }
-    bool gt_match (false);
-    for (cand_iter it=(candidates_vfh.begin()+ k*n); it!=(candidates_vfh.begin() + k*n +k); ++it)
+    boost::copy(vfh_list_, back_inserter(tmp_vfh) );
+  }
+  if(params_["useESF"]>0)
+  {
+    if (feature_count_ == 1)
     {
-      float dist(it->dist);
-      float d,r;
-      if(!no_ESF)
-      {
-        if (findCandidate(tmp_esf, it->name, r, d))
-          dist += d;
-        else
-          dist += 1;
-      }
-      if (findCandidate(tmp_cvfh, it->name, r, d))
-        dist += d;
-      else
-        dist += 1;
-      if (findCandidate(tmp_ourcvfh, it->name, r, d))
-        dist += d;
-      else
-        dist += 1;
-      candidate cand;
-      cand.name = it->name;
-      cand.rank = 0;
-      if (!no_ESF)
-        cand.dist = dist/4; 
-      else
-        cand.dist = dist/3;
-      cand.rmse = 0;
-      cand.transformation.setIdentity();
-      comp_list.push_back(cand);
+      boost::copy(esf_list_, back_inserter(composite_list_) );
+      candidates_found_ = true;
+      return;
     }
-    if (!tmp_esf.empty() && !no_ESF) //still some candidates in esf to check
-      for (cand_iter it=tmp_esf.begin(); it!= tmp_esf.end(); ++it)
-      {
-        float dist(it->dist + 1);
-        float r,d;
-        if (findCandidate(tmp_cvfh, it->name, r, d))
-          dist += d;
-        else
-          dist += 1;
-        if (findCandidate(tmp_ourcvfh, it->name, r, d))
-          dist += d;
-        else
-          dist += 1;
-        candidate cand;
-        cand.name = it->name;
-        cand.rank = 0;
-        if (!no_ESF)
-          cand.dist = dist/4; 
-        else
-          cand.dist = dist/3;
-        cand.rmse = 0;
-        cand.transformation.setIdentity();
-        comp_list.push_back(cand);
-      }
-    if (!tmp_cvfh.empty())
-      for (cand_iter it=tmp_cvfh.begin(); it!= tmp_cvfh.end(); ++it)
-      {
-        float dist(it->dist + 2);
-        float r,d;
-        if (findCandidate(tmp_ourcvfh, it->name, r, d))
-          dist += d;
-        else
-          dist += 1;
-        candidate cand;
-        cand.name = it->name;
-        cand.rank = 0;
-        if (!no_ESF)
-          cand.dist = dist/4;
-        else
-          cand.dist = dist/3;
-        cand.rmse = 0;
-        cand.transformation.setIdentity();
-        comp_list.push_back(cand);
-      }
-    if (!tmp_ourcvfh.empty()) //last check
-      for (cand_iter it=tmp_ourcvfh.begin(); it!= tmp_ourcvfh.end(); ++it)
-      {
-        float dist(it->dist);
-        candidate cand;
-        cand.name = it->name;
-        cand.rank = 0;
-        if (!no_ESF)
-          cand.dist = (dist + 3)/4; 
-        else
-          cand.dist = (dist + 2)/3;
-        cand.rmse = 0;
-        cand.transformation.setIdentity();
-        comp_list.push_back(cand);
-      }
-    sort(comp_list.begin()+ k*n, comp_list.end(),
-        [](candidate const & a, candidate const & b)
-        {
-          return (a.dist < b.dist);
-        });  //sort them by min rank
-    comp_list.resize((n+1)*k);
-    for (cand_iter it=(comp_list.begin()+ n*k); it!=(comp_list.begin()+ n*k +k) ; ++it)
+    boost::copy(esf_list_, back_inserter(tmp_esf) );
+  }
+  if(params_["useCVFH"]>0)
+  {
+    if (feature_count_ == 1)
     {
-      //store in dist the median rank calculated, and rerank the list from 1 to k for each query
-      it->rank = it - comp_list.begin() +1 -n*k; //get the rank of the candidate in the list
-      print_value("%20s",it->name.c_str());
-      print_info("\trank:");
-      print_value("%3g", it->rank);
-      print_info("\tmedian distance:");
-      print_value("%3g ", it->dist);
-      if (query_name.compare(it->name) == 0) //match gt
-      { 
-        print_highlight(" Ground Truth Match (%s)\n",query_name.c_str());
-        gt_match = true;
-        if (test_f)
-        {
-          ofstream composite_result;
-          composite_result.open("composite.test", fstream::out | fstream::app);
-          composite_result<<it->rank<<"_";
-          composite_result.close();
-        }
-      }
-      else
-        cout<<endl;
+      boost::copy(cvfh_list_, back_inserter(composite_list_) );
+      candidates_found_ = true;
+      return;
     }
-    if (test_f && !gt_match)
+    boost::copy(cvfh_list_, back_inserter(tmp_cvfh) );
+  }
+  if(params_["useOURCVFH"]>0)
+  {
+    if (feature_count_ == 1)
     {
-      ofstream composite_result;
-      composite_result.open("composite.test", fstream::out | fstream::app);
-      composite_result<<"0_";
-      composite_result.close();
+      boost::copy(ourcvfh_list_, back_inserter(composite_list_) );
+      candidates_found_ = true;
+      return;
+    }
+    boost::copy(ourcvfh_list_, back_inserter(tmp_ourcvfh) );
+  }
+  if (params_["useVFH"]>0 && !tmp_vfh.empty())
+  {
+    for (vector<Candidate>::iterator it=tmp_vfh.begin(); it!=tmp_vfh.end(); ++it)
+    {
+      float d_tmp;
+      if (params_["useESF"]>0)
+      {
+        if (findCandidate_(tmp_esf, it->name_, d_tmp))
+          it->normalized_distance_+= d_tmp;
+        else
+          it->normalized_distance_ += 1;
+      }
+      if (params_["useCVFH"]>0)
+      {
+        if (findCandidate_(tmp_cvfh, it->name_, d_tmp))
+          it->normalized_distance_+= d_tmp;
+        else
+          it->normalized_distance_+=1;
+      }
+      if (params_["useOURCVFH"]>0)
+      {
+        if (findCandidate_(tmp_ourcvfh, it->name_, d_tmp))
+          it->normalized_distance_+= d_tmp;
+        else
+          it->normalized_distance_+=1;
+      }
+      it->normalized_distance_ /= feature_count_;
+      composite_list_.push_back(*it);
     }
   }
-  cout<<endl;
-  print_info ("\tTotal composition time: ");
-  print_value ("%g", timer.getTime());
-  print_info (" ms\n");
-  
+  //Still some candidates in ESF that were not in VFH
+  if (params_["useESF"]>0 && !tmp_esf.empty())
+  {
+    for (vector<Candidate>::iterator it=tmp_esf.begin(); it!=tmp_esf.end(); ++it)
+    {
+      float d_tmp;
+      if (params_["useCVFH"]>0)
+      {
+        if (findCandidate_(tmp_cvfh, it->name_, d_tmp))
+          it->normalized_distance_+= d_tmp;
+        else
+          it->normalized_distance_+=1;
+      }
+      if (params_["useOURCVFH"]>0)
+      {
+        if (findCandidate_(tmp_ourcvfh, it->name_, d_tmp))
+          it->normalized_distance_+= d_tmp;
+        else
+          it->normalized_distance_+=1;
+      }
+      if (params_["useVFH"]>0)
+        it->normalized_distance_ += 1;
+      it->normalized_distance_ /= feature_count_;
+      composite_list_.push_back(*it);
+    }
+  }
+  //Still some candidates in CVFH that were not in VFH and ESF
+  if (params_["useCVFH"]>0 && !tmp_cvfh.empty())
+  {
+    for (vector<Candidate>::iterator it=tmp_cvfh.begin(); it!=tmp_cvfh.end(); ++it)
+    {
+      float d_tmp;
+      if (params_["useOURCVFH"]>0)
+      {
+        if (findCandidate_(tmp_ourcvfh, it->name_, d_tmp))
+          it->normalized_distance_+= d_tmp;
+        else
+          it->normalized_distance_+=1;
+      }
+      if (params_["useVFH"]>0)
+        it->normalized_distance_ += 1;
+      if (params_["useESF"]>0)
+        it->normalized_distance_ += 1;
+      it->normalized_distance_ /= feature_count_;
+      composite_list_.push_back(*it);
+    }
+  }
+  //Still some candidates in OURCVFH that were not in other lists
+  if (params_["useOURCVFH"]>0 && !tmp_ourcvfh.empty())
+  {
+    for (vector<Candidate>::iterator it=tmp_ourcvfh.begin(); it!=tmp_ourcvfh.end(); ++it)
+    {
+      if (params_["useVFH"]>0)
+        it->normalized_distance_ += 1;
+      if (params_["useESF"]>0)
+        it->normalized_distance_ += 1;
+      if (params_["useCVFH"]>0)
+        it->normalized_distance_ += 1;
+      it->normalized_distance_ /= feature_count_;
+      composite_list_.push_back(*it);
+    }
+  }
+  sort(composite_list_.begin(), composite_list_.end(),
+      [](Candidate const & a, Candidate const & b)
+      {
+      float d,e;
+      a.getNormalizedDistance(d);
+      b.getNormalizedDistance(e);
+      return (d < e);
+      });  
+  composite_list_.resize(k);
+  for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
+    it->rank_ = it - composite_list_.begin() +1; //write the rank of the candidate in the list
   candidates_found_ = true;
+  return;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::generateLists(path dbPath)
@@ -1364,6 +1390,7 @@ void PoseEstimation::printCandidates()
       print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to print them!\n",20,__func__); 
     return;
   }
+  print_info("%*s]\tPrinting current list of candidates:\n",20,__func__);
   print_info("%-6s","Rank");
   if (params_["useVFH"] >0)
     print_info("%-30s","VFH");
@@ -1379,25 +1406,122 @@ void PoseEstimation::printCandidates()
     print_value("%-6d", i+1);
     if (params_["useVFH"] >0)
     {
-      print_info("%-15s D:",VFH_list_[i].name_.c_str());
-      print_value("%-9g   ",VFH_list_[i].normalized_distance_);
+      print_info("%-15s D:",vfh_list_[i].name_.c_str());
+      print_value("%-9g   ",vfh_list_[i].normalized_distance_);
     }
     if (params_["useESF"] >0)
     {
-      print_info("%-15s D:",ESF_list_[i].name_.c_str());
-      print_value("%-9g   ",ESF_list_[i].normalized_distance_);
+      print_info("%-15s D:",esf_list_[i].name_.c_str());
+      print_value("%-9g   ",esf_list_[i].normalized_distance_);
     }
     if (params_["useCVFH"] >0)
     {
-      print_info("%-15s D:",CVFH_list_[i].name_.c_str());
-      print_value("%-9g   ",CVFH_list_[i].normalized_distance_);
+      print_info("%-15s D:",cvfh_list_[i].name_.c_str());
+      print_value("%-9g   ",cvfh_list_[i].normalized_distance_);
     }
     if (params_["useOURCVFH"] >0)
     {
-      print_info("%-15s D:",OURCVFH_list_[i].name_.c_str());
-      print_value("%-9g   ",OURCVFH_list_[i].normalized_distance_);
+      print_info("%-15s D:",ourcvfh_list_[i].name_.c_str());
+      print_value("%-9g   ",ourcvfh_list_[i].normalized_distance_);
     }
     print_info("\n");
+  }
+  cout<<endl;
+  print_info("%-6s", "Rank");
+  print_info("%-30s\n","Composite");
+  for (int i=0; i<params_["kNeighbors"]; ++i)
+  { 
+    print_value("%-6d", (int)composite_list_[i].rank_);
+    print_info("%-15s D:", composite_list_[i].name_.c_str());
+    print_value("%-9g   ", composite_list_[i].normalized_distance_);
+    cout<<endl;
+  }
+}
+
+void PoseEstimation::refineCandidates()
+{
+  if (!candidates_found_)
+  {
+    print_error("%*s]\tList of Candidates are not yet generated, call generateLists first...\n",20,__func__);
+    return;
+  }
+  if (params_["progBisection"]>0)
+  {
+    //ProgressiveBisection
+    vector<Candidate> list; //make a temporary list to manipulate
+    boost::copy(composite_list_, back_inserter(list));
+    IterativeClosestPoint<PT, PT> icp;
+    icp.setInputTarget(query_cloud_processed_); //query
+    icp.setMaximumIterations (params_["progItera"]); //iterations to perform
+    icp.setTransformationEpsilon (1e-9); //not using it (difference between consecutive transformations)
+    icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
+    while (list.size() > 1)
+    {
+      for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
+      {
+        PC::Ptr aligned (new PC);
+        //icp align source over target, result in aligned
+        icp.setInputSource(it->cloud_); //the candidate
+        icp.align(*aligned);
+        it->transformation_ = icp.getFinalTransformation();
+        it->rmse_ = sqrt(icp.getFitnessScore());
+        if (params_["verbosity"]>1)
+        {
+          print_info("%*s]\tCandidate: ",20,__func__);
+          print_value("%-15s",it->name_.c_str());
+          print_info(" just performed %d ICP iterations, its RMSE is: ", (int)params_["progItera"]);
+          print_value("%g\n",it->rmse_);
+        }
+      }
+      //now resort list
+      sort(list.begin(), list.end(),
+          [](Candidate const &a, Candidate const &b)
+          {
+          float d,e;
+          a.getRMSE(d);
+          b.getRMSE(e);
+          return (d < e);
+          });
+      //check if candidate falled under rmse threshold, no need to check them all since list is now sorted with
+      //minimum rmse on top
+      if (list[0].rmse_ < params_["rmseThreshold"] )
+      {
+        //convergence 
+        pose_estimation_.reset();
+        pose_estimation_ = boost::make_shared<Candidate>(list[0]);
+        refinement_done_=true;
+        if (params_["verbosity"]>1)
+        {
+          print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
+          print_info("%*s]\tFinal transformation is:\n",20,__func__);
+          cout<<pose_estimation_->transformation_<<endl;
+        }
+        return;
+      }
+      else
+      {
+        //no convergence, resize list
+        int size = list.size();
+        size *= params_["progFraction"];
+        cout<<size<<endl; //debug
+        list.resize(size);
+      }
+    }
+    //only one candidate remained, he wins!
+    pose_estimation_.reset();
+    pose_estimation_ = boost::make_shared<Candidate>(list[0]);
+    refinement_done_=true;
+    if (params_["verbosity"]>1)
+    {
+      print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
+      print_info("%*s]\tFinal transformation is:\n",20,__func__);
+      cout<<pose_estimation_->transformation_<<endl;
+    }
+    return;
+  }
+  else
+  {
+    //BruteForce
   }
 }
 #endif

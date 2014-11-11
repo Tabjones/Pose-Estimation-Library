@@ -3,35 +3,101 @@
 }
 
 
+Implements the procedure to achieve pose estimation of a given query object. The ideal procedure can be summarized as follows\-:  
+
+
+
+
 {\ttfamily \#include $<$Pose\-Estimation\-\_\-interface.\-h$>$}
 
 \subsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \hyperlink{classPoseEstimation_a47946518bc5a77dea91403373a1245d5}{Pose\-Estimation} ()
-\item 
-void \hyperlink{classPoseEstimation_af3d24a99d20186d2ceff9a9d9f6b12b0}{set\-Param} (string, float)
-\item 
-void \hyperlink{classPoseEstimation_a4705e759bd5b20e6fe19327b399ac4cd}{set\-Param} (string str, int v)
-\item 
-void \hyperlink{classPoseEstimation_a262103cc5955b76dae954efa8a11f3a6}{init\-Params} (boost\-::filesystem\-::path)
-\item 
+\begin{DoxyCompactList}\small\item\em Default Empty Constructor that sets default parameters (see them in config file \char`\"{}config/parameters.\-conf\char`\"{}) \end{DoxyCompactList}\item 
+void \hyperlink{classPoseEstimation_ae416bbbfdefdb60a6f82a9b255edc124}{set\-Param} (string key, float value)
+\begin{DoxyCompactList}\small\item\em Set a parameter of the Class directly, knowing its name. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseEstimation_a1d768a589eb6424d936afb9f15d28067}{set\-Param} (string key, int value)
+\begin{DoxyCompactList}\small\item\em Set a parameter of the Class directly, knowing its name. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseEstimation_a8359f6ffae7fc0cf99692d926dd1e7c4}{init\-Params} (boost\-::filesystem\-::path config\-\_\-file)
+\begin{DoxyCompactList}\small\item\em Initialize the class with parameters found in config file. \end{DoxyCompactList}\item 
 \hyperlink{classPoseEstimation_a4fcf971c444b8feb1de5ee99c66533df}{Pose\-Estimation} (boost\-::filesystem\-::path config\-\_\-file)
-\item 
-void \hyperlink{classPoseEstimation_adeaba8254e4ea0d368fdd61512ffb94e}{set\-Query\-Viewpoint} (float, float, float)
-\item 
-void \hyperlink{classPoseEstimation_aba47925067451610e5c5f572208785bc}{set\-Query} (string, Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$ \&)
-\item 
-void \hyperlink{classPoseEstimation_a926bc2c40483408aac0e6a88b41bd396}{set\-Query} (string str, Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$\-::Ptr clp)
-\item 
+\begin{DoxyCompactList}\small\item\em Constructor with path to a configuration file containing parameters to set. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseEstimation_a378321aa07ca329332f20ba8bf6ffaad}{set\-Query\-Viewpoint} (float x, float y, float z)
+\begin{DoxyCompactList}\small\item\em Explicitly set the query viewpoint. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseEstimation_a8c3e730167d42d2d8cfd4a08389d17ce}{set\-Query} (string str, \hyperlink{PoseEstimation__interface_8h_a62eb21fcfa3189c5de50fb62a2a7a79e}{P\-C} \&cl)
+\begin{DoxyCompactList}\small\item\em Set the Pose Estimation query (the object to be identified) \end{DoxyCompactList}\item 
+void \hyperlink{classPoseEstimation_a0abb4e19ca862ef280f8d76ed2f9bac7}{set\-Query} (string str, P\-C\-::\-Ptr clp)
+\begin{DoxyCompactList}\small\item\em Set the Pose Estimation query (the object to be identified) \end{DoxyCompactList}\item 
 void \hyperlink{classPoseEstimation_a7f162e3e5383f895d7b6d1cd228ca076}{print\-Params} ()
-\item 
+\begin{DoxyCompactList}\small\item\em Print current parameter values on screen. \end{DoxyCompactList}\item 
+void \hyperlink{classPoseEstimation_ac6fee319b5bc9464cc866aaaf99f6a5c}{print\-Candidates} ()
+\begin{DoxyCompactList}\small\item\em Print List of Candidates to the query on screen. \end{DoxyCompactList}\item 
 void \hyperlink{classPoseEstimation_a0ace84f98f2bab31e64ffaa4eefdf402}{set\-Database} (boost\-::filesystem\-::path db\-Path)
-\item 
+\begin{DoxyCompactList}\small\item\em Set a database of known poses to be used for pose estimation procedure. \end{DoxyCompactList}\item 
 void \hyperlink{classPoseEstimation_a7f16094de53753e91efa3d4728a928be}{generate\-Lists} (boost\-::filesystem\-::path db\-Path)
-\item 
+\begin{DoxyCompactList}\small\item\em Generates list(s) of candidates to the query using the database provided as argument. \end{DoxyCompactList}\item 
 void \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\-Lists} ()
-\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Generates list(s) of candidates to the query using previously set database. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Implements the procedure to achieve pose estimation of a given query object. The ideal procedure can be summarized as follows\-: 
+
+
+\begin{DoxyItemize}
+\item Initialize the class parameters either with the constructors or with \hyperlink{classPoseEstimation_a8359f6ffae7fc0cf99692d926dd1e7c4}{init\-Params()} 
+\begin{DoxyCode}
+\hyperlink{classPoseEstimation}{PoseEstimation} pe; \textcolor{comment}{//empty constructor, default parameters are set}
+\hyperlink{classPoseEstimation}{PoseEstimation} pe2(\textcolor{stringliteral}{"config/params.config"}); \textcolor{comment}{//constructor with path to a configuration file}
+pe.\hyperlink{classPoseEstimation_a8359f6ffae7fc0cf99692d926dd1e7c4}{initParams}(\textcolor{stringliteral}{"config/params.config"}); \textcolor{comment}{//change all parameters specified in the configuration
+       file}
+pe.\hyperlink{classPoseEstimation_ae416bbbfdefdb60a6f82a9b255edc124}{setParam}(\textcolor{stringliteral}{"verbosity"}, 2); \textcolor{comment}{//change parameter "verbosity" to 2}
+\end{DoxyCode}
+
+\item Set the query object to be identified with method \hyperlink{classPoseEstimation_a8c3e730167d42d2d8cfd4a08389d17ce}{set\-Query()} and the database to use with \hyperlink{classPoseEstimation_a0ace84f98f2bab31e64ffaa4eefdf402}{set\-Database()} 
+\begin{DoxyCode}
+PointCloud<PointXYZRGBA> cl;
+loadPCDFile(\textcolor{stringliteral}{"cloud.pcd"}, cl);
+pe.\hyperlink{classPoseEstimation_a8c3e730167d42d2d8cfd4a08389d17ce}{setQuery}(\textcolor{stringliteral}{"funnel\_20\_30"}, cl); \textcolor{comment}{//set a new query to be a point cloud contained in "cl" and name
+       it "funnel\_20\_30"}
+pe.\hyperlink{classPoseEstimation_a0ace84f98f2bab31e64ffaa4eefdf402}{setDatabase}(\textcolor{stringliteral}{"../Database"}); \textcolor{comment}{//load a database from disk contained in directory "../Database"}
+\end{DoxyCode}
+
+\item Generate the list(s) of candidates to the query with member \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\-Lists()} 
+\begin{DoxyCode}
+pe.\hyperlink{classPoseEstimation_a7f16094de53753e91efa3d4728a928be}{generateLists}(); \textcolor{comment}{//list of candidates are computed, based on type of parameters set}
+\end{DoxyCode}
+
+\item Obtain the final candidate with member refine\-Candidates() 
+\begin{DoxyCode}
+pe.refineCandidates(); \textcolor{comment}{//Select one final candidate from the lists, representing the pose estimation}
+\end{DoxyCode}
+
+\item Print, Get or Save the final pose estimation with the corresponding member functions 
+\begin{DoxyCode}
+pe.saveEstimation(\textcolor{stringliteral}{"file.pose"}); \textcolor{comment}{//Save the estimation to a file on disk}
+pe.printEstimation(); \textcolor{comment}{//print the estimation on screen}
+pe.viewEstimation(); \textcolor{comment}{//open a pcl visualizer to view the estimation}
+\end{DoxyCode}
+
+\end{DoxyItemize}
+
+Alternatively the method estimate() can be called right after initialization with constructor 
+\begin{DoxyCode}
+\hyperlink{classPoseEstimation}{PoseEstimation} pe;
+PointCloud<PointXYZRGBA> cloud;
+\textcolor{comment}{//... }
+\textcolor{comment}{//Put somethging in cloud}
+\textcolor{comment}{//...}
+pe.estimate(cloud, \textcolor{stringliteral}{"DB\_PATH"}); \textcolor{comment}{//calls setQuery, setDatabase, generateList, refineCandidates and
+       printEstimation in one call}
+\end{DoxyCode}
+
+
+\begin{DoxyAuthor}{Author}
+Federico Spinelli 
+\end{DoxyAuthor}
 
 
 \subsection{Constructor \& Destructor Documentation}
@@ -42,6 +108,10 @@ void \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\
 {}
 \end{DoxyParamCaption}
 )}}\label{classPoseEstimation_a47946518bc5a77dea91403373a1245d5}
+
+
+Default Empty Constructor that sets default parameters (see them in config file \char`\"{}config/parameters.\-conf\char`\"{}) 
+
 \hypertarget{classPoseEstimation_a4fcf971c444b8feb1de5ee99c66533df}{\index{Pose\-Estimation@{Pose\-Estimation}!Pose\-Estimation@{Pose\-Estimation}}
 \index{Pose\-Estimation@{Pose\-Estimation}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{Pose\-Estimation}]{\setlength{\rightskip}{0pt plus 5cm}Pose\-Estimation\-::\-Pose\-Estimation (
@@ -51,6 +121,15 @@ void \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\
 )\hspace{0.3cm}{\ttfamily [inline]}}}\label{classPoseEstimation_a4fcf971c444b8feb1de5ee99c66533df}
 
 
+Constructor with path to a configuration file containing parameters to set. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em config\-\_\-file} & Path to a config file to use\\
+\hline
+\end{DoxyParams}
+Configuration file must have extension .conf and follow certain naming conventions, look at example .conf file provided for more details (i.\-e \char`\"{}config/parameters.\-conf\char`\"{}) N\-O\-T\-E\-: This constructor uses C++11 functionality and will probably not compile without -\/std=c++11 It delegates construction to empty contructor then calls \hyperlink{classPoseEstimation_a8359f6ffae7fc0cf99692d926dd1e7c4}{init\-Params()} It is the same way as calling empty constructor and then \hyperlink{classPoseEstimation_a8359f6ffae7fc0cf99692d926dd1e7c4}{init\-Params()} method 
+
 \subsection{Member Function Documentation}
 \hypertarget{classPoseEstimation_a7f16094de53753e91efa3d4728a928be}{\index{Pose\-Estimation@{Pose\-Estimation}!generate\-Lists@{generate\-Lists}}
 \index{generate\-Lists@{generate\-Lists}!PoseEstimation@{Pose\-Estimation}}
@@ -59,20 +138,53 @@ void \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\
 \item[{boost\-::filesystem\-::path}]{db\-Path}
 \end{DoxyParamCaption}
 )}}\label{classPoseEstimation_a7f16094de53753e91efa3d4728a928be}
-\hypertarget{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{\index{Pose\-Estimation@{Pose\-Estimation}!generate\-Lists@{generate\-Lists}}
+
+
+Generates list(s) of candidates to the query using the database provided as argument. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em db\-Path} & The path to the directory containing the database of poses, previously generated.\\
+\hline
+\end{DoxyParams}
+This member also sets the database to the one specified for future lists computations. \hypertarget{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{\index{Pose\-Estimation@{Pose\-Estimation}!generate\-Lists@{generate\-Lists}}
 \index{generate\-Lists@{generate\-Lists}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{generate\-Lists}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::generate\-Lists (
 \begin{DoxyParamCaption}
 {}
 \end{DoxyParamCaption}
 )}}\label{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}
-\hypertarget{classPoseEstimation_a262103cc5955b76dae954efa8a11f3a6}{\index{Pose\-Estimation@{Pose\-Estimation}!init\-Params@{init\-Params}}
+
+
+Generates list(s) of candidates to the query using previously set database. 
+
+\hypertarget{classPoseEstimation_a8359f6ffae7fc0cf99692d926dd1e7c4}{\index{Pose\-Estimation@{Pose\-Estimation}!init\-Params@{init\-Params}}
 \index{init\-Params@{init\-Params}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{init\-Params}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::init\-Params (
 \begin{DoxyParamCaption}
-\item[{boost\-::filesystem\-::path}]{}
+\item[{boost\-::filesystem\-::path}]{config\-\_\-file}
 \end{DoxyParamCaption}
-)}}\label{classPoseEstimation_a262103cc5955b76dae954efa8a11f3a6}
+)}}\label{classPoseEstimation_a8359f6ffae7fc0cf99692d926dd1e7c4}
+
+
+Initialize the class with parameters found in config file. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em config\-\_\-file} & Path to a config file to use\\
+\hline
+\end{DoxyParams}
+Configuration file must have extension .conf and follow certain naming conventions, look at example .conf file provided for more details (i.\-e \char`\"{}config/parameters.\-conf\char`\"{}) \hypertarget{classPoseEstimation_ac6fee319b5bc9464cc866aaaf99f6a5c}{\index{Pose\-Estimation@{Pose\-Estimation}!print\-Candidates@{print\-Candidates}}
+\index{print\-Candidates@{print\-Candidates}!PoseEstimation@{Pose\-Estimation}}
+\subsubsection[{print\-Candidates}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::print\-Candidates (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}}\label{classPoseEstimation_ac6fee319b5bc9464cc866aaaf99f6a5c}
+
+
+Print List of Candidates to the query on screen. 
+
 \hypertarget{classPoseEstimation_a7f162e3e5383f895d7b6d1cd228ca076}{\index{Pose\-Estimation@{Pose\-Estimation}!print\-Params@{print\-Params}}
 \index{print\-Params@{print\-Params}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{print\-Params}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::print\-Params (
@@ -80,6 +192,10 @@ void \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\
 {}
 \end{DoxyParamCaption}
 )}}\label{classPoseEstimation_a7f162e3e5383f895d7b6d1cd228ca076}
+
+
+Print current parameter values on screen. 
+
 \hypertarget{classPoseEstimation_a0ace84f98f2bab31e64ffaa4eefdf402}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Database@{set\-Database}}
 \index{set\-Database@{set\-Database}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{set\-Database}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::set\-Database (
@@ -87,39 +203,100 @@ void \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\
 \item[{boost\-::filesystem\-::path}]{db\-Path}
 \end{DoxyParamCaption}
 )}}\label{classPoseEstimation_a0ace84f98f2bab31e64ffaa4eefdf402}
-\hypertarget{classPoseEstimation_af3d24a99d20186d2ceff9a9d9f6b12b0}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Param@{set\-Param}}
+
+
+Set a database of known poses to be used for pose estimation procedure. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em db\-Path} & The path to the directory containing the database \\
+\hline
+\end{DoxyParams}
+\hypertarget{classPoseEstimation_ae416bbbfdefdb60a6f82a9b255edc124}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Param@{set\-Param}}
 \index{set\-Param@{set\-Param}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{set\-Param}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::set\-Param (
 \begin{DoxyParamCaption}
 \item[{string}]{key, }
 \item[{float}]{value}
 \end{DoxyParamCaption}
-)}}\label{classPoseEstimation_af3d24a99d20186d2ceff9a9d9f6b12b0}
-\hypertarget{classPoseEstimation_a4705e759bd5b20e6fe19327b399ac4cd}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Param@{set\-Param}}
+)}}\label{classPoseEstimation_ae416bbbfdefdb60a6f82a9b255edc124}
+
+
+Set a parameter of the Class directly, knowing its name. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em key} & the parameter name to change \\
+\hline
+\mbox{\tt in}  & {\em value} & the value that key should assume\\
+\hline
+\end{DoxyParams}
+Example Usage\-: 
+\begin{DoxyCode}
+\hyperlink{classPoseEstimation}{PoseEstimation} pe; \textcolor{comment}{//construct and sets default parameters}
+pe.\hyperlink{classPoseEstimation_ae416bbbfdefdb60a6f82a9b255edc124}{setParam}(\textcolor{stringliteral}{"useVFH"}, 0); \textcolor{comment}{//pe now skips VFH computation for query}
+\textcolor{keywordtype}{string} str;
+str = \textcolor{stringliteral}{"verbosity"};
+pe.\hyperlink{classPoseEstimation_ae416bbbfdefdb60a6f82a9b255edc124}{setParam}(str, 2); \textcolor{comment}{//pe now has verbosity set to 2}
+\end{DoxyCode}
+ \hypertarget{classPoseEstimation_a1d768a589eb6424d936afb9f15d28067}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Param@{set\-Param}}
 \index{set\-Param@{set\-Param}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{set\-Param}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::set\-Param (
 \begin{DoxyParamCaption}
-\item[{string}]{str, }
-\item[{int}]{v}
+\item[{string}]{key, }
+\item[{int}]{value}
 \end{DoxyParamCaption}
-)\hspace{0.3cm}{\ttfamily [inline]}}}\label{classPoseEstimation_a4705e759bd5b20e6fe19327b399ac4cd}
-\hypertarget{classPoseEstimation_aba47925067451610e5c5f572208785bc}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Query@{set\-Query}}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{classPoseEstimation_a1d768a589eb6424d936afb9f15d28067}
+
+
+Set a parameter of the Class directly, knowing its name. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em key} & the parameter name to change \\
+\hline
+\mbox{\tt in}  & {\em value} & the value that key should assume\\
+\hline
+\end{DoxyParams}
+Overloaded for ints \hypertarget{classPoseEstimation_a8c3e730167d42d2d8cfd4a08389d17ce}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Query@{set\-Query}}
 \index{set\-Query@{set\-Query}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{set\-Query}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::set\-Query (
 \begin{DoxyParamCaption}
 \item[{string}]{str, }
-\item[{Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$ \&}]{cl}
+\item[{{\bf P\-C} \&}]{cl}
 \end{DoxyParamCaption}
-)}}\label{classPoseEstimation_aba47925067451610e5c5f572208785bc}
-\hypertarget{classPoseEstimation_a926bc2c40483408aac0e6a88b41bd396}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Query@{set\-Query}}
+)}}\label{classPoseEstimation_a8c3e730167d42d2d8cfd4a08389d17ce}
+
+
+Set the Pose Estimation query (the object to be identified) 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em str} & The name the query should assume \\
+\hline
+\mbox{\tt in}  & {\em cl} & Point cloud containing only the object to be estimated (i.\-e. already segmented) \\
+\hline
+\end{DoxyParams}
+\hypertarget{classPoseEstimation_a0abb4e19ca862ef280f8d76ed2f9bac7}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Query@{set\-Query}}
 \index{set\-Query@{set\-Query}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{set\-Query}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::set\-Query (
 \begin{DoxyParamCaption}
 \item[{string}]{str, }
-\item[{Point\-Cloud$<$ Point\-X\-Y\-Z\-R\-G\-B\-A $>$\-::Ptr}]{clp}
+\item[{P\-C\-::\-Ptr}]{clp}
 \end{DoxyParamCaption}
-)}}\label{classPoseEstimation_a926bc2c40483408aac0e6a88b41bd396}
-\hypertarget{classPoseEstimation_adeaba8254e4ea0d368fdd61512ffb94e}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Query\-Viewpoint@{set\-Query\-Viewpoint}}
+)}}\label{classPoseEstimation_a0abb4e19ca862ef280f8d76ed2f9bac7}
+
+
+Set the Pose Estimation query (the object to be identified) 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em str} & the name the query should assume \\
+\hline
+\mbox{\tt in}  & {\em clp} & Shared pointer containing only the pointcloud of the object to be estimated (i.\-e. already segmented) \\
+\hline
+\end{DoxyParams}
+\hypertarget{classPoseEstimation_a378321aa07ca329332f20ba8bf6ffaad}{\index{Pose\-Estimation@{Pose\-Estimation}!set\-Query\-Viewpoint@{set\-Query\-Viewpoint}}
 \index{set\-Query\-Viewpoint@{set\-Query\-Viewpoint}!PoseEstimation@{Pose\-Estimation}}
 \subsubsection[{set\-Query\-Viewpoint}]{\setlength{\rightskip}{0pt plus 5cm}void Pose\-Estimation\-::set\-Query\-Viewpoint (
 \begin{DoxyParamCaption}
@@ -127,8 +304,21 @@ void \hyperlink{classPoseEstimation_aa240b7ff2e362aa091f531ebd34359ad}{generate\
 \item[{float}]{y, }
 \item[{float}]{z}
 \end{DoxyParamCaption}
-)}}\label{classPoseEstimation_adeaba8254e4ea0d368fdd61512ffb94e}
+)}}\label{classPoseEstimation_a378321aa07ca329332f20ba8bf6ffaad}
 
+
+Explicitly set the query viewpoint. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em x} & Coordinate x of the viewpoint \\
+\hline
+\mbox{\tt in}  & {\em y} & Coordinate y of the viewpoint \\
+\hline
+\mbox{\tt in}  & {\em z} & Coordinate z ot the viewpoint\\
+\hline
+\end{DoxyParams}
+T\-H\-I\-S M\-E\-T\-H\-O\-D O\-V\-E\-R\-R\-I\-D\-E\-S A\-N\-Y V\-I\-E\-W\-P\-O\-I\-N\-T P\-A\-R\-A\-M\-E\-T\-E\-R\-S S\-E\-T, thus Pose Estimation will ignore \char`\"{}use\-S\-Oas\-Viewpoint\char`\"{} and \char`\"{}compute\-Viewpoint\-From\-Name\char`\"{} parameters regardless of their value, and will use the viewpoint set this way for the computations where a viewpoint is needed (normals, V\-F\-H, C\-V\-F\-H ...) This method should be used only if the the viewpoint cannot be obtained from sensor\-\_\-origin of query cloud or if it cannot be computed from query name (i.\-e. the above cited parameters failed to set it correctly) The recommended and preferred way is to use the sensor\-\_\-origin field, so prepare your query cloud accordingly and use the \char`\"{}use\-S\-Oas\-Viewpoint\char`\"{} parameter instead of this method 
 
 The documentation for this class was generated from the following files\-:\begin{DoxyCompactItemize}
 \item 
