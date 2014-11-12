@@ -80,6 +80,88 @@ float MinMaxDistance (vector<float>& a, vector<float>& b)
   }
 }
 
+PoseDB::PoseDB(const PoseDB& db)
+{
+  histograms vfh (new float[db.vfh_->rows * db.vfh_->cols], db.vfh_->rows, db.vfh_->cols);
+  for (size_t i=0; i<db.vfh_->rows; ++i)
+    for (size_t j=0; j<db.vfh_->cols; ++j)
+      vfh[i][j] = (*db.vfh_)[i][j];
+  vfh_ = boost::make_shared<histograms>(vfh);
+  histograms esf (new float[db.esf_->rows * db.esf_->cols], db.esf_->rows, db.esf_->cols);
+  for (size_t i=0; i<db.esf_->rows; ++i)
+    for (size_t j=0; j<db.esf_->cols; ++j)
+      esf[i][j] = (*db.esf_)[i][j];
+  esf_ = boost::make_shared<histograms>(esf);
+  histograms cvfh (new float[db.cvfh_->rows * db.cvfh_->cols], db.cvfh_->rows, db.cvfh_->cols);
+  for (size_t i=0; i<db.cvfh_->rows; ++i)
+    for (size_t j=0; j<db.cvfh_->cols; ++j)
+      cvfh[i][j] = (*db.cvfh_)[i][j];
+  cvfh_ = boost::make_shared<histograms>(cvfh);
+  histograms ourcvfh (new float[db.ourcvfh_->rows * db.ourcvfh_->cols], db.ourcvfh_->rows, db.ourcvfh_->cols);
+  for (size_t i=0; i<db.ourcvfh_->rows; ++i)
+    for (size_t j=0; j<db.ourcvfh_->cols; ++j)
+      ourcvfh[i][j] = (*db.ourcvfh_)[i][j];
+  ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
+  boost::copy (db.names_, back_inserter(names_));
+  boost::copy (db.clusters_cvfh_, back_inserter(clusters_cvfh_));
+  boost::copy (db.clusters_ourcvfh_, back_inserter(clusters_ourcvfh_));
+  boost::copy (db.clouds_, back_inserter(clouds_));
+  dbPath_ = db.dbPath_;
+  //only way to copy indexs that i'm aware of (save it to disk then load it)
+  db.vfh_idx_->save(".idx__tmp");
+  indexVFH idx_vfh (*vfh_, SavedIndexParams(".idx__tmp"));
+  vfh_idx_ = boost::make_shared<indexVFH>(idx_vfh);
+  vfh_idx_ -> buildIndex();
+  boost::filesystem::remove(".idx__tmp");
+  //only way to copy indexs that i'm aware of (save it to disk then load it)
+  db.esf_idx_->save(".idx__tmp");
+  indexESF idx_esf (*esf_, SavedIndexParams(".idx__tmp"));
+  esf_idx_ = boost::make_shared<indexESF>(idx_esf);
+  esf_idx_ -> buildIndex();
+  boost::filesystem::remove(".idx__tmp");
+}
+PoseDB& PoseDB::operator= (const PoseDB& db)
+{
+  this->clear();
+  histograms vfh (new float[db.vfh_->rows * db.vfh_->cols], db.vfh_->rows, db.vfh_->cols);
+  for (size_t i=0; i<db.vfh_->rows; ++i)
+    for (size_t j=0; j<db.vfh_->cols; ++j)
+      vfh[i][j] = (*db.vfh_)[i][j];
+  this->vfh_ = boost::make_shared<histograms>(vfh);
+  histograms esf (new float[db.esf_->rows * db.esf_->cols], db.esf_->rows, db.esf_->cols);
+  for (size_t i=0; i<db.esf_->rows; ++i)
+    for (size_t j=0; j<db.esf_->cols; ++j)
+      esf[i][j] = (*db.esf_)[i][j];
+  this->esf_ = boost::make_shared<histograms>(esf);
+  histograms cvfh (new float[db.cvfh_->rows * db.cvfh_->cols], db.cvfh_->rows, db.cvfh_->cols);
+  for (size_t i=0; i<db.cvfh_->rows; ++i)
+    for (size_t j=0; j<db.cvfh_->cols; ++j)
+      cvfh[i][j] = (*db.cvfh_)[i][j];
+  this->cvfh_ = boost::make_shared<histograms>(cvfh);
+  histograms ourcvfh (new float[db.ourcvfh_->rows * db.ourcvfh_->cols], db.ourcvfh_->rows, db.ourcvfh_->cols);
+  for (size_t i=0; i<db.ourcvfh_->rows; ++i)
+    for (size_t j=0; j<db.ourcvfh_->cols; ++j)
+      ourcvfh[i][j] = (*db.ourcvfh_)[i][j];
+  this->ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
+  boost::copy (db.names_, back_inserter(this->names_));
+  boost::copy (db.clusters_cvfh_, back_inserter(this->clusters_cvfh_));
+  boost::copy (db.clusters_ourcvfh_, back_inserter(this->clusters_ourcvfh_));
+  boost::copy (db.clouds_, back_inserter(this->clouds_));
+  this->dbPath_ = db.dbPath_;
+  //only way to copy indexs that i'm aware of (save it to disk then load it)
+  db.vfh_idx_->save(".idx__tmp");
+  indexVFH idx_vfh ((*this->vfh_), SavedIndexParams(".idx__tmp"));
+  this->vfh_idx_ = boost::make_shared<indexVFH>(idx_vfh);
+  this->vfh_idx_ -> buildIndex();
+  boost::filesystem::remove(".idx__tmp"); //delete tmp file
+  //only way to copy indexs that i'm aware of (save it to disk then load it)
+  db.esf_idx_->save(".idx__tmp");
+  indexESF idx_esf ((*this->esf_), SavedIndexParams(".idx__tmp"));
+  this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
+  this->esf_idx_ -> buildIndex();
+  boost::filesystem::remove(".idx__tmp"); //delete tmp file
+  return *this;
+}
 /* Class PoseDB Implementation */
 bool PoseDB::load(path pathDB)
 {
@@ -328,6 +410,7 @@ void PoseDB::clear()
   vfh_idx_.reset();
   esf_idx_.reset();
   clouds_.clear();
+  dbPath_="UNSET";
 }
 /////////////////////////////////////////
 void PoseDB::save(path pathDB)
@@ -337,18 +420,351 @@ void PoseDB::save(path pathDB)
 /////////////////////////////////////////
 void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
 {
-  //Parameters correctness are not checked for now... assume they are correct (TODO add checks)
+  this->clear();
+  //Check Parameters correctness 
+  if (params->count("filtering"))
+  {
+    if (params->at("filtering") < 0)
+    {
+      print_warn("%*s]\tParameter filtering for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("filtering")=0;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter filtering for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("filtering", 0);
+  }
+  if (params->count("upsampling"))
+  {
+    if (params->at("upsampling") < 0)
+    {
+      print_warn("%*s]\tParameter upsampling for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("upsampling")=0;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter upsampling for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("upsampling", 0);
+  }
+  if (params->count("downsampling"))
+  {
+    if (params->at("downsampling") < 0)
+    {
+      print_warn("%*s]\tParameter downsampling for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("downsampling")=1;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter downsampling for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("downsampling", 1);
+  }
+  if (params->at("filtering")>0)
+  {
+    if (params->count("filterMeanK"))
+    {
+      if (params->at("filterMeanK") < 0)
+      {
+        print_warn("%*s]\tParameter filterMeanK for database creation has negative value, reverting it to default...\n",20,__func__);
+        params->at("filterMeanK")=50;
+      }
+    }
+    else 
+    {
+      print_warn("%*s]\tParameter filterMeanK for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+      params->emplace ("filterMeanK", 50);
+    }
+    if (params->count("filterStdDevMulThresh"))
+    {
+      if (params->at("filterStdDevMulThresh") < 0)
+      {
+        print_warn("%*s]\tParameter filterStdDevMulThresh for database creation has negative value, reverting it to default...\n",20,__func__);
+        params->at("filterStdDevMulThresh")=3;
+      }
+    }
+    else 
+    {
+      print_warn("%*s]\tParameter filterStdDevMulThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+      params->emplace ("filterStdDevMulThresh", 3);
+    }
+  }
+  if (params->at("downsampling")>0)
+  {
+    if (params->count("vgridLeafSize"))
+    {
+      if (params->at("vgridLeafSize") < 0)
+      {
+        print_warn("%*s]\tParameter vgridLeafSize for database creation has negative value, reverting it to default...\n",20,__func__);
+        params->at("vgridLeafSize")=0.003;
+      }
+    }
+    else 
+    {
+      print_warn("%*s]\tParameter vgridLeafSize for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+      params->emplace ("vgridLeafSize", 0.003);
+    }
+  }
+  if (params->at("upsampling")>0)
+  { 
+    if (params->count("mlsPolyOrder"))
+    {
+      if (params->at("mlsPolyOrder") < 0)
+      {
+        print_warn("%*s]\tParameter mlsPolyOrder for database creation has negative value, reverting it to default...\n",20,__func__);
+        params->at("mlsPolyOrder")=2;
+      }
+    }
+    else 
+    {
+      print_warn("%*s]\tParameter mlsPolyOrder for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+      params->emplace ("mlsPolyOrder", 2);
+    }
+    if (params->count("mlsPointDensity"))
+    {
+      if (params->at("mlsPointDensity") < 0)
+      {
+        print_warn("%*s]\tParameter mlsPointDensity for database creation has negative value, reverting it to default...\n",20,__func__);
+        params->at("mlsPointDensity")=250;
+      }
+    }
+    else 
+    {
+      print_warn("%*s]\tParameter mlsPointDensity for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+      params->emplace ("mlsPointDensity",250);
+    }
+    if (params->count("mlsPolyFit"))
+    {
+      if (params->at("mlsPolyFit") < 0)
+      {
+        print_warn("%*s]\tParameter mlsPolyFit for database creation has negative value, reverting it to default...\n",20,__func__);
+        params->at("mlsPolyFit")=1;
+      }
+    }
+    else 
+    {
+      print_warn("%*s]\tParameter mlsPolyFit for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+      params->emplace ("mlsPolyFit",1);
+    }
+    if (params->count("mlsSearchRadius"))
+    {
+      if (params->at("mlsSearchRadius") < 0)
+      {
+        print_warn("%*s]\tParameter mlsSearchRadius for database creation has negative value, reverting it to default...\n",20,__func__);
+        params->at("mlsSearchRadius")=0.03;
+      }
+    }
+    else 
+    {
+      print_warn("%*s]\tParameter mlsSearchRadius for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+      params->emplace ("mlsSearchRadius", 0.03);
+    }
+  }
+  if (params->count("neRadiusSearch"))
+  {
+    if (params->at("neRadiusSearch") < 0)
+    {
+      print_warn("%*s]\tParameter neRadiusSearch for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("neRadiusSearch")=0.015;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter neRadiusSearch for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("neRadiusSearch", 0.015);
+  }
+  if (params->count("useSOasViewpoint"))
+  {
+    if (params->at("useSOasViewpoint") < 0)
+    {
+      print_warn("%*s]\tParameter useSOasViewpoint for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("useSOasViewpoint")=1;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter useSOasViewpoint for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("useSOasViewpoint", 1);
+  }
+  if (params->count("computeViewpointFromName"))
+  {
+    if (params->at("computeViewpointFromName") < 0)
+    {
+      print_warn("%*s]\tParameter computeViewpointFromName for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("computeViewpointFromName")=0;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter computeViewpointFromName for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("computeViewpointFromName", 0);
+  }
+  if (params->count("cvfhEPSAngThresh"))
+  {
+    if (params->at("cvfhEPSAngThresh") < 0)
+    {
+      print_warn("%*s]\tParameter cvfhEPSAngThresh for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("cvfhEPSAngThresh")=7.5;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter cvfhEPSAngThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("cvfhEPSAngThresh", 7.5);
+  }
+  if (params->count("cvfhCurvThresh"))
+  {
+    if (params->at("cvfhCurvThresh") < 0)
+    {
+      print_warn("%*s]\tParameter cvfhCurvThresh for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("cvfhCurvThresh")=0.025;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter cvfhCurvThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("cvfhCurvThresh", 0.025);
+  }
+  if (params->count("cvfhClustTol"))
+  {
+    if (params->at("cvfhClustTol") < 0)
+    {
+      print_warn("%*s]\tParameter cvfhClustTol for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("cvfhClustTol")=0.01;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter cvfhClustTol for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("cvfhClustTol", 0.01);
+  }
+  if (params->count("cvfhMinPoints"))
+  {
+    if (params->at("cvfhMinPoints") < 0)
+    {
+      print_warn("%*s]\tParameter cvfhMinPoints for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("cvfhMinPoints")=50;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter cvfhMinPoints for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("cvfhMinPoints", 50);
+  }
+  if (params->count("ourcvfhEPSAngThresh"))
+  {
+    if (params->at("ourcvfhEPSAngThresh") < 0)
+    {
+      print_warn("%*s]\tParameter ourcvfhEPSAngThresh for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("ourcvfhEPSAngThresh")=7.5;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter ourcvfhEPSAngThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("ourcvfhEPSAngThresh", 7.5);
+  }
+  if (params->count("ourcvfhCurvThresh"))
+  {
+    if (params->at("ourcvfhCurvThresh") < 0)
+    {
+      print_warn("%*s]\tParameter ourcvfhCurvThresh for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("ourcvfhCurvThresh")=0.025;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter ourcvfhCurvThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("ourcvfhCurvThresh", 0.025);
+  }
+  if (params->count("ourcvfhClustTol"))
+  {
+    if (params->at("ourcvfhClustTol") < 0)
+    {
+      print_warn("%*s]\tParameter ourcvfhClustTol for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("ourcvfhClustTol")=0.01;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter ourcvfhClustTol for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("ourcvfhClustTol", 0.01);
+  }
+  if (params->count("ourcvfhMinPoints"))
+  {
+    if (params->at("ourcvfhMinPoints") < 0)
+    {
+      print_warn("%*s]\tParameter ourcvfhMinPoints for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("ourcvfhMinPoints")=50;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter ourcvfhMinPoints for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("ourcvfhMinPoints", 50);
+  }
+  if (params->count("ourcvfhAxisRatio"))
+  {
+    if (params->at("ourcvfhAxisRatio") < 0)
+    {
+      print_warn("%*s]\tParameter ourcvfhAxisRatio for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("ourcvfhAxisRatio")=0.95;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter ourcvfhAxisRatio for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("ourcvfhAxisRatio", 0.95);
+  }
+  if (params->count("ourcvfhMinAxisValue"))
+  {
+    if (params->at("ourcvfhMinAxisValue") < 0)
+    {
+      print_warn("%*s]\tParameter ourcvfhMinAxisValue for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("ourcvfhMinAxisValue")=0.01;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter ourcvfhMinAxisValue for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("ourcvfhMinAxisValue", 0.01);
+  }
+  if (params->count("ourcvfhRefineClusters"))
+  {
+    if (params->at("ourcvfhRefineClusters") < 0)
+    {
+      print_warn("%*s]\tParameter ourcvfhRefineClusters for database creation has negative value, reverting it to default...\n",20,__func__);
+      params->at("ourcvfhRefineClusters")=1;
+    }
+  }
+  else 
+  {
+    print_warn("%*s]\tParameter ourcvfhRefineClusters for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
+    params->emplace ("ourcvfhRefineClusters", 1);
+  }
+  //Start database creation
   if (exists(pathClouds) && is_directory(pathClouds))
   {
     this->clear();
     vector<path> pvec;
     copy(directory_iterator(pathClouds), directory_iterator(), back_inserter(pvec));
     sort(pvec.begin(), pvec.end());
+    PointCloud<VFHSignature308>::Ptr tmp_vfh (new PointCloud<VFHSignature308>);
+    PointCloud<VFHSignature308>::Ptr tmp_cvfh (new PointCloud<VFHSignature308>);
+    PointCloud<VFHSignature308>::Ptr tmp_ourcvfh (new PointCloud<VFHSignature308>);
+    PointCloud<ESFSignature640>::Ptr tmp_esf (new PointCloud<ESFSignature640>);
     int i(0);
     for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
     {
       if (is_regular_file (*it) && it->extension() == ".pcd")
-        pcl::io::loadPCDFile(it->string().c_str(), clouds_[i]);
+      {
+        if (!pcl::io::loadPCDFile(it->string().c_str(), clouds_[i]))
+        {
+          print_warn("%*s]\tError Loading Cloud %s, skipping...\n",20,__func__,it->string().c_str());
+          continue;
+        }
+      }
       else
       {
         print_warn("%*s]\tLoaded File (%s) is not a pcd, skipping...\n",20,__func__,it->string().c_str());
@@ -359,16 +775,16 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
       names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
       PC::Ptr input (clouds_[i].makeShared()); 
       PC::Ptr output (new PC);
-      if ((*params)["filtering"] >0)
+      if (params->at("filtering") >0)
       {
         StatisticalOutlierRemoval<PT> filter;
-        filter.setMeanK ( (*params)["filterMeanK"] );
-        filter.setStddevMulThresh ( (*params)["filterStdDevMulThresh"] );
+        filter.setMeanK ( params->at("filterMeanK") );
+        filter.setStddevMulThresh ( params->at("filterStdDevMulThresh") );
         filter.setInputCloud(input);
         filter.filter(*output);
         copyPointCloud(*output, *input);
       }
-      if ((*params)["upsampling"] >0)
+      if (params->at("upsampling") >0)
       {
         MovingLeastSquares<PT, PT> mls;
         search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
@@ -376,10 +792,10 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
         mls.setSearchMethod (tree);
         mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
         mls.setComputeNormals (false);
-        mls.setPolynomialOrder ( (*params)["mlsPolyOrder"] );
-        mls.setPolynomialFit ( (*params)["mlsPolyFit"] );
-        mls.setSearchRadius ( (*params)["mlsSearchRadius"] );
-        mls.setPointDensity( (*params)["mlsPointDensity"] );
+        mls.setPolynomialOrder ( params->at("mlsPolyOrder") );
+        mls.setPolynomialFit ( params->at("mlsPolyFit") );
+        mls.setSearchRadius ( params->at("mlsSearchRadius") );
+        mls.setPointDensity( params->at("mlsPointDensity") );
         mls.process (*output); //Process Upsampling
         copyPointCloud(*output, *input);
       }
@@ -387,14 +803,180 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
       {
         VoxelGrid <PT> vgrid;
         vgrid.setInputCloud (input);
-        vgrid.setLeafSize ( (*params)["vgridLeafSize"], (*params)["vgridLeafSize"], (*params)["vgridLeafSize"]); //Downsample to 3mm
+        vgrid.setLeafSize ( params->at("vgridLeafSize"), params->at("vgridLeafSize"), params->at("vgridLeafSize")); //Downsample to 3mm
         vgrid.setDownsampleAllData (true);
         vgrid.filter (*output); //Process Downsampling
         copyPointCloud(*output, *input);
       }
-    //TODO normals and features
+      NormalEstimationOMP<PT, Normal> ne;
+      search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+      PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
+      ne.setSearchMethod(tree);
+      ne.setRadiusSearch(params->at("neRadiusSearch"));
+      ne.setNumberOfThreads(0); //use pcl autoallocation
+      ne.setInputCloud(input);
+      float vpx(0),vpy(0),vpz(1);
+      if (params->at("computeViewpointFromName")>0)
+      {
+      //Try to compute viewpoint from cloud name
+        try
+        {
+          //assume correct naming convection (name_lat_long)
+          //If something goes wrong an exception is catched
+          vector<string> vst;
+          split(vst, names_[i], boost::is_any_of("_"), boost::token_compress_on);
+          int lat,lon;
+          lat = stoi(vst.at(1));
+          lon = stoi(vst.at(2));
+          //assume radius of one meter and reference frame in object center
+          vpx = cos(lat*D2R)*sin(lon*D2R);
+          vpy = sin(lat*D2R);
+          vpz = cos(lat*D2R)*cos(lon*D2R);
+        }
+        catch (...)
+        {
+          //something went wrong
+          print_error("%*s]\tCannot compute Viewpoint from cloud name... Check naming convention and object reference frame! Aborting...\n",20,__func__);
+          return;
+        }
+      }
+      else if (params->at("useSOasViewpoint")>0)
+      {
+        //Use Viewpoint stored in sensor_origin_ of cloud
+        vpx = clouds_[i].sensor_origin_[0];
+        vpy = clouds_[i].sensor_origin_[1];
+        vpz = clouds_[i].sensor_origin_[2];
+      }
+      else
+      {
+        print_error("%*s]\tCannot obtain a viewpoint 'computeViewpointFromName' and 'useSOasViewpoint' are both zero, set one of them to continue...\n",20,__func__);
+        return;
+      }
+      ne.setViewPoint(vpx,vpy,vpz);
+      ne.compute(*normals);
+      //VFH
+      VFHEstimation<PT, Normal, VFHSignature308> vfhE;
+      PointCloud<VFHSignature308> out;
+      vfhE.setSearchMethod(tree);
+      vfhE.setInputCloud (input);
+      vfhE.setViewPoint (vpx, vpy, vpz);
+      vfhE.setInputNormals (normals);
+      vfhE.compute (out);
+      tmp_vfh->push_back(out.points[0]);
+      //ESF
+      ESFEstimation<PT, ESFSignature640> esfE;
+      PointCloud<ESFSignature640> out_esf;
+      esfE.setSearchMethod(tree);
+      esfE.setInputCloud (input);
+      esfE.compute (out_esf);
+      tmp_esf->push_back(out_esf.points[0]);
+      //CVFH
+      CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
+      cvfhE.setSearchMethod(tree);
+      cvfhE.setInputCloud (input);
+      cvfhE.setViewPoint (vpx, vpy, vpz);
+      cvfhE.setInputNormals (normals);
+      cvfhE.setEPSAngleThreshold(params->at("cvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
+      cvfhE.setCurvatureThreshold(params->at("cvfhCurvThresh"));
+      cvfhE.setClusterTolerance(params->at("cvfhClustTol"));
+      cvfhE.setMinPoints(params->at("cvfhMinPoints"));
+      cvfhE.setNormalizeBins(false);
+      cvfhE.compute (out);
+      clusters_cvfh_.push_back(out.points.size());
+      for (size_t n=0; n<out.points.size(); ++n)
+        tmp_cvfh->push_back(out.points[n]);
+      //OURCVFH
+      //For some reason OURCVFHEstimation is not templated to treat PointXYZRGBA point types...
+      //Using PointXYZ...
+      OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
+      search::KdTree<PointXYZ>::Ptr tree2 (new search::KdTree<PointXYZ>);
+      PointCloud<PointXYZ>::Ptr input2 (new PointCloud<PointXYZ>);
+      copyPointCloud(*input, *input2);
+      ourcvfhE.setSearchMethod(tree2);
+      ourcvfhE.setInputCloud (input2);
+      ourcvfhE.setViewPoint (vpx, vpy, vpz);
+      ourcvfhE.setInputNormals (normals);
+      ourcvfhE.setEPSAngleThreshold(params->at("ourcvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
+      ourcvfhE.setCurvatureThreshold(params->at("ourcvfhCurvThresh"));
+      ourcvfhE.setClusterTolerance(params->at("ourcvfhClustTol"));
+      ourcvfhE.setMinPoints(params->at("ourcvfhMinPoints"));
+      ourcvfhE.setAxisRatio(params->at("ourcvfhAxisRatio"));
+      ourcvfhE.setMinAxisValue(params->at("ourcvfhMinAxisValue"));
+      ourcvfhE.setRefineClusters(params->at("ourcvfhRefineClusters"));
+      ourcvfhE.compute (out);
+      clusters_ourcvfh_.push_back(out.points.size());
+      for (size_t n=0; n<out.points.size(); ++n)
+        tmp_ourcvfh->push_back(out.points[n]);
+      print_info("%*s]\t%d clouds processed so far...\r",20,__func__,i+1);
+      cout<<std::flush;
     }
+    cout<<endl;
+    //generate FLANN matrix
+    histograms vfh (new float[tmp_vfh->points.size()*308],tmp_vfh->points.size(),308);
+    for (i=0; i<vfh.rows; ++i)
+      for (int j=0; j<vfh.cols; ++j)
+        vfh[i][j] = tmp_vfh->points[i].histogram[j];
+    histograms esf (new float[tmp_esf->points.size()*308],tmp_esf->points.size(),308);
+    for (i=0; i<esf.rows; ++i)
+      for (int j=0; j<esf.cols; ++j)
+        esf[i][j] = tmp_esf->points[i].histogram[j];
+    histograms cvfh (new float[tmp_cvfh->points.size()*308],tmp_cvfh->points.size(),308);
+    for (i=0; i<cvfh.rows; ++i)
+      for (int j=0; j<cvfh.cols; ++j)
+        cvfh[i][j] = tmp_cvfh->points[i].histogram[j];
+    histograms ourcvfh (new float[tmp_ourcvfh->points.size()*308],tmp_ourcvfh->points.size(),308);
+    for (i=0; i<ourcvfh.rows; ++i)
+      for (int j=0; j<ourcvfh.cols; ++j)
+        ourcvfh[i][j] = tmp_ourcvfh->points[i].histogram[j];
+    vfh_ = boost::make_shared<histograms>(vfh);
+    esf_ = boost::make_shared<histograms>(esf);
+    cvfh_ = boost::make_shared<histograms>(cvfh);
+    ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
+    dbPath_ = "UNSET";
+    //and indices
+    indexVFH vfh_idx (*vfh_, flann::KDTreeIndexParams(4));
+    vfh_idx_ = boost::make_shared<indexVFH>(vfh_idx);
+    vfh_idx_->buildIndex();
+    indexESF esf_idx (*esf_, flann::KDTreeIndexParams(4));
+    esf_idx_ = boost::make_shared<indexESF>(esf_idx);
+    esf_idx_->buildIndex();
+    print_info("%*s]\tDone creating database, total of %d poses stored in memory\n",20,__func__,names_.size());
   }
+  else
+  {
+    print_error("%*s]\t%s is not a valid directory...\n",20,__func__,pathClouds.string().c_str());
+  }
+}
+void PoseDB::create(path pathClouds)
+{
+  parameters par;
+  //setting default parameters for db creation, only relevant ones are created
+  par["vgridLeafSize"]=0.003f;
+  par["upsampling"]=par["filtering"]=0;
+  par["downsampling"]=1;
+  par["mlsPolyOrder"]=2;
+  par["mlsPointDensity"]=250;
+  par["mlsPolyFit"]=1;
+  par["mlsSearchRadius"]=0.03f;
+  par["filterMeanK"]=50;
+  par["filterStdDevMulThresh"]=3;
+  par["neRadiusSearch"]=0.015;
+  par["useSOasViewpoint"]=1;
+  par["computeViewpointFromName"]=0;
+  par["cvfhEPSAngThresh"]=7.5;
+  par["cvfhCurvThresh"]=0.025;
+  par["cvfhClustTol"]=0.01;
+  par["cvfhMinPoints"]=50;
+  par["ourcvfhEPSAngThresh"]=7.5;
+  par["ourcvfhCurvThresh"]=0.025;
+  par["ourcvfhClustTol"]=0.01;
+  par["ourcvfhMinPoints"]=50;
+  par["ourcvfhAxisRatio"]=0.95;
+  par["ourcvfhMinAxisValue"]=0.01;
+  par["ourcvfhRefineClusters"]=1;
+  boost::shared_ptr<parameters> p;
+  p=boost::make_shared<parameters>(par);
+  create(pathClouds, p);
 }
 /////////////////////////////////////////
 /* Class Candidate Implementation */
@@ -605,6 +1187,18 @@ void PoseEstimation::initParams(path config_file)
     print_error("%*s]\tPath to Config File is not valid ! (%s)\n", 20,__func__, config_file.string().c_str());
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+void PoseEstimation::initParams(boost::shared_ptr<parameters> map)
+{
+  //set parameters one by one so we can spot wrong key or values
+  if (map)
+  {
+    for (auto &x : *map)
+      setParam(x.first,x.second);
+  }
+  else
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tProvided map of parameters looks empty... Ignoring\n");
+}
 void PoseEstimation::filtering_()
 {
   StopWatch timer;
@@ -1028,20 +1622,43 @@ void PoseEstimation::setQuery(string str, PC::Ptr clp)
 /////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::printParams()
 {
+  if (params_["verbosity"]>1)
+    print_info("%*s]\tPrinting current list of parameters:\n",20,__func__);
   for (auto &x : params_)
     cout<< x.first.c_str() <<"="<< x.second<<endl;
+}
+void PoseEstimation::setDatabase(PoseDB& database)
+{
+  database_.clear();
+  db_set_= false;
+  StopWatch timer;
+  timer.reset();
+  database_ = database;
+  db_set_ = true;
+  if (params_["verbosity"]>1)
+  {
+    print_info("%*s]\tDatabase set in ",20,__func__);
+    print_value("%g", timer.getTime());
+    print_info(" ms\n");
+    print_info("%*s]\tTotal number of poses found: ",20,__func__);
+    print_value("%d\n",database_.names_.size());
+  }
 }
 /////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setDatabase(path dbPath)
 {
   database_.clear();
   db_set_=false;
+  StopWatch timer;
+  timer.reset();
   if (database_.load(dbPath))
   {
     db_set_ = true;
     if (params_["verbosity"]>1)
     {
-      print_info("%*s]\tDatabase loaded and set from location %s\n",20,__func__,dbPath.string().c_str());
+      print_info("%*s]\tDatabase loaded and set from location %s in ",20,__func__,dbPath.string().c_str());
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
       print_info("%*s]\tTotal number of poses found: ",20,__func__);
       print_value("%d\n",database_.names_.size());
     }
@@ -1078,8 +1695,15 @@ void PoseEstimation::generateLists()
     print_error("%*s]\tQuery is not set, set it with setQuery first! Exiting...\n",20,__func__);
     return;
   }
+  if (params_["verbosity"]>1)
+    print_info("%*s]\tStarting Candidate list(s) generation...\n",20,__func__);
+  StopWatch timer,t;
+  timer.reset();
   if (params_["useVFH"]>=1)
   {
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tGenerating List of Candidates, based on VFH... ",20,__func__);
+    t.reset();
     try
     {
       vfh_list_.clear();
@@ -1101,12 +1725,22 @@ void PoseEstimation::generateLists()
     }
     catch (...)
     {
+      if (params_["verbosity"]>1)
+        print_error("ERROR\n");
       print_error("%*s]\tError Computing VFH list\n",20,__func__);
       return;
+    }
+    if (params_["verbosity"]>1)
+    {
+      print_value("%g",t.getTime());
+      print_info(" ms elapsed\n");
     }
   }
   if (params_["useESF"]>=1)
   {
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tGenerating List of Candidates, based on ESF... ",20,__func__);
+    t.reset();
     try
     {
       esf_list_.clear();
@@ -1128,12 +1762,22 @@ void PoseEstimation::generateLists()
     }
     catch (...)
     {
+      if (params_["verbosity"]>1)
+        print_error("ERROR\n");
       print_error("%*s]\tError Computing ESF list\n",20,__func__);
       return;
+    }
+    if (params_["verbosity"]>1)
+    {
+      print_value("%g",t.getTime());
+      print_info(" ms elapsed\n");
     }
   }
   if (params_["useCVFH"]>=1)
   {
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tGenerating List of Candidates, based on CVFH... ",20,__func__);
+    t.reset();
     try
     {
       cvfh_list_.clear();
@@ -1159,6 +1803,8 @@ void PoseEstimation::generateLists()
       }
       else
       {
+        if (params_["verbosity"]>1)
+          print_error("ERROR\n");
         print_error("%*s]\tNot enough candidates to select in CVFH list (kNeighbors is too big)...\n",20,__func__);
         return;
       }
@@ -1170,12 +1816,22 @@ void PoseEstimation::generateLists()
     }
     catch (...)
     {
+      if (params_["verbosity"]>1)
+        print_error("ERROR\n");
       print_error("%*s]\tError computing CVFH list\n",20,__func__);
       return;
+    }
+    if (params_["verbosity"]>1)
+    {
+      print_value("%g",t.getTime());
+      print_info(" ms elapsed\n");
     }
   }
   if (params_["useOURCVFH"]>=1)
   {
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tGenerating List of Candidates, based on OURCVFH... ",20,__func__);
+    t.reset();
     try
     {
       ourcvfh_list_.clear();
@@ -1201,6 +1857,8 @@ void PoseEstimation::generateLists()
       }
       else
       {
+        if (params_["verbosity"]>1)
+          print_error("ERROR\n");
         print_error("%*s]\tNot enough candidates to select in OURCVFH list (kNeighbors is too big)...\n",20,__func__);
         return;
       }
@@ -1212,11 +1870,21 @@ void PoseEstimation::generateLists()
     }
     catch (...)
     {
+      if (params_["verbosity"]>1)
+        print_error("ERROR\n");
       print_error("%*s]\tError computing OURCVFH list\n",20,__func__);
       return;
     }
+    if (params_["verbosity"]>1)
+    {
+      print_value("%g",t.getTime());
+      print_info(" ms elapsed\n");
+    }
   }
   //Composite list generation
+  if (params_["verbosity"]>1)
+    print_info("%*s]\tGenerating Composite List based on previous features... ",20,__func__);
+  t.reset();
   composite_list_.clear();
   vector<Candidate> tmp_esf, tmp_cvfh, tmp_ourcvfh, tmp_vfh;
   if(params_["useVFH"]>0)
@@ -1225,6 +1893,11 @@ void PoseEstimation::generateLists()
     {
       boost::copy(vfh_list_, back_inserter(composite_list_) );
       candidates_found_ = true;
+      if (params_["verbosity"]>1)
+      {
+        print_value("%g",t.getTime());
+        print_info(" ms elapsed\n");
+      }
       return;
     }
     boost::copy(vfh_list_, back_inserter(tmp_vfh) );
@@ -1235,6 +1908,11 @@ void PoseEstimation::generateLists()
     {
       boost::copy(esf_list_, back_inserter(composite_list_) );
       candidates_found_ = true;
+      if (params_["verbosity"]>1)
+      {
+        print_value("%g",t.getTime());
+        print_info(" ms elapsed\n");
+      }
       return;
     }
     boost::copy(esf_list_, back_inserter(tmp_esf) );
@@ -1245,6 +1923,11 @@ void PoseEstimation::generateLists()
     {
       boost::copy(cvfh_list_, back_inserter(composite_list_) );
       candidates_found_ = true;
+      if (params_["verbosity"]>1)
+      {
+        print_value("%g",t.getTime());
+        print_info(" ms elapsed\n");
+      }
       return;
     }
     boost::copy(cvfh_list_, back_inserter(tmp_cvfh) );
@@ -1255,6 +1938,11 @@ void PoseEstimation::generateLists()
     {
       boost::copy(ourcvfh_list_, back_inserter(composite_list_) );
       candidates_found_ = true;
+      if (params_["verbosity"]>1)
+      {
+        print_value("%g",t.getTime());
+        print_info(" ms elapsed\n");
+      }
       return;
     }
     boost::copy(ourcvfh_list_, back_inserter(tmp_ourcvfh) );
@@ -1363,6 +2051,14 @@ void PoseEstimation::generateLists()
   for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
     it->rank_ = it - composite_list_.begin() +1; //write the rank of the candidate in the list
   candidates_found_ = true;
+  if (params_["verbosity"]>1)
+  {
+    print_value("%g",t.getTime());
+    print_info(" ms elapsed\n");
+    print_info("%*s]\tTotal time elapsed to generate list(s) of candidates: ",20,__func__);
+    print_value("%g",timer.getTime());
+    print_info(" ms\n");
+  }
   return;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1390,7 +2086,8 @@ void PoseEstimation::printCandidates()
       print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to print them!\n",20,__func__); 
     return;
   }
-  print_info("%*s]\tPrinting current list of candidates:\n",20,__func__);
+  if (params_["verbosity"]>1)
+    print_info("%*s]\tPrinting current list of candidates:\n",20,__func__);
   print_info("%-6s","Rank");
   if (params_["useVFH"] >0)
     print_info("%-30s","VFH");
@@ -1448,6 +2145,10 @@ void PoseEstimation::refineCandidates()
   if (params_["progBisection"]>0)
   {
     //ProgressiveBisection
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tStarting Progressive Bisection...\n",20,__func__);
+    StopWatch timer;
+    timer.reset();
     vector<Candidate> list; //make a temporary list to manipulate
     boost::copy(composite_list_, back_inserter(list));
     IterativeClosestPoint<PT, PT> icp;
@@ -1495,6 +2196,9 @@ void PoseEstimation::refineCandidates()
           print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
           print_info("%*s]\tFinal transformation is:\n",20,__func__);
           cout<<pose_estimation_->transformation_<<endl;
+          print_info("%*s]\tTotal time elapsed in Progressive Bisection: ",20,__func__);
+          print_value("%g",timer.getTime());
+          print_info(" ms\n");
         }
         return;
       }
@@ -1504,6 +2208,8 @@ void PoseEstimation::refineCandidates()
         int size = list.size();
         size *= params_["progFraction"];
         list.resize(size);
+        if (params_["verbosity"]>1)
+          print_info("%*s]\tResizing... Keeping %d%% of previous list\n",20,__func__,(int)(params_["progFraction"]*100));
       }
     }
     //only one candidate remained, he wins!
@@ -1512,15 +2218,22 @@ void PoseEstimation::refineCandidates()
     refinement_done_=true;
     if (params_["verbosity"]>1)
     {
-      print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
+      print_info("%*s]\tCandidate %s survived progressive bisection with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
       print_info("%*s]\tFinal transformation is:\n",20,__func__);
       cout<<pose_estimation_->transformation_<<endl;
+      print_info("%*s]\tTotal time elapsed in Progressive Bisection: ",20,__func__);
+      print_value("%g",timer.getTime());
+      print_info(" ms\n");
     }
     return;
   }
   else
   {
     //BruteForce
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tStarting Brute Force...\n",20,__func__);
+    StopWatch timer;
+    timer.reset();
     IterativeClosestPoint<PT, PT> icp;
     icp.setInputTarget(query_cloud_processed_); //query
     icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
@@ -1552,6 +2265,9 @@ void PoseEstimation::refineCandidates()
           print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
           print_info("%*s]\tFinal transformation is:\n",20,__func__);
           cout<<pose_estimation_->transformation_<<endl;
+          print_info("%*s]\tTotal time elapsed in Brute Force: ",20,__func__);
+          print_value("%g",timer.getTime());
+          print_info(" ms\n");
         }
         return;
       }
@@ -1561,7 +2277,78 @@ void PoseEstimation::refineCandidates()
     refinement_done_=false;
     if (params_["verbosity"]>0)
       print_warn("%*s]\tCannot find a suitable candidate, try raising the rmse threshold\n",20,__func__);
+    if (params_["verbosity"]>1)
+    {
+      print_info("%*s]\tTotal time elapsed in Brute Force: ",20,__func__);
+      print_value("%g",timer.getTime());
+      print_info(" ms\n");
+    }
     return;
   }
 }
+
+void PoseEstimation::estimate(string name, PC& cloud, boost::filesystem::path db_path)
+{
+  query_set_=candidates_found_=db_set_=refinement_done_ =false;
+  setQuery(name, cloud);
+  setDatabase(db_path);
+  generateLists();
+  refineCandidates();
+}
+void PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path)
+{
+  query_set_=candidates_found_=db_set_=refinement_done_ =false;
+  setQuery(name, cloud_pointer);
+  setDatabase(db_path);
+  generateLists();
+  refineCandidates();
+}
+void PoseEstimation::estimate(string name, PC& cloud, PoseDB& database)
+{
+  query_set_=candidates_found_=db_set_=refinement_done_ =false;
+  setQuery(name, cloud);
+  setDatabase(database);
+  generateLists();
+  refineCandidates();
+}
+void PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, PoseDB& database)
+{
+  query_set_=candidates_found_=db_set_=refinement_done_ =false;
+  setQuery(name, cloud_pointer);
+  setDatabase(database);
+  generateLists();
+  refineCandidates();
+}
+void PoseEstimation::printEstimation()
+{
+  if (!refinement_done_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tRefinement is not done yet, or wasn't successful... Printing nothing...\n",20,__func__);
+    return;
+  }
+  if (params_["verbosity"]>1)
+    print_info("%*s]\tPrinting current pose estimation information:\n",20,__func__);
+  print_info("Query object ");
+  print_value("%-15s",query_name_.c_str());
+  print_info(" was identified with candidate ");
+  print_value("%-15s\n",pose_estimation_->name_.c_str());
+  print_info("It was positioned on Rank ");
+  print_value("%-3d",pose_estimation_->rank_);
+  print_info(" of composite list, with normalized distance of ");
+  print_value("%g\n",pose_estimation_->normalized_distance_);
+  print_info("Its final RMSE is ");
+  print_value("%g\n",pose_estimation_->rmse_);
+  print_info("Final Transformation (in candidate reference system):\n");
+  cout<<pose_estimation_->transformation_<<endl;
+}
+boost::shared_ptr<parameters> PoseEstimation::getParameters()
+{
+  parameters p = {{"key",-1}}; //initialize p with something so that copy assigned is performed instead of move (to preserve param_)
+  p = params_;
+  boost::shared_ptr<parameters> ptr;
+  ptr = boost::make_shared<parameters>(p);
+  return ptr;
+}
+
 #endif

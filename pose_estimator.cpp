@@ -19,7 +19,17 @@ main (int argc, char *argv[])
   prova.refineCandidates();
   prova.setParam("progBisection", 0); //try bruteforce now
   prova.refineCandidates();
-  prova.setParam("wrongey", 3); //check errors on wrong key
+  prova.setParam("wrongkey", 3); //check errors on wrong key
   prova.setParam("filtering", -0.5); //check errors on wrong value
+  PoseEstimation prova2;
+  prova2.setQueryViewpoint(0,0,1);
+  prova2.estimate("object_0", cloud, "../../../Objects/Database");
+  prova2.printEstimation();
+  PoseEstimation prova3("../config/parameters.conf");
+  PoseDB db;
+  db.load("../../../Objects/Database");
+  prova3.setQueryViewpoint(1,1,1);
+  prova3.estimate("obj_0", cloud, db);
+  prova3.printEstimation();
   return 1;
 }

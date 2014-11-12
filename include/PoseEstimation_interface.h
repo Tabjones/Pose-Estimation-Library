@@ -58,23 +58,33 @@ class PoseDB{
     /** \brief Default empty Constructor
      */
     PoseDB(){}
+    
     /** \brief Constructor which loads a database from disk
      * \param[in] pathDB Path to the directory containing the database of poses
      */
     PoseDB(boost::filesystem::path pathDB){this->load(pathDB);}
+    
+    /** \brief Copy constructor from another PoseDB
+     * \param[in] db Object to copy from
+     */
+    PoseDB(const PoseDB& db);
+
     /** \brief Load a database from disk, knowing its location
      * \param[in] pathDB Path to the directory containing the database of poses
      */
     bool load(boost::filesystem::path pathDB);
+
     /** \brief Save a database to disk
      * \param[in] pathDB Path to a directory on disk, inside which to save the database, directory must be empty or non existent
      * Return true if succesfull, false otherwise
      */
     void save(boost::filesystem::path pathDB);
+    
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
-     * \param[in] params Shared pointer to unordered map that holds configuration parameters, in a same way as those of PoseEstimation
-     *  
+     * \param[in] params Shared pointer to parameters to use during database creation
+     * 
+     * This method uses the provided set of parameters to create the database
      * Please note that:
      *  -Constructing a database from scratch can take several minutes at least.
      *  -In order to use this method, PCD files must follow a naming convention, that is obj_name_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
@@ -82,7 +92,31 @@ class PoseDB{
      *  -PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
      */
     void create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
-    //TODO operator =
+    
+    /** \brief Compute the whole database from scratch and store it in memory.
+     * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
+     *  
+     * This method creates a set of default parameters and creates the database from it. 
+     * Please note that:
+     *  -Constructing a database from scratch can take several minutes at least.
+     *  -In order to use this method, PCD files must follow a naming convention, that is obj_name_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
+     *  -PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
+     *  -PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
+     */
+    void create(boost::filesystem::path pathClouds);
+      
+    /** \brief Copy assignment operator
+     * \param[in] db OBject to copy
+     *
+     * Example usage:
+     * \code
+     * PoseDB a; //a is empty
+     * PoseDB b(path_to_database); //b is loaded from path
+     * a = b; // now a holds a copy of b
+     * \endcode
+     */
+    PoseDB& operator= (const PoseDB& db);
+
     /** \brief Erase the database from memory, leaving it unset
     */
     void clear();
@@ -314,6 +348,22 @@ class PoseEstimation {
   * look at example .conf file provided for more details (i.e "config/parameters.conf")
   */
   void initParams (boost::filesystem::path config_file);
+
+  /** \brief Initialize parameters of PoseEstimation from the map provided
+   * \param[in] map shared pointer to unordered_map containing parameters to use
+   *
+   * unordered_map must contain valid keys and values, otherwise they will be ignored
+   */
+  void initParams (boost::shared_ptr<parameters> map);
+  
+  /**\brief Constructor with parameters to set.
+   *\param[in] map Shared pointer to unordered_map containing parameters to use
+   *
+   * NOTE: This constructor uses C++11 functionality and will probably not compile without -std=c++11 
+   * It delegates construction to empty contructor then calls initParams()
+   * It is the same way as calling empty constructor and then initParams() method
+   */
+  PoseEstimation(boost::shared_ptr<parameters> map) : PoseEstimation() {this->initParams(map);}
   
   /**\brief Constructor with path to a configuration file containing parameters to set.
    *\param[in] config_file Path to a config file to use
@@ -434,10 +484,17 @@ class PoseEstimation {
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
     already set parameters 
     */
-  void estimate(string name, PC::Ptr cloud, PoseDB& database);
+  void estimate(string name, PC::Ptr cloud_pointer, PoseDB& database);
 
   /** \brief print final estimation informations (such as name, distance, rmse and transformation) on screen
    */
   void printEstimation();
+
+  /** \brief Returns a shared pointer of a copy of parameters used by the pose estimation
+   * 
+   * Returned pointer can be modified but any changes are not reflected back to the class,
+   * use setParam() or initParams() to modify PoseEstimation parameters
+  */ 
+  boost::shared_ptr<parameters> getParameters();
 };
 #endif
