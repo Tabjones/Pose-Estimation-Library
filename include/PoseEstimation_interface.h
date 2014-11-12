@@ -105,43 +105,45 @@ class Candidate{
   float rmse_;
   Eigen::Matrix4f transformation_;
 
-  /**\brief Set Candidate cloud. Internal use
-   * \param[in] cl Point cloud of the candidate
-   */
-  void setCloud_(PC& cl) {cloud_=cl.makeShared(); }
-
   public:
     /** \brief Default empty Constructor
      */
     Candidate ();
+    
     /** \brief Constructor with name and cloud
      * \param[in] str The object name the candidate will have
      * \param[in] cl Point cloud which holds the object
      */
     Candidate (string str, PC& cl);
+    
     /** \brief Constructor with name and cloud pointer
      * \param[in] str The object name the candidate will have
      * \param[in] clp Shared pointer to the point cloud that contains the object
      * Note that clp parameter should not be empty pointer, or the contructor will throw an error
      */
     Candidate (string str, PC::Ptr clp);
+    
     /** \brief Get Candidate Rank in the list of candidates
      * \param[out] r The rank the candidate has in the list
      */
     void getRank (int& r) const;
+    
     /** \brief Get the distance of Candidate from Query in the metric chosen by the feature
      * \param[out] d The distance the candidate has from the query
      */
     void getDistance (float& d) const;
+    
     /** \brief Get the Normalize distance of Candidate from Query
      * \param[out] d The distance the candidate has from the query
      * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k"
      */
     void getNormalizedDistance (float& d) const;
+    
     /** \brief Get Root Mean Square Error of Candidate as it was after the refinement
      * \param[out] e The Root Mean Square Error of the Candidate
      */
     void getRMSE (float& e) const;
+    
     /** \brief Get Homogeneous Transformation that brings the Candidate over the Query
      * \param[out] t Transformation that brings the Candidate over the Query
      * The transformation is expressed in the Candidate Reference System
@@ -187,7 +189,7 @@ Alternatively the method estimate() can be called right after initialization wit
   //... 
   //Put somethging in cloud
   //...
-  pe.estimate(cloud, "DB_PATH"); //calls setQuery, setDatabase, generateList, refineCandidates and printEstimation in one call
+  pe.estimate("query object", cloud, "DB_PATH"); //calls setQuery(), setDatabase(), generateList(), refineCandidates()
 \endcode
 
 \author Federico Spinelli
@@ -362,7 +364,10 @@ class PoseEstimation {
    * \param[in] dbPath The path to the directory containing the database
    */
   void setDatabase(boost::filesystem::path dbPath);
-  //TODO setDatabase providing a PoseDB object already constructed
+  /** \brief Set a database of known poses to be used for pose estimation procedure.
+   * \param[in] database PoseDB ojbect to use as database
+   */
+  void setDatabase(PoseDB& database);
 
   /** \brief Generates list(s) of candidates to the query using the database provided as argument
    * \param[in] dbPath The path to the directory containing the database of poses, previously generated.
@@ -377,7 +382,7 @@ class PoseEstimation {
 
   /**\brief Start the refinement procedure with ICP to obtain a final candidate from the composite list
    *
-   * Currently two methods for refinemente are implemented: Progressive Bisection (default) and Brute Force
+   * Currently two methods for refinemente are imp lemented: Progressive Bisection (default) and Brute Force
    * To chose Progressive Bisection set "progBisection" parameter to 1, to chose Brute Force set it to 0
 - Brute Force:
   1. Start align rank 1 candidate on composite list with ICP, until "maxIterations" (default 200) are reached or candidate RMSE falls below "rmseThreshold" (default 0.003)
@@ -390,5 +395,49 @@ class PoseEstimation {
   4. Repeat from step 1 until one candidates falls below the "rmseThreshold" (default 0.003) or only one candidate survives
   */
   void refineCandidates();
+
+  /** \brief Undergo the whole process of pose estimation
+   *\param[in] name Name of the new query object to estimate
+    \param[in] cloud Point cloud containing the query object to estimate (segmented)
+    \param[in] db_path Path to a directory containing the database of poses to load
+
+    This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
+    already set parameters 
+    */
+  void estimate(string name, PC& cloud, boost::filesystem::path db_path);
+  
+  /** \brief Undergo the whole process of pose estimation
+   *\param[in] name Name of the new query object to estimate
+    \param[in] cloud_pointer Pointer to a point cloud containing the query object to estimate (segmented)
+    \param[in] db_path Path to a directory containing the database of poses to load
+
+    This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
+    already set parameters 
+    */
+  void estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path);
+  
+  /** \brief Undergo the whole process of pose estimation
+   *\param[in] name Name of the new query object to estimate
+    \param[in] cloud Point cloud containing the query object to estimate (segmented)
+    \param[in] database PoseDB object to use as database 
+
+    This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
+    already set parameters 
+    */
+  void estimate(string name, PC& cloud, PoseDB& database);
+  
+  /** \brief Undergo the whole process of pose estimation
+   *\param[in] name Name of the new query object to estimate
+    \param[in] cloud_pointer Pointer to a point cloud containing the query object to estimate (segmented)
+    \param[in] database PoseDB object to use as database 
+
+    This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
+    already set parameters 
+    */
+  void estimate(string name, PC::Ptr cloud, PoseDB& database);
+
+  /** \brief print final estimation informations (such as name, distance, rmse and transformation) on screen
+   */
+  void printEstimation();
 };
 #endif

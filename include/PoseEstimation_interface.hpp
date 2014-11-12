@@ -1141,6 +1141,7 @@ void PoseEstimation::generateLists()
       {
         Candidate c;
         c.name_ = database_.names_[i];
+        c.cloud_ = database_.clouds_[i].makeShared();
         database_.computeDistanceFromClusters_(cvfh_.makeShared() ,i ,"CVFH", c.distance_);
         cvfh_list_.push_back(c);
       }
@@ -1164,7 +1165,6 @@ void PoseEstimation::generateLists()
       for (int i=0; i<k; ++i)
       {
         cvfh_list_[i].rank_ = i+1;
-        cvfh_list_[i].setCloud_(database_.clouds_[i]);
         cvfh_list_[i].normalized_distance_=(cvfh_list_[i].distance_ - cvfh_list_[0].distance_)/(cvfh_list_[k-1].distance_ - cvfh_list_[0].distance_);
       }
     }
@@ -1183,6 +1183,7 @@ void PoseEstimation::generateLists()
       {
         Candidate c;
         c.name_ = database_.names_[i];
+        c.cloud_ = database_.clouds_[i].makeShared();
         database_.computeDistanceFromClusters_(ourcvfh_.makeShared() ,i ,"OURCVFH", c.distance_);
         ourcvfh_list_.push_back(c);
       }
@@ -1206,7 +1207,6 @@ void PoseEstimation::generateLists()
       for (int i=0; i<k; ++i)
       {
         ourcvfh_list_[i].rank_ = i+1;
-        ourcvfh_list_[i].setCloud_(database_.clouds_[i]);
         ourcvfh_list_[i].normalized_distance_=(ourcvfh_list_[i].distance_ - ourcvfh_list_[0].distance_)/(ourcvfh_list_[k-1].distance_ - ourcvfh_list_[0].distance_);
       }
     }
