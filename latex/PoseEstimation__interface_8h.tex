@@ -10,50 +10,28 @@
 \subsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \hyperlink{classPoseDB}{Pose\-D\-B}
-\begin{DoxyCompactList}\small\item\em Stores the database of poses for Pose Estimation. \end{DoxyCompactList}\item 
 class \hyperlink{classCandidate}{Candidate}
 \begin{DoxyCompactList}\small\item\em Describes a single candidate object to the query. \end{DoxyCompactList}\item 
+class \hyperlink{classPoseDB}{Pose\-D\-B}
+\begin{DoxyCompactList}\small\item\em Stores the database of poses for Pose Estimation. \end{DoxyCompactList}\item 
 class \hyperlink{classPoseEstimation}{Pose\-Estimation}
 \begin{DoxyCompactList}\small\item\em Implements the procedure to achieve pose estimation of a given query object. The ideal procedure can be summarized as follows\-: \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Typedefs}
 \begin{DoxyCompactItemize}
 \item 
+typedef flann\-::\-Matrix$<$ float $>$ \hyperlink{group__Definitions_ga136493056b2eaf642f660e6a45a62991}{histograms}
+\item 
+typedef flann\-::\-Index\\*
+$<$ flann\-::\-L2$<$ float $>$ $>$ \hyperlink{group__Definitions_ga3f45d3216269cf676ea864ae3bfcc446}{index\-E\-S\-F}
+\item 
 typedef flann\-::\-Index\\*
 $<$ flann\-::\-Chi\-Square\-Distance\\*
-$<$ float $>$ $>$ \hyperlink{PoseEstimation__interface_8h_acea1a4bf0f6b886a58ff00ff9cb54b34}{index\-V\-F\-H}
-\item 
-typedef flann\-::\-Index\\*
-$<$ flann\-::\-L2$<$ float $>$ $>$ \hyperlink{PoseEstimation__interface_8h_a3f45d3216269cf676ea864ae3bfcc446}{index\-E\-S\-F}
-\item 
-typedef flann\-::\-Matrix$<$ float $>$ \hyperlink{PoseEstimation__interface_8h_a136493056b2eaf642f660e6a45a62991}{histograms}
-\item 
-typedef Point\-X\-Y\-Z\-R\-G\-B\-A \hyperlink{PoseEstimation__interface_8h_a102df08e7bbccbe3fa6e0b53fd9bac74}{P\-T}
-\item 
-typedef Point\-Cloud$<$ \hyperlink{PoseEstimation__interface_8h_a102df08e7bbccbe3fa6e0b53fd9bac74}{P\-T} $>$ \hyperlink{PoseEstimation__interface_8h_a62eb21fcfa3189c5de50fb62a2a7a79e}{P\-C}
+$<$ float $>$ $>$ \hyperlink{group__Definitions_gacea1a4bf0f6b886a58ff00ff9cb54b34}{index\-V\-F\-H}
 \item 
 typedef unordered\-\_\-map$<$ string, \\*
-float $>$ \hyperlink{PoseEstimation__interface_8h_acbb28d8f791bb363852e522cf3b83c47}{parameters}
+float $>$ \hyperlink{group__Definitions_gacbb28d8f791bb363852e522cf3b83c47}{parameters}
+\item 
+typedef Point\-Cloud$<$ \hyperlink{group__Definitions_ga102df08e7bbccbe3fa6e0b53fd9bac74}{P\-T} $>$ \hyperlink{group__Definitions_ga62eb21fcfa3189c5de50fb62a2a7a79e}{P\-C}
+\item 
+typedef Point\-X\-Y\-Z\-R\-G\-B\-A \hyperlink{group__Definitions_ga102df08e7bbccbe3fa6e0b53fd9bac74}{P\-T}
 \end{DoxyCompactItemize}
-
-
-\subsection{Typedef Documentation}
-\hypertarget{PoseEstimation__interface_8h_a136493056b2eaf642f660e6a45a62991}{\index{Pose\-Estimation\-\_\-interface.\-h@{Pose\-Estimation\-\_\-interface.\-h}!histograms@{histograms}}
-\index{histograms@{histograms}!PoseEstimation_interface.h@{Pose\-Estimation\-\_\-interface.\-h}}
-\subsubsection[{histograms}]{\setlength{\rightskip}{0pt plus 5cm}typedef flann\-::\-Matrix$<$float$>$ {\bf histograms}}}\label{PoseEstimation__interface_8h_a136493056b2eaf642f660e6a45a62991}
-F\-L\-A\-N\-N matrix used to store database histograms, typedef for easy writing \hypertarget{PoseEstimation__interface_8h_a3f45d3216269cf676ea864ae3bfcc446}{\index{Pose\-Estimation\-\_\-interface.\-h@{Pose\-Estimation\-\_\-interface.\-h}!index\-E\-S\-F@{index\-E\-S\-F}}
-\index{index\-E\-S\-F@{index\-E\-S\-F}!PoseEstimation_interface.h@{Pose\-Estimation\-\_\-interface.\-h}}
-\subsubsection[{index\-E\-S\-F}]{\setlength{\rightskip}{0pt plus 5cm}typedef flann\-::\-Index$<$flann\-::\-L2$<$float$>$ $>$ {\bf index\-E\-S\-F}}}\label{PoseEstimation__interface_8h_a3f45d3216269cf676ea864ae3bfcc446}
-Chosen metric for E\-S\-F, typedef for easy writing \hypertarget{PoseEstimation__interface_8h_acea1a4bf0f6b886a58ff00ff9cb54b34}{\index{Pose\-Estimation\-\_\-interface.\-h@{Pose\-Estimation\-\_\-interface.\-h}!index\-V\-F\-H@{index\-V\-F\-H}}
-\index{index\-V\-F\-H@{index\-V\-F\-H}!PoseEstimation_interface.h@{Pose\-Estimation\-\_\-interface.\-h}}
-\subsubsection[{index\-V\-F\-H}]{\setlength{\rightskip}{0pt plus 5cm}typedef flann\-::\-Index$<$flann\-::\-Chi\-Square\-Distance$<$float$>$ $>$ {\bf index\-V\-F\-H}}}\label{PoseEstimation__interface_8h_acea1a4bf0f6b886a58ff00ff9cb54b34}
-Chosen metric for V\-F\-H, typedef for easy writing \hypertarget{PoseEstimation__interface_8h_acbb28d8f791bb363852e522cf3b83c47}{\index{Pose\-Estimation\-\_\-interface.\-h@{Pose\-Estimation\-\_\-interface.\-h}!parameters@{parameters}}
-\index{parameters@{parameters}!PoseEstimation_interface.h@{Pose\-Estimation\-\_\-interface.\-h}}
-\subsubsection[{parameters}]{\setlength{\rightskip}{0pt plus 5cm}typedef unordered\-\_\-map$<$string,float$>$ {\bf parameters}}}\label{PoseEstimation__interface_8h_acbb28d8f791bb363852e522cf3b83c47}
-Map that stores configuration parameters, typedef for shorter writings \hypertarget{PoseEstimation__interface_8h_a62eb21fcfa3189c5de50fb62a2a7a79e}{\index{Pose\-Estimation\-\_\-interface.\-h@{Pose\-Estimation\-\_\-interface.\-h}!P\-C@{P\-C}}
-\index{P\-C@{P\-C}!PoseEstimation_interface.h@{Pose\-Estimation\-\_\-interface.\-h}}
-\subsubsection[{P\-C}]{\setlength{\rightskip}{0pt plus 5cm}typedef Point\-Cloud$<${\bf P\-T}$>$ {\bf P\-C}}}\label{PoseEstimation__interface_8h_a62eb21fcfa3189c5de50fb62a2a7a79e}
-Short writing for Point\-Cloud \hypertarget{PoseEstimation__interface_8h_a102df08e7bbccbe3fa6e0b53fd9bac74}{\index{Pose\-Estimation\-\_\-interface.\-h@{Pose\-Estimation\-\_\-interface.\-h}!P\-T@{P\-T}}
-\index{P\-T@{P\-T}!PoseEstimation_interface.h@{Pose\-Estimation\-\_\-interface.\-h}}
-\subsubsection[{P\-T}]{\setlength{\rightskip}{0pt plus 5cm}typedef Point\-X\-Y\-Z\-R\-G\-B\-A {\bf P\-T}}}\label{PoseEstimation__interface_8h_a102df08e7bbccbe3fa6e0b53fd9bac74}
-Chosen Point\-Cloud\-Type, change here if you want to change Point\-Type 

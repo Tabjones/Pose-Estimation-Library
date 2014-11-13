@@ -30,42 +30,10 @@
 \subsection*{Macros}
 \begin{DoxyCompactItemize}
 \item 
-\#define \hyperlink{PoseEstimation__interface_8hpp_a0a3cc1d5cde549e408f825ddd7f5853d}{D2\-R}~0.\-017453293
-\begin{DoxyCompactList}\small\item\em Degrees to radians conversion. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\#define \hyperlink{group__Definitions_ga0a3cc1d5cde549e408f825ddd7f5853d}{D2\-R}~0.\-017453293
+\end{DoxyCompactItemize}
 \subsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-float \hyperlink{PoseEstimation__interface_8hpp_afa8492ce7af14ee19dafd67a9c0ab215}{Min\-Max\-Distance} (vector$<$ float $>$ \&a, vector$<$ float $>$ \&b)
+float \hyperlink{group__global_gafa8492ce7af14ee19dafd67a9c0ab215}{Min\-Max\-Distance} (vector$<$ float $>$ \&a, vector$<$ float $>$ \&b)
 \begin{DoxyCompactList}\small\item\em Compute the Min\-Max distance between two histograms, used by C\-V\-F\-H and O\-U\-R\-C\-V\-F\-H. \end{DoxyCompactList}\end{DoxyCompactItemize}
-
-
-\subsection{Macro Definition Documentation}
-\hypertarget{PoseEstimation__interface_8hpp_a0a3cc1d5cde549e408f825ddd7f5853d}{\index{Pose\-Estimation\-\_\-interface.\-hpp@{Pose\-Estimation\-\_\-interface.\-hpp}!D2\-R@{D2\-R}}
-\index{D2\-R@{D2\-R}!PoseEstimation_interface.hpp@{Pose\-Estimation\-\_\-interface.\-hpp}}
-\subsubsection[{D2\-R}]{\setlength{\rightskip}{0pt plus 5cm}\#define D2\-R~0.\-017453293}}\label{PoseEstimation__interface_8hpp_a0a3cc1d5cde549e408f825ddd7f5853d}
-
-
-Degrees to radians conversion. 
-
-
-
-\subsection{Function Documentation}
-\hypertarget{PoseEstimation__interface_8hpp_afa8492ce7af14ee19dafd67a9c0ab215}{\index{Pose\-Estimation\-\_\-interface.\-hpp@{Pose\-Estimation\-\_\-interface.\-hpp}!Min\-Max\-Distance@{Min\-Max\-Distance}}
-\index{Min\-Max\-Distance@{Min\-Max\-Distance}!PoseEstimation_interface.hpp@{Pose\-Estimation\-\_\-interface.\-hpp}}
-\subsubsection[{Min\-Max\-Distance}]{\setlength{\rightskip}{0pt plus 5cm}float Min\-Max\-Distance (
-\begin{DoxyParamCaption}
-\item[{vector$<$ float $>$ \&}]{a, }
-\item[{vector$<$ float $>$ \&}]{b}
-\end{DoxyParamCaption}
-)}}\label{PoseEstimation__interface_8hpp_afa8492ce7af14ee19dafd67a9c0ab215}
-
-
-Compute the Min\-Max distance between two histograms, used by C\-V\-F\-H and O\-U\-R\-C\-V\-F\-H. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\tt in}  & {\em a} & The first histogram \\
-\hline
-\mbox{\tt in}  & {\em b} & The second histogram Returns the computed norm (D), defined as follows\-: \[ D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}} \] where n=308 for C\-V\-F\-H/\-O\-U\-R\-C\-V\-F\-H histograms \\
-\hline
-\end{DoxyParams}

@@ -32,7 +32,10 @@
 //Definition header
 #include "PoseEstimation_interface.h"
 
-///Degrees to radians conversion
+
+/**\ingroup Definitions
+Degrees to radians conversion
+*/
 #define D2R 0.017453293 
 
 using namespace pcl::console;
@@ -40,10 +43,16 @@ using namespace boost;
 using namespace boost::filesystem;
 using namespace flann;
 
+/**\addtogroup global Global Functions
+ *
+ * General utilities functions
+ * @{ */
 /**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
  * \param[in] a The first histogram
  * \param[in] b The second histogram
- * Returns the computed norm (D), defined as follows:
+ * \returns The computed dstance _D_
+ *
+ * The distance _D_ is defined by the following metric:
  * \f[
  *  D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
  * \f]
@@ -78,6 +87,18 @@ float MinMaxDistance (vector<float>& a, vector<float>& b)
     }
     return (1 - (num/den));
   }
+}
+/** @}*/
+bool PoseDB::isEmpty()
+{
+  if (!vfh_ || !esf_ || !cvfh_ || !ourcvfh_)
+    return false;
+  else if (name_.empty() || clusters_cvfh_.empty() || clusters_ourcvfh_.empty() || clouds_.empty() )
+    return false;
+  else if (!vfh_idx_ || !esf_idx_)
+    return false;
+  else
+    return true;
 }
 
 PoseDB::PoseDB(const PoseDB& db)

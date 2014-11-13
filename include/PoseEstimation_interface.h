@@ -1,6 +1,12 @@
 /* This file describes the PoseEstimation interface, for relative implementation
  * look in PoseEstimation_interface.hpp
  */
+//Doxygen documentation
+/** \mainpage Pose Estimation Documentation
+
+Pose Estimation class documentation and usage
+TODO
+*/
 #ifndef __INTERFACE_H_INCLUDED__
 #define __INTERFACE_H_INCLUDED__
 
@@ -14,25 +20,45 @@
 using namespace pcl;
 using namespace std;
 
-/**Chosen metric for VFH, typedef for easy writing*/
+/** \addtogroup Definitions
+ * 
+ * Easier code writing
+ * @{ */
+/** Chosen metric for VFH and Index type*/
 typedef flann::Index<flann::ChiSquareDistance<float> > indexVFH;
-/**Chosen metric for ESF, typedef for easy writing*/
+/** Chosen metric for ESF and Index type*/
 typedef flann::Index<flann::L2<float> > indexESF;
-/**FLANN matrix used to store database histograms, typedef for easy writing*/
+/** FLANN matrix used to store database histograms*/
 typedef flann::Matrix<float> histograms;
-/**Chosen PointCloudType, change here if you want to change PointType*/
+/** Chosen Point Type to store clouds, change this  if you want to change PointType globally*/
 typedef PointXYZRGBA PT;
-/**Short writing for PointCloud*/
+/** Short writing for PointCloud containing the chosen Point Type*/
 typedef PointCloud<PT> PC;
-/**Map that stores configuration parameters, typedef for shorter writings*/
+/** Map that stores configuration parameters in a key=value fashion*/
 typedef unordered_map<string,float> parameters;
+/** @} */
 
 class PoseEstimation;
 
-/** \brief Stores the database of poses for Pose Estimation 
+/**\brief Stores the database of poses for Pose Estimation 
  *
  * This class is used internally by PoseEstimation, however it can be used to create or 
- * load multiple databases and test pose estimation with them. I.e. with setDatabase method of PoseEstimation.
+ * load multiple databases and test pose estimation with them. I.e. with setDatabase() method of PoseEstimation.
+ * Some examples:
+ * \code
+ * PoseDB database; //empty database
+ * database.load("LOCATION"); //load a database from a location
+ * PoseDB database2("LOCATION2"); //create another database and load it from another location
+ * database = database2; //Now database holds a copy of database2
+ * database2.clear(); //database2 is now empty
+ * database2.create("PCD_FILES_LOCATION"); //create a new database from scratch using the poses found at supplied location
+ * //...
+ * PoseEstimation prova; //create a pose estimation with default parameters
+ * prova.setDatabase(database); //tell prova to use the first database
+ * //...  estimate
+ * prova.setDatabase(database2); //now use the second database
+ * //... estimate again with another database
+ * \endcode
  * \author Federico Spinelli
  */
 class PoseDB{
@@ -75,7 +101,7 @@ class PoseDB{
     bool load(boost::filesystem::path pathDB);
 
     /** \brief Save a database to disk
-     * \param[in] pathDB Path to a directory on disk, inside which to save the database, directory must be empty or non existent
+     * \param[in] pathDB Path to a directory on disk, inside which to save the database, directory must not exist.
      * Return true if succesfull, false otherwise
      */
     void save(boost::filesystem::path pathDB);
@@ -84,24 +110,24 @@ class PoseDB{
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
      * \param[in] params Shared pointer to parameters to use during database creation
      * 
-     * This method uses the provided set of parameters to create the database
+     * This method uses the provided set of parameters to create the database, erasing any previously loaded databases.
      * Please note that:
-     *  -Constructing a database from scratch can take several minutes at least.
-     *  -In order to use this method, PCD files must follow a naming convention, that is obj_name_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
-     *  -PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
-     *  -PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
+- Constructing a database from scratch can take several minutes at least.
+- In order to use this method, PCD files must follow a naming convention, that is objName_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
+- PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
+- PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
      */
     void create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
     
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
      *  
-     * This method creates a set of default parameters and creates the database from it. 
+     * This method creates a set of default parameters and creates the database from it, erasing any previously loaded databases. 
      * Please note that:
-     *  -Constructing a database from scratch can take several minutes at least.
-     *  -In order to use this method, PCD files must follow a naming convention, that is obj_name_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
-     *  -PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
-     *  -PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
+- Constructing a database from scratch can take several minutes at least.
+- In order to use this method, PCD files must follow a naming convention, that is objName_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
+- PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
+- PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
      */
     void create(boost::filesystem::path pathClouds);
       
@@ -120,6 +146,12 @@ class PoseDB{
     /** \brief Erase the database from memory, leaving it unset
     */
     void clear();
+
+    /** \brief Tell if the database is empty
+     * 
+     * \return _True_ if database is not loaded or empty, _False_ otherwise
+     */
+    bool isEmpty();
 };
 
 /** \brief Describes a single candidate object to the query 
