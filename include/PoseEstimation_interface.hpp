@@ -91,14 +91,43 @@ float MinMaxDistance (vector<float>& a, vector<float>& b)
 /** @}*/
 bool PoseDB::isEmpty()
 {
-  if (!vfh_ || !esf_ || !cvfh_ || !ourcvfh_)
-    return false;
-  else if (name_.empty() || clusters_cvfh_.empty() || clusters_ourcvfh_.empty() || clouds_.empty() )
-    return false;
-  else if (!vfh_idx_ || !esf_idx_)
-    return false;
-  else
+  if ( !(vfh_) || !(esf_) || !(cvfh_) || !(ourcvfh_) )
     return true;
+  else if (names_.empty() || clusters_cvfh_.empty() || clusters_ourcvfh_.empty() || clouds_.empty() )
+    return true;
+  else if ( !(vfh_idx_) || !(esf_idx_) )
+    return true;
+  else
+    return false;
+}
+
+bool PoseDB::isValidPath(path dbPath)
+{
+  if ( !exists(dbPath) || !is_directory(dbPath) )
+    return false;
+  path Pclouds(dbPath.string()+"/Clouds");
+  if ( !exists(Pclouds) || !is_directory(Pclouds) )
+    return false;  
+  if ( !is_regular_file(dbPath.string()+ "/vfh.h5") || !(extension(dbPath.string()+ "/vfh.h5") == ".h5"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/esf.h5") || !(extension(dbPath.string()+ "/esf.h5") == ".h5"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/cvfh.h5") || !(extension(dbPath.string()+ "/cvfh.h5") == ".h5"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/ourcvfh.h5") || !(extension(dbPath.string()+ "/ourcvfh.h5") == ".h5"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/vfh.idx") || !(extension(dbPath.string()+ "/vfh.idx") == ".idx"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/esf.idx") || !(extension(dbPath.string()+ "/esf.idx") == ".idx"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/names.list") || !(extension(dbPath.string()+ "/names.list") == ".list"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/cvfh.cluster") || !(extension(dbPath.string()+ "/cvfh.cluster") == ".cluster"))
+    return false;
+  if ( !is_regular_file(dbPath.string()+ "/ourcvfh.cluster") || !(extension(dbPath.string()+ "/ourcvfh.cluster") == ".cluster"))
+    return false;
+  
+  return true;
 }
 
 PoseDB::PoseDB(const PoseDB& db)
@@ -186,86 +215,104 @@ PoseDB& PoseDB::operator= (const PoseDB& db)
 /* Class PoseDB Implementation */
 bool PoseDB::load(path pathDB)
 {
-  //load should not be called if flann matrix(es) are already initialized
-  if ( exists(pathDB) && is_directory(pathDB) )
+  
+  if ( this->isValidPath(pathDB) )
   {
     path Pclouds(pathDB.string()+"/Clouds");
-    if ( exists(Pclouds) && is_directory(Pclouds) )
+    vector<path> pvec;
+    copy (directory_iterator(Pclouds), directory_iterator(), back_inserter(pvec));
+    if (pvec.size() <= 0)
     {
-      vector<path> pvec;
-      copy (directory_iterator(Pclouds), directory_iterator(), back_inserter(pvec));
-      sort (pvec.begin(), pvec.end());
-      clouds_.resize(pvec.size());
-      int i(0);
-      for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
-        pcl::io::loadPCDFile (it->string().c_str(),clouds_[i]);
+      print_error("%*s]\tNo files in Clouds directory of database, cannot load poses, aborting...\n",20,__func__);
+      return false;
     }
-    if (is_regular_file(pathDB.string()+ "/vfh.h5") && extension(pathDB.string()+ "/vfh.h5") == ".h5")
+    sort (pvec.begin(), pvec.end());
+    clouds_.resize(pvec.size());
+    int i(0);
+    for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
+    {
+      if (is_regular_file(*it) && extension(*it)==".pcd" )
+      {  
+        if (pcl::io::loadPCDFile (it->string(),clouds_[i])!=0)
+        {
+          print_warn("%*s]\tError loading PCD file: %s, skipping...\n",20,__func__,it->string().c_str());
+          continue;
+        }
+      }
+      else
+      {
+        print_warn("%*s]\t% is not a PCD file, skipping...\n",20,__func__,it->string().c_str());
+        continue;
+      }
+    }
+    try
     {
       histograms m;
       flann::load_from_file (m, pathDB.string() + "/vfh.h5", "VFH Histograms");
       vfh_ = boost::make_shared<histograms>(m);
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid vfh.h5 file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading VFH histograms, file is likely corrupt, try recreating database...\n",20,__func__);
       return false;
     }
-    if (is_regular_file(pathDB.string()+ "/esf.h5") && extension(pathDB.string()+ "/esf.h5") == ".h5")
+    try
     {
       histograms m;
       flann::load_from_file (m, pathDB.string() + "/esf.h5", "ESF Histograms");
       esf_ = boost::make_shared<histograms>(m);
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid esf.h5 file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading ESF histograms, file is likely corrupt, try recreating database...\n",20,__func__);
       return false;
     }
-    if (is_regular_file(pathDB.string()+ "/cvfh.h5") && extension(pathDB.string()+ "/cvfh.h5") == ".h5")
+    try
     {
       histograms m;
       flann::load_from_file (m, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
       cvfh_ = boost::make_shared<histograms>(m);
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid cvfh.h5 file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading CVFH histograms, file is likely corrupt, try recreating database...\n",20,__func__);
       return false;
     }
-    if (is_regular_file(pathDB.string()+ "/ourcvfh.h5") && extension(pathDB.string()+ "/ourcvfh.h5") == ".h5")
+    try
     {
       histograms m;
       flann::load_from_file (m, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
       ourcvfh_ = boost::make_shared<histograms>(m);
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid ourcvfh.h5 file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading OURCVFH histograms, file is likely corrupy, try recreating database...\n",20,__func__);
       return false;
     }
-    if (is_regular_file(pathDB.string()+ "/vfh.idx") && extension(pathDB.string()+ "/vfh.idx") == ".idx")
+    try
     {
       indexVFH idx (*vfh_, SavedIndexParams(pathDB.string()+"/vfh.idx"));
       vfh_idx_ = boost::make_shared<indexVFH>(idx);
       vfh_idx_ -> buildIndex();
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid vfh.idx file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading VFH index, file is likely corrupt, try recreating database...\n",20,__func__);
       return false;
     }
-    if (is_regular_file(pathDB.string()+ "/esf.idx") && extension(pathDB.string()+ "/esf.idx") == ".idx")
+    try
     {
       indexESF idx (*esf_, SavedIndexParams(pathDB.string()+"/esf.idx"));
       esf_idx_ = boost::make_shared<indexESF>(idx);
       esf_idx_ -> buildIndex();
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid esf.idx file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading ESF index, file is likely corrupt, try recreating database...\n",20,__func__);
       return false;
     }
+    //TODO from here
+    
     if (is_regular_file(pathDB.string()+ "/names.list") && extension(pathDB.string()+ "/names.list") == ".list")
     {
       ifstream file ((pathDB.string()+"/names.list").c_str());
@@ -436,12 +483,49 @@ void PoseDB::clear()
 /////////////////////////////////////////
 void PoseDB::save(path pathDB)
 {
-  //TODO
+  if (this->isEmpty())
+  {
+    print_warn("%*s]\tCurrent database is invalid or empty, not saving it...\n",20,__func__);
+    return;
+  }
+  if ( !exists (pathDB) )
+  {
+    create_directory(pathDB);
+    create_directory(pathDB.string() + "/Clouds/");
+    print_info("%*s]\tCreated directory to contain database in %s\n",20,__func__,pathDB.string().c_str());
+    dbPath_ = pathDB;
+  }
+  else
+  {
+    print_warn("%*s]\t%s already exists, not saving a database there, aborting...\n",20,__func__,pathDB.string().c_str());
+    return;
+  }
+  PCDWriter writer;
+  ofstream names, c_cvfh, c_ourcvfh;
+  names.open((pathDB.string()+ "names.list").c_str());
+  c_cvfh.open((pathDB.string()+ "cvfh.cluster").c_str());
+  c_ourcvfh.open((pathDB.string()+ "ourcvfh.cluster").c_str());
+  for (size_t i=0; i< names_.size(); ++i)
+  {
+    writer.writeBinaryCompressed(pathDB.string() + "/Clouds/" + names_[i] + ".pcd", clouds_[i]);
+    names << names_[i] <<endl;
+    c_cvfh << clusters_cvfh_[i] <<endl;
+    c_ourcvfh << clusters_ourcvfh_[i] <<endl;
+  }
+  names.close();
+  c_cvfh.close();
+  c_ourcvfh.close();
+  flann::save_to_file (*vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
+  flann::save_to_file (*esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
+  flann::save_to_file (*cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
+  flann::save_to_file (*ourcvfh_, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
+  vfh_idx_->save ( pathDB.string() + "vfh.idx");
+  esf_idx_->save ( pathDB.string() + "esf.idx");
+  print_info("%*s]\tDone saving database, %d poses written to disk\n",20,__func__,names_.size());
 }
 /////////////////////////////////////////
 void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
 {
-  this->clear();
   //Check Parameters correctness 
   if (params->count("filtering"))
   {
@@ -775,12 +859,13 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
     PointCloud<VFHSignature308>::Ptr tmp_cvfh (new PointCloud<VFHSignature308>);
     PointCloud<VFHSignature308>::Ptr tmp_ourcvfh (new PointCloud<VFHSignature308>);
     PointCloud<ESFSignature640>::Ptr tmp_esf (new PointCloud<ESFSignature640>);
+    PC::Ptr input (new PC); 
     int i(0);
     for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
     {
       if (is_regular_file (*it) && it->extension() == ".pcd")
       {
-        if (!pcl::io::loadPCDFile(it->string().c_str(), clouds_[i]))
+        if (pcl::io::loadPCDFile(it->string().c_str(), *input)!=0 ) //loadPCDFile returns 0 if success
         {
           print_warn("%*s]\tError Loading Cloud %s, skipping...\n",20,__func__,it->string().c_str());
           continue;
@@ -792,9 +877,8 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
         continue;
       }
       vector<string> vst;
-      split (vst,it->string(),boost::is_any_of("../\\"), boost::token_compress_on);
+      split (vst, it->string(), boost::is_any_of("../\\"), boost::token_compress_on);
       names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
-      PC::Ptr input (clouds_[i].makeShared()); 
       PC::Ptr output (new PC);
       if (params->at("filtering") >0)
       {
@@ -829,6 +913,7 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
         vgrid.filter (*output); //Process Downsampling
         copyPointCloud(*output, *input);
       }
+      clouds_.push_back(*input);
       NormalEstimationOMP<PT, Normal> ne;
       search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
       PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
@@ -932,12 +1017,17 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
       cout<<std::flush;
     }
     cout<<endl;
+    if (tmp_vfh->points.size() == 0) //no clouds loaded
+    {
+      print_warn("%*s]\tNo clouds loaded, exiting...\n",20,__func__);
+      return;
+    }
     //generate FLANN matrix
     histograms vfh (new float[tmp_vfh->points.size()*308],tmp_vfh->points.size(),308);
     for (i=0; i<vfh.rows; ++i)
       for (int j=0; j<vfh.cols; ++j)
         vfh[i][j] = tmp_vfh->points[i].histogram[j];
-    histograms esf (new float[tmp_esf->points.size()*308],tmp_esf->points.size(),308);
+    histograms esf (new float[tmp_esf->points.size()*640],tmp_esf->points.size(),640);
     for (i=0; i<esf.rows; ++i)
       for (int j=0; j<esf.cols; ++j)
         esf[i][j] = tmp_esf->points[i].histogram[j];
@@ -1650,6 +1740,11 @@ void PoseEstimation::printParams()
 }
 void PoseEstimation::setDatabase(PoseDB& database)
 {
+  if (database.isEmpty())
+  {
+    print_warn("%*s]\tProvided database is empty or invalid, skipping new database setting...\n",20,__func__);
+    return;
+  }
   database_.clear();
   db_set_= false;
   StopWatch timer;
@@ -1668,6 +1763,11 @@ void PoseEstimation::setDatabase(PoseDB& database)
 /////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setDatabase(path dbPath)
 {
+  if (!exists(dbPath) || !is_directory(dbPath))
+  {
+    print_warn("%*s]\t%s is not a directory or does not exists, skipping new database setting...\n",20,__func__);
+    return;
+  }
   database_.clear();
   db_set_=false;
   StopWatch timer;

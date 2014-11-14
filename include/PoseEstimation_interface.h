@@ -152,6 +152,14 @@ class PoseDB{
      * \return _True_ if database is not loaded or empty, _False_ otherwise
      */
     bool isEmpty();
+
+    /** \brief Check if a path contains a valid database
+     * \params[in] dbPath Path to directory containing database to check
+     * \return _True_ if valid, _False_ otherwise
+     *
+     * Checks if the directory has a valid database structure, clouds of poses, FLANN matrices of histograms, indexes and name files
+     */
+    bool isValidPath(boost::filesystem::path dbPath);
 };
 
 /** \brief Describes a single candidate object to the query 
@@ -528,5 +536,9 @@ class PoseEstimation {
    * use setParam() or initParams() to modify PoseEstimation parameters
   */ 
   boost::shared_ptr<parameters> getParameters();
+
+  /** \brief Reset the viewpoint for current query, so that i can be computed again
+   */
+  void resetViewpoint(){ vp_supplied_ = false; }
 };
 #endif

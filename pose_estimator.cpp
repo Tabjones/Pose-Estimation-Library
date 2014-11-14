@@ -12,6 +12,7 @@ main (int argc, char *argv[])
   prova.setParam("verbosity", 2);
   //prova.printParams();
   prova.setQueryViewpoint(0,0,1);
+  /*
   prova.setQuery("funnel_20_30", cloud);
   prova.setDatabase("../../../Objects/Database");
   prova.generateLists();
@@ -31,5 +32,23 @@ main (int argc, char *argv[])
   prova3.setQueryViewpoint(1,1,1);
   prova3.estimate("obj_0", cloud, db);
   prova3.printEstimation();
+  */
+  //Database tests
+  PoseDB test;
+  parameters p;
+  p["computeViewpointFromName"] = 1;
+  p["useSOasViewpoint"]= 0;
+  boost::shared_ptr<parameters> par;
+  par = boost::make_shared<parameters>(p);
+  test.create("../../Acquisitions_old/Round1", par);
+  test.save("../../Database_Round1/");
+  PoseDB test2("../../Database_Round1/");
+  prova.setParam("progBisection", 1);
+  prova.setParam("computeViewpointFromName", 1);
+  prova.setParam("useSOasViewpoint", 0);
+  prova.resetViewpoint();
+  prova.estimate("object_23_50", cloud, test2);
+  prova.printCandidates();
+  prova.printEstimation();
   return 1;
 }
