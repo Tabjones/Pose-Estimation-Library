@@ -253,7 +253,7 @@ bool PoseDB::load(path pathDB)
     }
     catch (...)
     {
-      print_error("%*s]\tError loading VFH histograms, file is likely corrupt, try recreating database...\n",20,__func__);
+      print_error("%*s]\tError loading VFH histograms, file is likely corrupted, try recreating database...\n",20,__func__);
       return false;
     }
     try
@@ -264,7 +264,7 @@ bool PoseDB::load(path pathDB)
     }
     catch (...)
     {
-      print_error("%*s]\tError loading ESF histograms, file is likely corrupt, try recreating database...\n",20,__func__);
+      print_error("%*s]\tError loading ESF histograms, file is likely corrupted, try recreating database...\n",20,__func__);
       return false;
     }
     try
@@ -275,7 +275,7 @@ bool PoseDB::load(path pathDB)
     }
     catch (...)
     {
-      print_error("%*s]\tError loading CVFH histograms, file is likely corrupt, try recreating database...\n",20,__func__);
+      print_error("%*s]\tError loading CVFH histograms, file is likely corrupted, try recreating database...\n",20,__func__);
       return false;
     }
     try
@@ -286,7 +286,7 @@ bool PoseDB::load(path pathDB)
     }
     catch (...)
     {
-      print_error("%*s]\tError loading OURCVFH histograms, file is likely corrupy, try recreating database...\n",20,__func__);
+      print_error("%*s]\tError loading OURCVFH histograms, file is likely corrupted, try recreating database...\n",20,__func__);
       return false;
     }
     try
@@ -297,7 +297,7 @@ bool PoseDB::load(path pathDB)
     }
     catch (...)
     {
-      print_error("%*s]\tError loading VFH index, file is likely corrupt, try recreating database...\n",20,__func__);
+      print_error("%*s]\tError loading VFH index, file is likely corrupted, try recreating database...\n",20,__func__);
       return false;
     }
     try
@@ -308,12 +308,10 @@ bool PoseDB::load(path pathDB)
     }
     catch (...)
     {
-      print_error("%*s]\tError loading ESF index, file is likely corrupt, try recreating database...\n",20,__func__);
+      print_error("%*s]\tError loading ESF index, file is likely corrupted, try recreating database...\n",20,__func__);
       return false;
     }
-    //TODO from here
-    
-    if (is_regular_file(pathDB.string()+ "/names.list") && extension(pathDB.string()+ "/names.list") == ".list")
+    try
     {
       ifstream file ((pathDB.string()+"/names.list").c_str());
       string line;
@@ -327,16 +325,16 @@ bool PoseDB::load(path pathDB)
       }
       else
       {
-        print_error("%*s]\tCannot open names.list file... Try recreating the Database\n",20,__func__);
+        print_error("%*s]\tError opening names.list, file is likely corrupted, try recreating database\n",20,__func__);
         return false;
       }
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid names.list file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading names.list, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
-    if (is_regular_file(pathDB.string()+ "/cvfh.cluster") && extension(pathDB.string()+ "/cvfh.cluster") == ".cluster")
+    try
     {
       ifstream file ((pathDB.string()+"/cvfh.cluster").c_str());
       string line;
@@ -352,7 +350,7 @@ bool PoseDB::load(path pathDB)
           }
           catch (...)
           {
-            print_error("%*s]\tCannot convert string in cvfh.cluster, file is likely corrupted... Try recreating the Database\n",20,__func__);
+            print_error("%*s]\tCannot convert string in cvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
             return false;
           }
           clusters_cvfh_.push_back(c);
@@ -360,16 +358,16 @@ bool PoseDB::load(path pathDB)
       }
       else
       {
-        print_error("%*s]\tCannot open cvfh.cluster file... Try recreating the Database\n",20,__func__);
+        print_error("%*s]\tError opening cvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
         return false;
       }
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid cvfh.cluster file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading cvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
-    if (is_regular_file(pathDB.string()+ "/ourcvfh.cluster") && extension(pathDB.string()+ "/ourcvfh.cluster") == ".cluster")
+    try
     {
       ifstream file ((pathDB.string()+"/ourcvfh.cluster").c_str());
       string line;
@@ -385,7 +383,7 @@ bool PoseDB::load(path pathDB)
           }
           catch (...)
           {
-            print_error("%*s]\tCannot convert string in ourcvfh.cluster, file is likely corrupted... Try recreating the Database\n",20,__func__);
+            print_error("%*s]\tCannot convert string in ourcvfh.cluster, file is likely corrupted, try recreating  database\n",20,__func__);
             return false;
           }
           clusters_ourcvfh_.push_back(c);
@@ -393,19 +391,19 @@ bool PoseDB::load(path pathDB)
       }
       else
       {
-        print_error("%*s]\tCannot open ourcvfh.cluster file... Try recreating the Database\n",20,__func__);
+        print_error("%*s]\tError opening ourcvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
         return false;
       }
     }
-    else
+    catch (...)
     {
-      print_error("%*s]\tInvalid ourcvfh.cluster file... Try recreating the Database\n",20,__func__);
+      print_error("%*s]\tError loading ourcvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
   }
   else
   {
-    print_error("%*s]\t%s is not a valid database directory, or doesnt exists\n",20,__func__,pathDB.string().c_str());
+    print_error("%*s]\t%s is not a valid database directory, or does not exist\n",20,__func__,pathDB.string().c_str());
     return false;
   }
   dbPath_=pathDB;
@@ -2471,5 +2469,8 @@ boost::shared_ptr<parameters> PoseEstimation::getParameters()
   ptr = boost::make_shared<parameters>(p);
   return ptr;
 }
-
+bool PoseEstimation::saveEstimation(path file, bool append)
+{
+  //TODO
+}
 #endif

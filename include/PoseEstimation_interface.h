@@ -517,7 +517,7 @@ class PoseEstimation {
   void estimate(string name, PC& cloud, PoseDB& database);
   
   /** \brief Undergo the whole process of pose estimation
-   *\param[in] name Name of the new query object to estimate
+   *\param[in] name Name of the new query object to estimate 
     \param[in] cloud_pointer Pointer to a point cloud containing the query object to estimate (segmented)
     \param[in] database PoseDB object to use as database 
 
@@ -526,11 +526,21 @@ class PoseEstimation {
     */
   void estimate(string name, PC::Ptr cloud_pointer, PoseDB& database);
 
-  /** \brief print final estimation informations (such as name, distance, rmse and transformation) on screen
+  /** \brief Print final estimation informations (such as name, distance, rmse and transformation) on screen
    */
   void printEstimation();
 
+  /**\brief Save final estimation informations (such as name, distance, rmse and transformation) on a file with path specified
+      \param[in] file Path to a location on disk, where the file will be created or renewed
+      \param[in] append Chose to append to the end of file (true)(default), or truncate its contents (false), if file does not exists this parameter has no effect
+      \return _True_ if file is correctly written, _False_ otherwise
+
+      The path can specify a directory or a file, if the former a new text file of name <query_name>.estimation will be created inside the specified directory.
+      If the latter, the specified file will be written
+      */
+  bool saveEstimation(boost::filesystem::path file, bool append = true);
   /** \brief Returns a shared pointer of a copy of parameters used by the pose estimation
+   *
    * 
    * Returned pointer can be modified but any changes are not reflected back to the class,
    * use setParam() or initParams() to modify PoseEstimation parameters
