@@ -536,7 +536,10 @@ class PoseEstimation {
       \return _True_ if file is correctly written, _False_ otherwise
 
       The path can specify a directory or a file, if the former a new text file of name <query_name>.estimation will be created inside the specified directory.
-      If the latter, the specified file will be written
+      If the latter, the specified file will be written.
+      Note on paths: if file path does not exists, a file must be specified with an extension, otherwise it will be treated as a directory.
+      For example "/foo/bar" or "/foo/bar/" will be both treated as directories if they don't exists already.
+      "foo/bar.f" will be treated as file "bar.f" inside relative directory "foo"
       */
   bool saveEstimation(boost::filesystem::path file, bool append = true);
   /** \brief Returns a shared pointer of a copy of parameters used by the pose estimation

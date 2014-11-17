@@ -2471,6 +2471,126 @@ boost::shared_ptr<parameters> PoseEstimation::getParameters()
 }
 bool PoseEstimation::saveEstimation(path file, bool append)
 {
-  //TODO
+  if (!refinement_done_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tRefinement is not done yet, or wasn't successful... Saving nothing...\n",20,__func__);
+    return false;
+  }
+  if (exists(file) && is_directory(file)) //existant directory, save to <query_name>.estimation inside it
+  {
+    try 
+    {
+      fstream f;
+      if (append)
+        f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::out | fstream::app );
+      else
+        f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::trunc );
+      f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
+      f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
+      f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
+      f << "Final transformation, in candidate reference system: "<<endl;
+      f << pose_estimation_ -> transformation_ <<endl<<endl;
+      f.close();
+    }
+    catch (...)
+    {
+      print_error ("%*s]\tError writing to disk, check if %s is valid path\n",20,__func__,(file.string() + query_name_ + ".estimation").c_str());
+      return false;
+    }
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tSaved current pose estimation information in %s\n",20,__func__,(file.string() + query_name_ + ".estimation").c_str());
+    return true;
+  }
+  else if (exists(file) && is_regular_file(file)) //existant file, append or overwrite
+  {
+    try 
+    {
+      fstream f;
+      if (append)
+        f.open ( file.string().c_str(), fstream::out | fstream::app );
+      else
+        f.open ( file.string().c_str(), fstream::trunc );
+      f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
+      f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
+      f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
+      f << "Final transformation, in candidate reference system: "<<endl;
+      f << pose_estimation_ -> transformation_ <<endl<<endl;
+      f.close();
+    }
+    catch (...)
+    {
+      print_error ("%*s]\tError writing to disk, check if %s is valid path\n",20,__func__,file.string().c_str());
+      return false;
+    }
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tSaved current pose estimation information in %s\n",20,__func__,file.string().c_str());
+    return true;
+  }
+  else if (file.filename().has_extension() && !exists(file) ) //non existant file, creating it
+  {
+    if (file.has_parent_path() && !exists(file.parent_path()) ) //also container directory does not exists
+    {
+      try
+      {
+        create_directory(file.parent_path());
+      }
+      catch (...)
+      {
+        print_error("%*s]\tError creating directory %s\n",20,__func__,file.parent_path().string().c_str());
+        return  false;
+      }
+    }
+    try 
+    {
+      ofstream f;
+      f.open ( file.string().c_str() );
+      f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
+      f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
+      f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
+      f << "Final transformation, in candidate reference system: "<<endl;
+      f << pose_estimation_ -> transformation_ <<endl<<endl;
+      f.close();
+    }
+    catch (...)
+    {
+      print_error ("%*s]\tError writing to disk, check if %s is valid path\n",20,__func__,file.string().c_str());
+      return false;
+    }
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tSaved current pose estimation information in %s\n",20,__func__,file.string().c_str());
+    return true;
+  }
+  else if (!file.filename().has_extension() && !exists(file) ) //non existant directory, create then save inside it
+  {
+    try
+    {
+      create_directory(file);
+      fstream f;
+      if (append)
+        f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::out | fstream::app );
+      else
+        f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::trunc );
+      f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
+      f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
+      f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
+      f << "Final transformation, in candidate reference system: "<<endl;
+      f << pose_estimation_ -> transformation_ <<endl<<endl;
+      f.close();
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError writing to disk, check if %s is valid path\n",20,__func__,(file.string() + query_name_ + ".estimation" ).c_str() );
+      return  false;
+    }
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tSaved current pose estimation information in %s\n",20,__func__,(file.string() + query_name_ + ".estimation").c_str());
+    return true;
+  }
+  else //unexpeted path error
+  {
+    print_error("%*s]\tError parsing path: %s\n",20,__func__,file.string().c_str() );
+    return  false;
+  }
 }
 #endif
