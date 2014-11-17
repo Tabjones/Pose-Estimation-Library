@@ -522,7 +522,7 @@ void PoseDB::save(path pathDB)
   print_info("%*s]\tDone saving database, %d poses written to disk\n",20,__func__,names_.size());
 }
 /////////////////////////////////////////
-void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
+void PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params)
 {
   //Check Parameters correctness 
   if (params->count("filtering"))
@@ -1056,7 +1056,7 @@ void PoseDB::create(path pathClouds, boost::shared_ptr<parameters> params)
     print_error("%*s]\t%s is not a valid directory...\n",20,__func__,pathClouds.string().c_str());
   }
 }
-void PoseDB::create(path pathClouds)
+void PoseDB::create(boost::filesystem::path pathClouds)
 {
   parameters par;
   //setting default parameters for db creation, only relevant ones are created
@@ -1250,7 +1250,7 @@ void PoseEstimation::setParam_ (string key, string& value)
   setParam(key, f); 
 }
 //////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::initParams(path config_file)
+void PoseEstimation::initParams(boost::filesystem::path config_file)
 { 
   if ( exists(config_file) && is_regular_file(config_file))   
   {
@@ -1759,7 +1759,7 @@ void PoseEstimation::setDatabase(PoseDB& database)
   }
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setDatabase(path dbPath)
+void PoseEstimation::setDatabase(boost::filesystem::path dbPath)
 {
   if (!exists(dbPath) || !is_directory(dbPath))
   {
@@ -2181,7 +2181,7 @@ void PoseEstimation::generateLists()
   return;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::generateLists(path dbPath)
+void PoseEstimation::generateLists(boost::filesystem::path dbPath)
 {
   if (!query_set_)
   {

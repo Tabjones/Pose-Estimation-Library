@@ -154,7 +154,7 @@ class PoseDB{
     bool isEmpty();
 
     /** \brief Check if a path contains a valid database
-     * \params[in] dbPath Path to directory containing database to check
+     * \param[in] dbPath Path to directory containing database to check
      * \return _True_ if valid, _False_ otherwise
      *
      * Checks if the directory has a valid database structure, clouds of poses, FLANN matrices of histograms, indexes and name files
@@ -472,7 +472,7 @@ class PoseEstimation {
 
   /**\brief Start the refinement procedure with ICP to obtain a final candidate from the composite list
    *
-   * Currently two methods for refinemente are imp lemented: Progressive Bisection (default) and Brute Force
+   * Currently two methods for refinemente are implemented: Progressive Bisection (default) and Brute Force
    * To chose Progressive Bisection set "progBisection" parameter to 1, to chose Brute Force set it to 0
 - Brute Force:
   1. Start align rank 1 candidate on composite list with ICP, until "maxIterations" (default 200) are reached or candidate RMSE falls below "rmseThreshold" (default 0.003)
@@ -535,7 +535,7 @@ class PoseEstimation {
       \param[in] append Chose to append to the end of file (true)(default), or truncate its contents (false), if file does not exists this parameter has no effect
       \return _True_ if file is correctly written, _False_ otherwise
 
-      The path can specify a directory or a file, if the former a new text file of name <query_name>.estimation will be created inside the specified directory.
+      The path can specify a directory or a file, if the former a new text file of name "query_name.estimation" will be created inside the specified directory.
       If the latter, the specified file will be written.
       Note on paths: if file path does not exists, a file must be specified with an extension, otherwise it will be treated as a directory.
       For example "/foo/bar" or "/foo/bar/" will be both treated as directories if they don't exists already.

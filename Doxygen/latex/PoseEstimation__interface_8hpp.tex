@@ -1,0 +1,39 @@
+\hypertarget{PoseEstimation__interface_8hpp}{\subsection{include/\-Pose\-Estimation\-\_\-interface.hpp File Reference}
+\label{PoseEstimation__interface_8hpp}\index{include/\-Pose\-Estimation\-\_\-interface.\-hpp@{include/\-Pose\-Estimation\-\_\-interface.\-hpp}}
+}
+{\ttfamily \#include $<$pcl/io/pcd\-\_\-io.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/common/norms.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/common/time.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/console/print.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/surface/mls.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/search/kdtree.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/features/normal\-\_\-3d\-\_\-omp.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/filters/statistical\-\_\-outlier\-\_\-removal.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/features/vfh.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/features/esf.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/features/cvfh.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/features/our\-\_\-cvfh.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/filters/voxel\-\_\-grid.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/registration/icp.\-h$>$}\\*
+{\ttfamily \#include $<$pcl/visualization/pcl\-\_\-visualizer.\-h$>$}\\*
+{\ttfamily \#include $<$flann/flann.\-h$>$}\\*
+{\ttfamily \#include $<$flann/io/hdf5.\-h$>$}\\*
+{\ttfamily \#include $<$boost/algorithm/string/split.\-hpp$>$}\\*
+{\ttfamily \#include $<$boost/algorithm/string/trim.\-hpp$>$}\\*
+{\ttfamily \#include $<$boost/range/algorithm/copy.\-hpp$>$}\\*
+{\ttfamily \#include $<$algorithm$>$}\\*
+{\ttfamily \#include $<$fstream$>$}\\*
+{\ttfamily \#include $<$cmath$>$}\\*
+{\ttfamily \#include $<$stdexcept$>$}\\*
+{\ttfamily \#include $<$pcl/common/centroid.\-h$>$}\\*
+{\ttfamily \#include \char`\"{}Pose\-Estimation\-\_\-interface.\-h\char`\"{}}\\*
+\subsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{group__Definitions_ga0a3cc1d5cde549e408f825ddd7f5853d}{D2\-R}~0.\-017453293
+\end{DoxyCompactItemize}
+\subsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+float \hyperlink{group__global_gafa8492ce7af14ee19dafd67a9c0ab215}{Min\-Max\-Distance} (vector$<$ float $>$ \&a, vector$<$ float $>$ \&b)
+\begin{DoxyCompactList}\small\item\em Compute the Min\-Max distance between two histograms, used by C\-V\-F\-H and O\-U\-R\-C\-V\-F\-H. \end{DoxyCompactList}\end{DoxyCompactItemize}
