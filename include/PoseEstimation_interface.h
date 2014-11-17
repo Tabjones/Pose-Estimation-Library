@@ -2,11 +2,30 @@
  * look in PoseEstimation_interface.hpp
  */
 //Doxygen documentation
-/** \mainpage Pose Estimation Documentation
+/** \mainpage 
+Pose Estimation interface Documentation and usage
+-------------------------------------------------
+This documentation describes the use of Pose Estimation interface, that implements a method to achieve pose estimation of a query object, represented by a point cloud.
+The method makes use of several global and semi-global features and combines their results together in effort to achieve a sort of consensus. The best candidates selected
+from consensus are then refined with ICP in order to get the final estimation. For more information on the matter please look into the author's master thesis available online 
+<a href="http://etd.adm.unipi.it/theses/available/etd-09022014-142255/">here.</a>
 
-Pose Estimation class documentation and usage
-TODO
+Full source code of the project is available on <a href="https://bitbucket.org/Tabjones/poseestimation">bitbucket.</a>
 */
+/** \page Parameters
+ * 
+ * This page contains a list of configuration parameters that can be set to customize the behaviour of pose estimation.
+ * All parameters are configured in a key = value fashion, to set them see PoseEstimation class methods.
+ *
+ * Basic Parameters
+ * ------------------
+ *
+| Key     | Default Value | Description                                                          |
+|:-------:|:-------------:|:---------------------------------------------------------------------|
+|useVFH   | 1             | Tell PoseEstimation to use Viewpoint Feature Histogram (VFH) in matching phase|
+|useESF   | 1             | Tell PoseEstimation to use Ensemble of Shape Functions (ESF) in matching phase|
+ 
+  */
 #ifndef __INTERFACE_H_INCLUDED__
 #define __INTERFACE_H_INCLUDED__
 
@@ -226,7 +245,8 @@ class Candidate{
 };
 
 /**\brief Implements the procedure to achieve pose estimation of a given query object.
-The ideal procedure can be summarized as follows:
+
+  The ideal procedure can be summarized as follows:
 - Initialize the class parameters either with the constructors or with initParams()
 \code
   PoseEstimation pe; //empty constructor, default parameters are set
