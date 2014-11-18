@@ -5,6 +5,7 @@
 //Doxygen documentation
 
 /** \todo add all get, print, save and view of candidates, params, estimation etc..
+ *  \todo implementation of saveParams, getEstimation, saveCandidates
  */
 
 /** \mainpage notitle 
@@ -503,7 +504,7 @@ class PoseEstimation {
    *
    * Configuration file must have extension .conf and follow certain naming conventions, 
    * look at example .conf file provided for more details (i.e "config/parameters.conf")
-   * NOTE: This constructor uses C++11 functionality and will probably not compile without -std=c++11 
+   * Note: This constructor uses C++11 functionality and will probably not compile without -std=c++11 
    * It delegates construction to empty contructor then calls initParams()
    * It is the same way as calling empty constructor and then initParams() method
    */
@@ -540,22 +541,52 @@ class PoseEstimation {
   /// \brief Print current parameter values on screen
   void printParams();
 
-  /// \brief Print List of Candidates to the query on screen
+  /** \brief Get a pointer to an unordered map holding a copy of current configuration parameters
+   * \return A pointer of a copy of current configuration parameters
+   */
+  boost::shared_ptr<parameters> getParams();
+
+  /** \brief Save current configuration parameters into a .config file
+   * \param[in] file Path on disk where to write the .config file
+   *
+   * The path specified must not point to an already existant file, or saveParams() will refuse to write. 
+   * The path may be absolute or relative and may or may not contain the extension, however remember that config files must have .config extension to be accepted from PoseEstimation as valid config files, see also initParams()
+   * Example code:
+   * \code
+   * PoseEstimation pe;
+   * pe.setParam("verbosity", 2);
+   * pe.saveParams("./verbose.config"); //relative path with extension specified
+   * pe.saveParams("../verbose"); //relative path without extension, in this case a .config will be appended
+   * pe.saveParams("verbose.wrong"); //the file will be written but initParams() will not read it back since the file has a wrong extension
+   * \endcode
+*/
+  void saveParams(boost::filesystem::path file);
+
+  /// \brief Print list(s) of Candidate to the query on screen
   void printCandidates();
+
+  /** \brief Save list(s) of Candidate to query on a file
+   * \param[in] file Path to a file where to write the candidate list(s)
+   *
+   * Path specified may exist, in that case the file will be appended
+   */
+  void saveCandidates(boost::filesystem::path file);
 
   /** \brief Set a database of known poses to be used for pose estimation procedure.
    * \param[in] dbPath The path to the directory containing the database
+   *
+   * Note that this method calls PoseDB::load() on the path specified
    */
   void setDatabase(boost::filesystem::path dbPath);
   /** \brief Set a database of known poses to be used for pose estimation procedure.
-   * \param[in] database PoseDB ojbect to use as database
+   * \param[in] database PoseDB object to use as database
    */
   void setDatabase(PoseDB& database);
 
   /** \brief Generates list(s) of candidates to the query using the database provided as argument
    * \param[in] dbPath The path to the directory containing the database of poses, previously generated.
    * 
-   * This member also sets the database to the one specified for future lists computations.
+   * Note that this method also calls setDatabase() on the path specified for future lists computations.
    */
   void generateLists(boost::filesystem::path dbPath);
   
@@ -625,7 +656,7 @@ class PoseEstimation {
 
   /**\brief Save final estimation informations (such as name, distance, rmse and transformation) on a file with path specified
       \param[in] file Path to a location on disk, where the file will be created or renewed
-      \param[in] append Chose to append to the end of file (true)(default), or truncate its contents (false), if file does not exists this parameter has no effect
+      \param[in] append Chose to append to the end of file (true)(default), or truncate its contents (false), if file does not exists this parameter has no effectinal
       \return _True_ if file is correctly written, _False_ otherwise
 
       The path can specify a directory or a file, if the former a new text file of name "query_name.estimation" will be created inside the specified directory.
@@ -636,14 +667,18 @@ class PoseEstimation {
       */
   bool saveEstimation(boost::filesystem::path file, bool append = true);
   /** \brief Returns a shared pointer of a copy of parameters used by the pose estimation
-   *
    * 
    * Returned pointer can be modified but any changes are not reflected back to the class,
    * use setParam() or initParams() to modify PoseEstimation parameters
   */ 
-  boost::shared_ptr<parameters> getParameters();
+  boost::shared_ptr<parameters> getParams();
 
-  /** \brief Reset the viewpoint for current query, so that i can be computed again
+  /** \brief Get a pointer to a copy of final chosen Candidate, representing the pose estimation
+   * \return A pointer to a copy of the final Candidate
+   */
+  boost::shared_ptr<Candidate> getEstimation();
+
+  /** \brief Reset the viewpoint for current query, so that it can be computed again
    */
   void resetViewpoint(){ vp_supplied_ = false; }
 };

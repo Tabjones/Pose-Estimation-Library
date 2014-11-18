@@ -2461,7 +2461,7 @@ void PoseEstimation::printEstimation()
   print_info("Final Transformation (in candidate reference system):\n");
   cout<<pose_estimation_->transformation_<<endl;
 }
-boost::shared_ptr<parameters> PoseEstimation::getParameters()
+boost::shared_ptr<parameters> PoseEstimation::getParams()
 {
   parameters p = {{"key",-1}}; //initialize p with something so that copy assigned is performed instead of move (to preserve param_)
   p = params_;
