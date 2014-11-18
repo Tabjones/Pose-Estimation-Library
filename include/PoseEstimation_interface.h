@@ -16,14 +16,16 @@ Full source code of the project is available on <a href="https://bitbucket.org/T
  * 
  * This page contains a list of configuration parameters that can be set to customize the behaviour of pose estimation.
  * All parameters are configured in a key = value fashion, to set them see PoseEstimation class methods.
+ * For example to set a single parameter use setParam(), to set a large number of parameters either call setParam() several times, or write them in a configuration file and load them with initParams().
+ * Configuration file must have .conf extension and contains only entry like key=value in each line. En example configuration file that sets default values for all parameters is located in the conf directory of source code.
  *
  * Basic Parameters
  * ------------------
  *
 | key     | Default Value | Description                                                          |
 |:-------:|:-------------:|:---------------------------------------------------------------------|
-|useVFH   | 1             | Tell PoseEstimation to use Viewpoint Feature Histogram in matching phase (1), along with the others if present. Or disable it's computation (0). Note that at least one feature must be enabled|
-|useESF   | 1             | Tell PoseEstimation to use Ensemble of Shape Functions in matching phase (1), along with the others if present. Or disable it's computation (0). Note that at least one feature must be enabled|
+| useVFH  | 1             | Tell PoseEstimation to use Viewpoint Feature Histogram in matching phase (1), along with the others if present. Or disable it's computation (0). Note that at least one feature must be enabled|
+| useESF  | 1             | Tell PoseEstimation to use Ensemble of Shape Functions in matching phase (1), along with the others if present. Or disable it's computation (0). Note that at least one feature must be enabled|
 | useCVFH |            1  | Tell PoseEstimation to use Clustered Viewpoint Feature Histogram in matching phase (1), along with the others if present. Or disable it's computation (0). Note that at least one feature must be enabled|
 | useOURCVFH |         1  | Tell PoseEstimation to use Oriented, Unique and Repeatable CVFH  in matching phase (1), along with the others if present. Or disable it's computation (0). Note that at least one feature must be enabled|
 | downsampling |  1       | Tell PoseEstimation to downsample the query with Voxel Grid (1), or don't (0). Other parameters control the voxel grid intensity|
@@ -31,73 +33,41 @@ Full source code of the project is available on <a href="https://bitbucket.org/T
 | filtering   | 0         | Tell PoseEstimation to filter the query with Statistical Outliers Filter, before the eventual upsampling and downsampling (1), or don't filter it (0). Other parameters control the filter behaviour|
 | progBisection | 1       | Tell PoseEstimation to use Progressive Bisection (1), or Brute Force (0), during candidates refinement| 
 | kNeighbors | 20         | How many neighbors to retrieve during matching phase, this value determines the length of each candidate list|
-| maxIterations | 200     | Maximum iterations of ICP (termination condition) for each candidate during Brute Force candidate refinement. This parameter is relevant only if progBisection=0 |
+| rmseThreshold | 0.003   | RMSE Threshold during Candidate Refinement, when a candidate rmse falls below this threshold, the refinement procedure terminates. If progBisection=1 this can be set to zero to always choose the surviving candidate at the end of progressive bisection |
 | verbosity | 1           | Controls the verbosity of PoseEstimation: (0) Silent behaviour, only errors are printed, (1) Normal behaviour, errors and warnings are printed, (2) Verbose behaviour, all kind of messages are printed (can be very spammy, useful in debug or testing) |
+| maxIterations | 200     | Maximum iterations of ICP (termination condition) for each candidate during Brute Force candidate refinement. This parameter is relevant only if progBisection=0 |
 
-Advanced Parameters (DONT CHANGE THEM UNLESS YOU KNOW WHAT YOU ARE DOING!!)
+Advanced Parameters 
 -----------------------------------------------------------------------------
-% mlsPolyOrder        >0 (2)                 Set polynomial order of MLS to [Value], relevant if upsampling=true
-% mlsPointDensity     >0 (250)               Set desired point density on MLS surface to [Value], relevant if
-%                                            upsampling=true
-% mlsPolyFit          1/0 (1)                Tell MLS to fit the surface on polynomial functions with order mlsPolyOrder
-%                                            relevant if upsampling=true
-% mlsSearchRadius     >0 (0.03)              Set search radius of MLS to [Value], relevant if upsampling=true
-% filterMeanK         >0 (50)                How many neighboring points to consider in the statistical distribution
-%                                            calculated by the the filter, relevant if filtering=true
-% filterStdDevMulThresh >0 (3)               Multiplication factor to apply to Standard Deviation of the statistical
-%                                            distribution during filtering process (higher value, means less demanding filter)
-%                                            Relevant only if filtering=true
-% progItera           >0 (5)                 ICP iterations to perform for all candidates on each step of Progressive Bisection
-%                                            Candidate Refinement, relevant only if progBisection=true
-% progFraction        >0 <1 (0.5)            Fraction of candidate list to keep after each step of Progressive
-%                                            Bisection Candidate Refinement, relevant if progBisection=true
-% rmseThreshold       >=0 (0.003)            RMSE Threshold during Candidate Refinement, when a candidate rmse
-%                                            falls below this threshold, the procedure terminates. If progBisection=true
-%                                            this can be set to zero to always choose the surviving candidate at
-%                                            the end of progressive bisection
-% vgridLeafSize       >0 (0.003)             Set the leaf size of VoxelGrid downsampling to [Value],
-%                                            only relevant if downsampling=true
-% neRadiusSearch      >0 (0.015)             Set radius for Normal Estimation, if normals are not used, i.e. only 
-%                                            ESF is computed this parameter is ignored
-% useSOasViewpoint    1/0 (1)                Tell PoseEstimation to use the sensor_origin_ member of query point cloud
-%                                            as the viewpoint for every operation, where a viewpoint is need, i.e in
-%                                            normals estimation or in VFH descriptor. If set to '0' a viewpoint must be set manually with
-%                                            member function setQueryViewpoint or features will refuse to compute.
-%                                            If set to '1' and sensor_origin_ is not representing a correct viewpoint, unexpected results may happen,
-%                                            such as normals not correctly oriented, probably resulting in a wrong pose estimation
-%                                            See also computeViewpointFromName
-% computeViewpointFromName 1/0 (0)           If set to '1' PoseEstimation will try to calculate the viewpoint from the query name,
-%                                            NOTE however that to use this feature query names should follow a naming convenction, that is
-%                                            name_latitude_longitude (i.e Funnel_30_60). Note also that setting this parameter to 1
-%                                            will override 'useSOasViewpoint' param, regardless of its value. If set to 0 and also 'useSOasViewpoint'
-%                                            is set to 0 a view point must be supplied with setQueryViewpoint, or feature will refuse to compute
-% cvfhEPSAngThresh    >0 (7.5 deg)           Set maximum allowable deviation of the normals, in the region segmentation step of CVFH computation
-%                                            Value recommended from paper is 7.5 degrees, it should be supplied in degrees and class will convert 
-%                                            it in radians. Relevant only if useCVFH=1
-% cvfhCurvThresh      >0 (0.025)             Set maximum allowable disparity of curvatures during region segmentation step of CVFH estimation
-%                                            Value recommended from paper is 0.025. Relevant only if useCVFH=1
-% cvfhClustTol        >0 (0.01)              Euclidean clustering tolerance, during CVFH segmentation. Points distant more than this value from each other, 
-%                                            will likely be grouped in different clusters. Relevant if useCVFH=1
-% cvfhMinPoints       >0 (50)                Set minimum number of points a cluster should contain to be considered such, during CVFH clustering
-%                                            Relevant if useCVFH=1
-% ourcvfhEPSAngThresh >0 (7.5 deg)           Set maximum allowable deviation of the normals, in the region segmentation step of OURCVFH computation
-%                                            Value recommended from paper is 7.5 degrees. It should be supplied in degrees and class will convert it
-%                                            in radians. Relevant only if useOURCVFH=1
-% ourcvfhCurvThresh   >0 (0.025)             Set maximum allowable disparity of curvatures during region segmentation step of OURCVFH estimation
-%                                            Value recommended from paper is 0.025. Relevant only if useOURCVFH=1
-% ourcvfhClustTol     >0 (0.01)              Euclidean clustering tolerance, during OURCVFH segmentation. Points distant more than this value from each other, 
-%                                            will likely be grouped in different clusters. Relevant if useOURCVFH=1
-% ourcvfhMinPoints    >0 (50)                Set minimum number of points a cluster should contain to be considered such, during OURCVFH clustering
-%                                            Relevant if useOURCVFH=1
-% ourcvfhAxisRatio    >0 (0.95)              Set the minimum axis ratio between the SGURF axes. At the disambiguation phase, this will decide if 
-%                                            additional Reference Frames need to be created, if ambiguous. Relevant if useOURCVFH=1
-% ourcvfhMinAxisValue >0 (0.01)              Set the min disambiguation axis value to generate several SGURFs for the cluster when disambiguition is difficult.
-%                                            Relevant if useOURCVFH=1
-% ourcvfhRefineClusters >0 <=1 (1)           Set refinement factor for clusters during OURCVFH clustering phase, a value of 1 means 'dont refine clusters', while
-%                                            values between 0 and 1 will reduce clusters by that number. Relevant if uesOURCVFH=1
+These are advanced parameters, that can significantly alter the behaviour of pose estimation, change them if you know what you are doing.
+For example when changing preprocessing pipeline (i.e. altering search radius of MLS, or voxel grid leaf size) make sure that the query and the poses in database have undergone the same exact process, or you may not find consistent matches.
+| key | Default Value | Description |
+|:----:|:-------------:|:------------------------|
+| mlsPolyOrder | 2    | Set polynomial order of MLS to the value specified, for most objects  second order polynomial functions are more than enough to correctly approximate the object surface. Relevant only if upsampling=1 |
+| mlsPointDensity | 250 | Set desired point density on MLS surface to the value specified,  higher values produce more points, thus increasing the upsampling. Relevant only if upsampling=1 |
+| mlsPolyFit   | 1 | Tell MLS to fit the surface on polynomial functions with order mlsPolyOrder (1). Or don't use polynomial fitting (0). Relevant only if upsampling=1 |
+| mlsSearchRadius  | 0.03 | Set search radius of MLS to the value specified, a value of 1 means one meter. Relevant if upsampling=1 |
+| filterMeanK | 50 | How many neighboring points to consider in the statistical distribution calculated by the filter, relevant if filtering=1 |
+| filterStdDevMulThresh | 3 | Multiplication factor to apply to Standard Deviation of the statistical distribution during filtering process (higher value, means less aggressive filter). Relevant only if filtering=1 |
+| progItera   | 5 | ICP iterations to perform for all candidates on each step of Progressive Bisection Candidate Refinement, lowering this value may speed up the process at the cost of a less accurate estimation. Relevant only if progBisection=1 |
+| progFraction | 0.5 | Size of candidate list gets multiplied by this value on each step of Progressive Bisection Refinement, the default is to split the list in half (0.5). Relevant only if progBisection=1 |
+| vgridLeafSize | 0.003 | Set the leaf size of VoxelGrid downsampling to the value specified, 1 means one meter. Only relevant if downsampling=1 |
+| neRadiusSearch | 0.015 | Set radius that defines the neighborhood of each point during Normal Estimation, value of 1 means one meter. If normals are not used, i.e. only ESF is computed this parameter is ignored |
+| useSOasViewpoint | 0 | Tell PoseEstimation to use the sensor_origin_ member of query point cloud as the viewpoint for every operation (1), where a viewpoint is need, i.e in normals estimation or in VFH descriptor. If set to '0' a viewpoint should be set manually with method setQueryViewpoint() or calculated from name (see computeViewpointFromName). If the above fails features will refuse to compute. If set to '1' and sensor_origin_ is not representing a correct viewpoint, unexpected results may happen, such as normals not correctly oriented, probably resulting in a wrong pose estimation |
+| computeViewpointFromName | 1 | If set to '1' PoseEstimation will try to calculate the viewpoint from the query name, however to use this feature, query names should follow a naming convenction, that is name_latitude_longitude (i.e Funnel_30_60). Note also that setting this parameter to 1 will override 'useSOasViewpoint' parameter, regardless of its value. If set to 0 and also 'useSOasViewpoint' is set to 0 a view point must be supplied with setQueryViewpoint(), or feature will refuse to compute |
+| cvfhEPSAngThresh |7.5 deg | Set maximum allowable deviation of the normals, in the region segmentation step of CVFH computation. The value recommended from relative paper is 7.5 degrees, it should be supplied in degrees and class will convert  it in radians. Relevant only if useCVFH=1 |
+| cvfhCurvThresh  | 0.025 | Set maximum allowable disparity of curvatures during region segmentation step of CVFH estimation. The value recommended from relative paper is 0.025. Relevant only if useCVFH=1 |
+| cvfhClustTol  | 0.01 | Euclidean clustering tolerance, during CVFH segmentation. Points distant more than this value from each other, will likely be grouped in different clusters. A value of 1 means one meter. Relevant only if useCVFH=1 |
+| cvfhMinPoints  | 50 | Set minimum number of points a cluster should contain to be considered such, during CVFH clustering. Relevant only if useCVFH=1 |
+| ourcvfhEPSAngThresh  | 7.5 deg | Set maximum allowable deviation of the normals, in the region segmentation step of OURCVFH computation. The value recommended from relative paper is 7.5 degrees. It should be supplied in degrees and class will convert it in radians. Relevant only if useOURCVFH=1 |
+| ourcvfhCurvThresh | 0.025 | Set maximum allowable disparity of curvatures during region segmentation step of OURCVFH estimation. The value recommended from relative paper is 0.025. Relevant only if useOURCVFH=1|
+| ourcvfhClustTol | 0.01 | Euclidean clustering tolerance, during OURCVFH segmentation. Points distant more than this value from each other, will likely be grouped in different clusters. A value of 1 means one meter. Relevant only if useOURCVFH=1 |
+| ourcvfhMinPoints  |50 | Set minimum number of points a cluster should contain to be considered such, during OURCVFH clustering. Relevant only if useOURCVFH=1 |
+| ourcvfhAxisRatio  | 0.95 | Set the minimum axis ratio between the SGURF axes. At the disambiguation phase of OURCVFH, this will decide if additional Reference Frames need to be created for the cluster, if they are ambiguous. Relevant only if useOURCVFH=1 |
+| ourcvfhMinAxisValue  | 0.01 | Set the minimum disambiguation axis value to generate several SGURFs for the cluster when disambiguition is difficult. Relevant if useOURCVFH=1 |
+| ourcvfhRefineClusters  |  1 | Set refinement factor for clusters during OURCVFH clustering phase, a value of 1 means 'dont refine clusters', while values between 0 and 1 will reduce clusters size by that number. Relevant only if uesOURCVFH=1 |
+*/
 
- 
-  */
 #ifndef __INTERFACE_H_INCLUDED__
 #define __INTERFACE_H_INCLUDED__
 
@@ -382,21 +352,47 @@ class PoseEstimation {
   ///Cloud pointer to query pre-processed cloud (if preprocessing is made, otherwise it's the same as query_cloud
   PC::Ptr query_cloud_processed_;
   
-  ///List of candidates to the query
-  vector<Candidate> vfh_list_, esf_list_, cvfh_list_, ourcvfh_list_, composite_list_;
+  ///List of candidates to the query calculated from VFH
+  vector<Candidate> vfh_list_;
+  ///List of candidates to the query calculated from ESF
+  vector<Candidate> esf_list_;
+  ///List of candidates to the query calculated from CVFH
+  vector<Candidate> cvfh_list_;
+  ///List of candidates to the query calculated from OURCVFH
+  vector<Candidate> ourcvfh_list_;
+  ///List of candidates to the query composed from the other features
+  vector<Candidate> composite_list_;
 
-  ///Path to the directory containing the database of known poses, created previously
+  ///Path to the directory containing the database of known poses (if specified)
   boost::filesystem::path dbPath_;
   
-  ///Viewpoint coordinates, used in computations like VFH and Normal estimation
-  float vpx_, vpy_, vpz_;
+  ///Viewpoint coordinate x, used in computations like VFH and Normal estimation
+  float vpx_;
+  ///Viewpoint coordinate y, used in computations like VFH and Normal estimation
+  float vpy_;
+  ///Viewpoint coordinate z, used in computations like VFH and Normal estimation
+  float vpz_;
   
-  ///Internal parameters to check if various stages of pose estimation are completed correctly
-  bool vp_supplied_, query_set_, candidates_found_, refinement_done_, db_set_;
+  ///Internal parameter to check if viewpoint has been supplied.
+  bool vp_supplied_;
+  ///Internal parameter to check if the query was succesfully set and its features estimated
+  bool query_set_;
+  ///Internal parameter to check if list(s) of candidates are successfully generated
+  bool candidates_found_;
+  ///Internal parameter to check if candidate refinement has been done and it was succesfull
+  bool refinement_done_;
+  ///Internal parameter to check if a database was loaded in memory and it's now ready to be used
+  bool db_set_;
   
-  ///Containers that hold the query features
-  PointCloud<VFHSignature308> vfh_, cvfh_, ourcvfh_;
+  ///Container that hold the query VFH feature
+  PointCloud<VFHSignature308> vfh_;
+  ///Container that hold the query CVFH feature
+  PointCloud<VFHSignature308> cvfh_;
+  ///Container that hold the query OURCVFH feature
+  PointCloud<VFHSignature308> ourcvfh_;
+  ///Container that hold the query ESF feature
   PointCloud<ESFSignature640> esf_;
+  ///Container that hold the query normals
   PointCloud<Normal> normals_;
   
   ///Set a parameter of Pose Estimation from a string representing its value, used internally when reading parameters from a file
@@ -429,7 +425,7 @@ class PoseEstimation {
   ///Internal method to compute OURCVFH feature of the query, internal use
   void computeOURCVFH_();
 
-  /**\brief Searches a list for a candidate and eliminates it, saving its distance. internal use
+  /**\brief Searches a list for a candidate and eliminates it, saving its distance. Internal use
    * \param[in] list The list to inspect and modifiy
    * \param[in] name The name to search in list
    * \param[out] dist The distace of Candidate found in list (normalized)
@@ -491,7 +487,7 @@ class PoseEstimation {
   /**\brief Constructor with parameters to set.
    *\param[in] map Shared pointer to unordered_map containing parameters to use
    *
-   * NOTE: This constructor uses C++11 functionality and will probably not compile without -std=c++11 
+   * Note: This constructor uses C++11 functionality and will  not compile without -std=c++11 
    * It delegates construction to empty contructor then calls initParams()
    * It is the same way as calling empty constructor and then initParams() method
    */

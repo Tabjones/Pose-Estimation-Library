@@ -1180,8 +1180,8 @@ PoseEstimation::PoseEstimation ()
   params_["filterMeanK"]=50;
   params_["filterStdDevMulThresh"]=3;
   params_["neRadiusSearch"]=0.015;
-  params_["useSOasViewpoint"]=1;
-  params_["computeViewpointFromName"]=0;
+  params_["useSOasViewpoint"]=0;
+  params_["computeViewpointFromName"]=1;
   params_["cvfhEPSAngThresh"]=7.5;
   params_["cvfhCurvThresh"]=0.025;
   params_["cvfhClustTol"]=0.01;
