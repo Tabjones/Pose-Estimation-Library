@@ -1,8 +1,13 @@
 /* This file describes the PoseEstimation interface, for relative implementation
  * look in PoseEstimation_interface.hpp
  */
+
 //Doxygen documentation
-/** \mainpage 
+
+/** \todo add all get, print, save and view of candidates, params, estimation etc..
+ */
+
+/** \mainpage notitle 
 Pose Estimation interface Documentation and usage
 -------------------------------------------------
 This documentation describes the use of Pose Estimation interface, that implements a method to achieve pose estimation of a query object, represented by a point cloud.
@@ -12,7 +17,7 @@ from consensus are then refined with ICP in order to get the final estimation. F
 
 Full source code of the project is available on <a href="https://bitbucket.org/Tabjones/poseestimation">bitbucket.</a>
 */
-/** \page Parameters
+/** \page param Parameters usage and description
  * 
  * This page contains a list of configuration parameters that can be set to customize the behaviour of pose estimation.
  * All parameters are configured in a key = value fashion, to set them see PoseEstimation class methods.
