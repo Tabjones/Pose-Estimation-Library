@@ -5,7 +5,9 @@
 //Doxygen documentation
 
 /** \todo add all get, print, save and view of candidates, params, estimation etc..
+ *  \todo add timestamps to files, when written by functions with save
  *  \todo implementation of saveParams, getEstimation, saveCandidates
+ *  \todo operator= and copy constructor for Candidate
  */
 
 /** \mainpage notitle 
@@ -546,18 +548,18 @@ class PoseEstimation {
    */
   boost::shared_ptr<parameters> getParams();
 
-  /** \brief Save current configuration parameters into a .config file
-   * \param[in] file Path on disk where to write the .config file
+  /** \brief Save current configuration parameters into a .conf file
+   * \param[in] file Path on disk where to write the .conf file
    *
    * The path specified must not point to an already existant file, or saveParams() will refuse to write. 
-   * The path may be absolute or relative and may or may not contain the extension, however remember that config files must have .config extension to be accepted from PoseEstimation as valid config files, see also initParams()
+   * The path may be absolute or relative and may or may not contain the extension, however remember that config files must have .conf extension to be accepted from PoseEstimation as valid config files, see also initParams()
    * Example code:
    * \code
    * PoseEstimation pe;
    * pe.setParam("verbosity", 2);
-   * pe.saveParams("./verbose.config"); //relative path with extension specified
-   * pe.saveParams("../verbose"); //relative path without extension, in this case a .config will be appended
-   * pe.saveParams("verbose.wrong"); //the file will be written but initParams() will not read it back since the file has a wrong extension
+   * pe.saveParams("./verbose.conf"); //relative path with extension specified
+   * pe.saveParams("../verbose"); //relative path without extension, in this case a .conf will be appended
+   * pe.saveParams("verbose.wrong"); //the file will be written with warnings but initParams() will not read it back since the file has a wrong extension
    * \endcode
 */
   void saveParams(boost::filesystem::path file);

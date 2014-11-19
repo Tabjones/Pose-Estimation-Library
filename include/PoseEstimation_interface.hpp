@@ -2593,4 +2593,32 @@ bool PoseEstimation::saveEstimation(path file, bool append)
     return  false;
   }
 }
+void PoseEstimation::saveParams(boost::filesystem::path file)
+{
+  if (exists(file))
+  {
+    print_error("%*s]\t%s already exists, not saving there, aborting...\n",20,__func__,file.string().c_str());
+    return;
+  }
+  else if (file.has_extension())
+  {
+    if (!(file.extension().string().compare(".conf") == 0) )
+      print_warn("%*s]\t%s has extension, but it is not .conf, written file is not a valid configuration file...\n",20,__func__,file.string().c_str());
+    //write TODO
+  }
+  else 
+  {
+    // write, append extension TODO
+  }
+}
+
+boost::shared_ptr<Candidate> PoseEstimation::getEstimation()
+{
+  //TODO
+}
+
+void PoseEstimation::saveCandidates(boost::filesystem::path file)
+{
+  //TODO
+}
 #endif
