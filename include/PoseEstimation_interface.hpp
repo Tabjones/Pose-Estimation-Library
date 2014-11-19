@@ -4,44 +4,10 @@
 #ifndef __INTERFACE_HPP_INCLUDED__
 #define __INTERFACE_HPP_INCLUDED__
 
-#include <pcl/io/pcd_io.h>
-#include <pcl/common/norms.h>
-#include <pcl/common/time.h>
-#include <pcl/console/print.h>
-#include <pcl/surface/mls.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/features/normal_3d_omp.h>
-#include <pcl/filters/statistical_outlier_removal.h>
-#include <pcl/features/vfh.h>
-#include <pcl/features/esf.h>
-#include <pcl/features/cvfh.h>
-#include <pcl/features/our_cvfh.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/registration/icp.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <flann/flann.h>
-#include <flann/io/hdf5.h>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/range/algorithm/copy.hpp>
-#include <algorithm>
-#include <fstream>
-#include <cmath>
-#include <stdexcept>
-#include <pcl/common/centroid.h>
 //Definition header
 #include "PoseEstimation_interface.h"
 
 
-/**\ingroup Definitions
-Degrees to radians conversion
-*/
-#define D2R 0.017453293 
-
-using namespace pcl::console;
-using namespace boost;
-using namespace boost::filesystem;
-using namespace flann;
 
 /**\addtogroup global Global Functions
  *
@@ -479,12 +445,12 @@ void PoseDB::clear()
   dbPath_="UNSET";
 }
 /////////////////////////////////////////
-void PoseDB::save(path pathDB)
+bool PoseDB::save(path pathDB)
 {
   if (this->isEmpty())
   {
     print_warn("%*s]\tCurrent database is invalid or empty, not saving it...\n",20,__func__);
-    return;
+    return false;
   }
   if ( !exists (pathDB) )
   {
@@ -496,19 +462,27 @@ void PoseDB::save(path pathDB)
   else
   {
     print_warn("%*s]\t%s already exists, not saving a database there, aborting...\n",20,__func__,pathDB.string().c_str());
-    return;
+    return false;
   }
   PCDWriter writer;
-  ofstream names, c_cvfh, c_ourcvfh;
-  names.open((pathDB.string()+ "names.list").c_str());
-  c_cvfh.open((pathDB.string()+ "cvfh.cluster").c_str());
-  c_ourcvfh.open((pathDB.string()+ "ourcvfh.cluster").c_str());
+  ofstream names, c_cvfh, c_ourcvfh, info;
+  names.open((pathDB.string()+ "/names.list").c_str());
+  c_cvfh.open((pathDB.string()+ "/cvfh.cluster").c_str());
+  c_ourcvfh.open((pathDB.string()+ "/ourcvfh.cluster").c_str());
   for (size_t i=0; i< names_.size(); ++i)
   {
-    writer.writeBinaryCompressed(pathDB.string() + "/Clouds/" + names_[i] + ".pcd", clouds_[i]);
-    names << names_[i] <<endl;
-    c_cvfh << clusters_cvfh_[i] <<endl;
-    c_ourcvfh << clusters_ourcvfh_[i] <<endl;
+    try
+    {
+      writer.writeBinaryCompressed(pathDB.string() + "/Clouds/" + names_[i] + ".pcd", clouds_[i]);
+      names << names_[i] <<endl;
+      c_cvfh << clusters_cvfh_[i] <<endl;
+      c_ourcvfh << clusters_ourcvfh_[i] <<endl;
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError writing to disk, aborting...\n",20,__func__);
+      return false;
+    }
   }
   names.close();
   c_cvfh.close();
@@ -517,12 +491,18 @@ void PoseDB::save(path pathDB)
   flann::save_to_file (*esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
   flann::save_to_file (*cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
   flann::save_to_file (*ourcvfh_, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
-  vfh_idx_->save ( pathDB.string() + "vfh.idx");
-  esf_idx_->save ( pathDB.string() + "esf.idx");
+  vfh_idx_->save ( pathDB.string() + "/vfh.idx");
+  esf_idx_->save ( pathDB.string() + "/esf.idx");
+  info.open( (pathDB.string() + "/created.info").c_str() );
+  timestamp t(TIME_NOW);
+  info << "Database created on "<<to_simple_string(t).c_str()<<endl;
+  info << "Contains "<<names_.size()<<" poses"<<endl;
+  info << "Saved on path "<<pathDB.string().c_str()<<" by PoseDB::save"<<endl;
   print_info("%*s]\tDone saving database, %d poses written to disk\n",20,__func__,names_.size());
+  return true;
 }
 /////////////////////////////////////////
-void PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params)
+bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params)
 {
   //Check Parameters correctness 
   if (params->count("filtering"))
@@ -941,7 +921,7 @@ void PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         {
           //something went wrong
           print_error("%*s]\tCannot compute Viewpoint from cloud name... Check naming convention and object reference frame! Aborting...\n",20,__func__);
-          return;
+          return false;
         }
       }
       else if (params->at("useSOasViewpoint")>0)
@@ -954,7 +934,7 @@ void PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       else
       {
         print_error("%*s]\tCannot obtain a viewpoint 'computeViewpointFromName' and 'useSOasViewpoint' are both zero, set one of them to continue...\n",20,__func__);
-        return;
+        return false;
       }
       ne.setViewPoint(vpx,vpy,vpz);
       ne.compute(*normals);
@@ -1018,7 +998,7 @@ void PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     if (tmp_vfh->points.size() == 0) //no clouds loaded
     {
       print_warn("%*s]\tNo clouds loaded, exiting...\n",20,__func__);
-      return;
+      return false;
     }
     //generate FLANN matrix
     histograms vfh (new float[tmp_vfh->points.size()*308],tmp_vfh->points.size(),308);
@@ -1050,13 +1030,15 @@ void PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     esf_idx_ = boost::make_shared<indexESF>(esf_idx);
     esf_idx_->buildIndex();
     print_info("%*s]\tDone creating database, total of %d poses stored in memory\n",20,__func__,names_.size());
+    return true;
   }
   else
   {
     print_error("%*s]\t%s is not a valid directory...\n",20,__func__,pathClouds.string().c_str());
+    return false;
   }
 }
-void PoseDB::create(boost::filesystem::path pathClouds)
+bool PoseDB::create(boost::filesystem::path pathClouds)
 {
   parameters par;
   //setting default parameters for db creation, only relevant ones are created
@@ -1085,7 +1067,7 @@ void PoseDB::create(boost::filesystem::path pathClouds)
   par["ourcvfhRefineClusters"]=1;
   boost::shared_ptr<parameters> p;
   p=boost::make_shared<parameters>(par);
-  create(pathClouds, p);
+  return ( this->create(pathClouds, p) );
 }
 /////////////////////////////////////////
 /* Class Candidate Implementation */
@@ -1126,36 +1108,90 @@ Candidate::Candidate (string str, PC::Ptr clp)
   normalized_distance_=-1;
   transformation_.setIdentity();
 }
+
+Candidate::Candidate (const Candidate& c)
+{
+  name_= c.name_;
+  if (c.cloud_)
+  {
+    PC cloud;
+    copyPointCloud( *(c.cloud_), cloud);
+    cloud_ = cloud.makeShared();
+  }
+  rank_=c.rank_;
+  distance_ = c.distance_;
+  normalized_distance_ = c.normalized_distance_;
+  rmse_ = c.rmse_;
+  transformation_ = c.transformation_;
+}
+
+Candidate& Candidate::operator= (const Candidate& c)
+{
+  this->name_=c.name_;
+  if (c.cloud_)
+  {
+    this->cloud_.reset();
+    PC cloud;
+    copyPointCloud( *(c.cloud_), cloud );
+    this->cloud_ = cloud.makeShared();
+  }
+  else
+    this->cloud_.reset();
+  this->rank_=c.rank_;
+  this->distance_ = c.distance_;
+  this->normalized_distance_ = c.normalized_distance_;
+  this->rmse_ = c.rmse_;
+  this->transformation_ = c.transformation_;
+  return *this;
+}
 ///////////////////////////////////////////////////////////////////////
-void Candidate::getRank (int& r) const
+int Candidate::getRank () const
 { 
   if (rank_==-1)
-    print_warn("%*s]\tCandidate is not part of any list (yet), thus it has no rank, writing -1 ...\n",20,__func__);
-  r = rank_; 
+    print_warn("%*s]\tCandidate is not part of any list, thus it has no rank, returning -1 ...\n",20,__func__);
+  return (rank_); 
 }
-void Candidate::getDistance (float& d) const
+float Candidate::getDistance () const
 { 
   if (distance_==-1)
-    print_warn("%*s]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n",20,__func__);
-  d = distance_; 
+    print_warn("%*s]\tCandidate is not part of any list, thus it has no distance, returning -1 ...\n",20,__func__);
+  return (distance_); 
 }
-void Candidate::getNormalizedDistance (float& d) const 
+float Candidate::getNormalizedDistance () const 
 { 
   if (normalized_distance_==-1)
-    print_warn("%*s]\tCandidate is not part of any list (yet), thus it has no distance, writing -1 ...\n",20,__func__);
-  d = normalized_distance_; 
+    print_warn("%*s]\tCandidate is not part of any list, thus it has no distance, returning -1 ...\n",20,__func__);
+  return (normalized_distance_); 
 }
-void Candidate::getRMSE (float& r) const
+float Candidate::getRMSE () const
 { 
   if (rmse_==-1)
-    print_warn("%*s]\tCandidate has not been refined (yet), thus it has no RMSE, writing -1 ...\n",20,__func__);
-  r = rmse_; 
+    print_warn("%*s]\tCandidate has not been refined (yet), thus it has no RMSE, returning -1 ...\n",20,__func__);
+  return (rmse_); 
 }
 void Candidate::getTransformation (Eigen::Matrix4f& t) const
 {
   if (transformation_.isIdentity())
-    print_warn("%*s]\tCandidate has Identity transformation, it probably hasn't been refined (yet)...\n",20,__func__);
+    print_warn("%*s]\tCandidate has Identity transformation, it probably hasn't been refined...\n",20,__func__);
   t = transformation_; 
+}
+
+void Candidate::getCloud(PC& cloud) const
+{
+  if (cloud_)
+    copyPointCloud(*cloud_, cloud);
+  else
+    print_warn("%*s]\tCandidate has no cloud, not copying anything\n",20,__func__);
+}
+
+void Candidate::getName(string& name) const
+{
+  if (name_.compare("UNSET") == 0)
+  {
+    print_warn("%*s]\tCandidate has no name, not copying anything\n",20,__func__);
+    return;
+  }
+  name = name_;
 }
 
 /* Class PoseEstimation Implementation */
@@ -1195,14 +1231,14 @@ PoseEstimation::PoseEstimation ()
   params_["ourcvfhRefineClusters"]=1;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setParam(string key, float value)
+bool PoseEstimation::setParam(string key, float value)
 {
   int size = params_.size();
   if (value < 0)
   {
     if (params_["verbosity"]>0)
       print_warn("%*s]\tParameter '%s' has a negative value (%g), ignoring...\n", 20,__func__, key.c_str(), value);
-    return;
+    return false;
   }
   params_[key]=value;
   //Check if key was a valid one, since the class has fixed number of parameters, 
@@ -1212,6 +1248,7 @@ void PoseEstimation::setParam(string key, float value)
     if (params_["verbosity"]>0)
       print_warn("%*s]\tInvalid key parameter '%s', ignoring...\n", 20,__func__, key.c_str());
     params_.erase(key);
+    return false;
   }
   else if (params_["verbosity"]>1)
     print_info("%*s]\tSetting parameter: %s=%g\n",20,__func__,key.c_str(),value);
@@ -1227,10 +1264,11 @@ void PoseEstimation::setParam(string key, float value)
     count++;
   feature_count_ = count;
   if (feature_count_ <=0 && params_["verbosity"]>0)
-    print_warn("%*s]\tYou disabled all features, pose estimation will not initialize query...\n",20,__func__);
+    print_warn("%*s]\tYou disabled all features, PoseEstimation will not initialize query...\n",20,__func__);
+  return true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setParam_ (string key, string& value)
+bool PoseEstimation::setParam_ (string key, string& value)
 {
   float f;
   try
@@ -1241,16 +1279,18 @@ void PoseEstimation::setParam_ (string key, string& value)
   {
     if (params_["verbosity"] > 0)
       print_warn("%*s]\tInvalid %s=%s : %s \n",20,__func__, key.c_str(), value.c_str(), ia.what());
+    return false;
   }
   catch (const std::out_of_range& oor)
   {
     if (params_["verbosity"] > 0)
       print_warn("%*s]\tInvalid %s=%s : %s \n", 20,__func__, key.c_str(), value.c_str(), oor.what());
+    return false;
   }
-  setParam(key, f); 
+  return (this->setParam(key, f) ); 
 }
 //////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::initParams(boost::filesystem::path config_file)
+int PoseEstimation::initParams(boost::filesystem::path config_file)
 { 
   if ( exists(config_file) && is_regular_file(config_file))   
   {
@@ -1260,16 +1300,19 @@ void PoseEstimation::initParams(boost::filesystem::path config_file)
       string line;
       if (file.is_open())
       {
+        int count (0);
         while (getline (file, line))
         {
           trim(line); //remove white spaces from line
           if (line.empty())
           {
             //do nothing empty line ...
+            continue;
           }
           else if (line.compare(0,1,"%") == 0 )
           {
             //do nothing comment line ...
+            continue;
           }
           else
           {
@@ -1282,31 +1325,62 @@ void PoseEstimation::initParams(boost::filesystem::path config_file)
                 print_warn("%*s]\tInvalid configuration line (%s), ignoring... Must be [Token]=[Value]\n", 20,__func__, line.c_str());
               continue;
             }
-            setParam_(vst.at(0), vst.at(1));
+            if (setParam_(vst.at(0), vst.at(1)))
+            {
+              //success
+              ++count;
+            }
           }
         }//end of config file
+        file.close();
+        return count;
       }
       else
+      {
         print_error("%*s]\tCannot open config file! (%s)\n", 20,__func__, config_file.string().c_str());
+        return (-1);
+      }
     }  
     else
+    {
       print_error("%*s]\tConfig file provided (%s) has no valid extension! (must be .conf)\n", 20,__func__, config_file.string().c_str());
+      return (-1);
+    }
   }
   else
-    print_error("%*s]\tPath to Config File is not valid ! (%s)\n", 20,__func__, config_file.string().c_str());
+  {
+    print_error("%*s]\tPath to configuration file is not valid ! (%s)\n", 20,__func__, config_file.string().c_str());
+    return (-1);
+  }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::initParams(boost::shared_ptr<parameters> map)
+int PoseEstimation::initParams(boost::shared_ptr<parameters> map)
 {
   //set parameters one by one so we can spot wrong key or values
   if (map)
   {
-    for (auto &x : *map)
-      setParam(x.first,x.second);
+    try
+    {
+      int count (0);
+      for (auto& x : *map)
+      {
+        if( setParam(x.first, x.second) )
+          ++count;
+      }
+      return count;
+    }
+    catch (...)
+    {
+      print_error("%*s]\tUnexpected error in setting parameters...\n",20,__func__);
+      return (-1);
+    }
   }
   else
+  {
     if (params_["verbosity"]>0)
-      print_warn("%*s]\tProvided map of parameters looks empty... Ignoring\n");
+      print_warn("%*s]\tProvided map of parameters looks empty, ignoring...\n");
+    return (-1);
+  }
 }
 void PoseEstimation::filtering_()
 {
@@ -1913,10 +1987,7 @@ void PoseEstimation::generateLists()
         sort(cvfh_list_.begin(), cvfh_list_.end(),
             [](Candidate const &a, Candidate const &b)
             {
-            float d,e;
-            a.getDistance(d);
-            b.getDistance(e);
-            return (d < e);
+            return (a.distance_ < b.distance_ );
             });
         cvfh_list_.resize(k);
       }
@@ -1967,10 +2038,7 @@ void PoseEstimation::generateLists()
         sort(ourcvfh_list_.begin(), ourcvfh_list_.end(),
             [](Candidate const &a, Candidate const &b)
             {
-            float d,e;
-            a.getDistance(d);
-            b.getDistance(e);
-            return (d < e);
+            return (a.distance_ < b.distance_ );
             });
         ourcvfh_list_.resize(k);
       }
@@ -2161,10 +2229,7 @@ void PoseEstimation::generateLists()
   sort(composite_list_.begin(), composite_list_.end(),
       [](Candidate const & a, Candidate const & b)
       {
-      float d,e;
-      a.getNormalizedDistance(d);
-      b.getNormalizedDistance(e);
-      return (d < e);
+      return (a.normalized_distance_ < b.normalized_distance_ );
       });  
   composite_list_.resize(k);
   for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
@@ -2207,6 +2272,7 @@ void PoseEstimation::printCandidates()
   }
   if (params_["verbosity"]>1)
     print_info("%*s]\tPrinting current list of candidates:\n",20,__func__);
+  print_info("Query name is: %s\n",query_name_.c_str());
   print_info("%-6s","Rank");
   if (params_["useVFH"] >0)
     print_info("%-30s","VFH");
@@ -2297,10 +2363,7 @@ void PoseEstimation::refineCandidates()
       sort(list.begin(), list.end(),
           [](Candidate const &a, Candidate const &b)
           {
-          float d,e;
-          a.getRMSE(d);
-          b.getRMSE(e);
-          return (d < e);
+          return (a.rmse_ < b.rmse_ );
           });
       //check if candidate falled under rmse threshold, no need to check them all since list is now sorted with
       //minimum rmse on top
@@ -2477,6 +2540,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
       print_warn("%*s]\tRefinement is not done yet, or wasn't successful... Saving nothing...\n",20,__func__);
     return false;
   }
+  timestamp t(TIME_NOW);
   if (exists(file) && is_directory(file)) //existant directory, save to <query_name>.estimation inside it
   {
     try 
@@ -2486,6 +2550,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
         f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::out | fstream::app );
       else
         f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::trunc );
+      f << "Pose estimation saved on " << (to_simple_string(t)).c_str() <<endl;
       f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
       f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
       f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
@@ -2511,6 +2576,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
         f.open ( file.string().c_str(), fstream::out | fstream::app );
       else
         f.open ( file.string().c_str(), fstream::trunc );
+      f << "Pose estimation saved on " << (to_simple_string(t)).c_str() <<endl;
       f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
       f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
       f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
@@ -2545,6 +2611,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
     {
       ofstream f;
       f.open ( file.string().c_str() );
+      f << "Pose estimation saved on " << (to_simple_string(t)).c_str() <<endl;
       f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
       f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
       f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
@@ -2571,6 +2638,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
         f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::out | fstream::app );
       else
         f.open ( (file.string() + query_name_ + ".estimation").c_str(), fstream::trunc );
+      f << "Pose estimation saved on " << (to_simple_string(t)).c_str() <<endl;
       f << "Query object: " << query_name_.c_str() << " is identified with candidate " << pose_estimation_->name_.c_str() <<endl;
       f << "Candidate was on rank " << pose_estimation_->rank_ << " of composite list with normalized distance of " << pose_estimation_->normalized_distance_ <<endl;
       f << "Final RMSE is " << pose_estimation_->rmse_ << endl;
@@ -2593,32 +2661,181 @@ bool PoseEstimation::saveEstimation(path file, bool append)
     return  false;
   }
 }
-void PoseEstimation::saveParams(boost::filesystem::path file)
+bool PoseEstimation::saveParams(boost::filesystem::path file)
 {
-  if (exists(file))
+  if (exists(file) && file.has_extension() )
   {
     print_error("%*s]\t%s already exists, not saving there, aborting...\n",20,__func__,file.string().c_str());
-    return;
+    return false;
   }
-  else if (file.has_extension())
+  else if (!file.has_extension())
   {
-    if (!(file.extension().string().compare(".conf") == 0) )
-      print_warn("%*s]\t%s has extension, but it is not .conf, written file is not a valid configuration file...\n",20,__func__,file.string().c_str());
-    //write TODO
+    if (params_["verbosity"] > 1)
+      print_info("%*s]\tAppending .conf to %s\n",20,__func__,file.string().c_str());
+    file = (file.string() + ".conf"); //append extension
+    if (exists(file))
+    {
+      print_error("%*s]\t%s already exists, not saving there, aborting...\n",20,__func__,file.string().c_str());
+      return false;
+    }
   }
-  else 
+  if (!(file.extension().string().compare(".conf") == 0) && params_["verbosity"]>0 )
+    print_warn("%*s]\t%s has extension, but it is not .conf, it will not be a valid configuration file...\n",20,__func__,file.string().c_str());
+  if (params_["verbosity"]>1)
+    print_info ("%*s]\tWriting into %s ...\n",20,__func__,file.string().c_str());
+  ofstream conf;
+  conf.open(file.string().c_str());
+  if (conf.is_open())
   {
-    // write, append extension TODO
+    //write timestamp in file
+    timestamp t(TIME_NOW);
+    conf<<"% File written on "<< (to_simple_string(t)).c_str()<< " by PoseEstimation::saveParams"<<endl;
+    for (auto &x : params_)
+      conf<< x.first.c_str() <<"="<< x.second<<endl;
+    conf.close();
+    return true;
+  }
+  else
+  {
+    print_error("%*s]\tError opening %s for writing, aborting...\n",20,__func__,file.string().c_str());
+    return false;
   }
 }
 
 boost::shared_ptr<Candidate> PoseEstimation::getEstimation()
 {
-  //TODO
+  if (! refinement_done_ )
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*]\tRefinement has not yet been done, Pose Estimation is not complete, returning empty Candidate\n",20,__func__);
+    Candidate c;
+    return (boost::make_shared<Candidate> (c) );
+  }
+  Candidate c;
+  c = *pose_estimation_;
+  return ( boost::make_shared<Candidate> (c) );
 }
 
 void PoseEstimation::saveCandidates(boost::filesystem::path file)
 {
+  if (!candidates_found_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to save them!\n",20,__func__); 
+    return;
+  }
+  if (exists(file) && params_["verbosity"]>1)
+    print_info("%*s]\tAppending lists of candidates to %s\n",20,__func__,file.string().c_str());
+  if (!exists(file) && params_["verbosity"]>1)
+    print_info("%*s]\tSaving lists of candidates on %s\n",20,__func__,file.string().c_str());
+  timestamp t(TIME_NOW);
+  fstream f;
+  f.open(file.string().c_str(), fstream::out | fstream::app);
+  if (f.is_open())
+  {
+    f << "List of Candidates generated on "<<to_simple_string(t).c_str()<<" from query object named: "<<query_name_.c_str()<<endl;
+    if (params_["useVFH"]>0)
+    {
+      f << "VFH:"<<endl;
+      for (auto c : vfh_list_)
+        f << c.name_.c_str() << "\tD: " << c.normalized_distance_<<endl;
+    }
+    if (params_["useESF"]>0)
+    {
+      f << "ESF:"<<endl;
+      for (auto c : esf_list_)
+        f << c.name_.c_str() << "\tD: " << c.normalized_distance_<<endl;
+    }
+    if (params_["useCVFH"]>0)
+    {
+      f << "CVFH:"<<endl;
+      for (auto c : cvfh_list_)
+        f << c.name_.c_str() << "\tD: " << c.normalized_distance_<<endl;
+    }
+    if (params_["useOURCVFH"]>0)
+    {
+      f << "OURCVFH:"<<endl;
+      for (auto c : ourcvfh_list_)
+        f << c.name_.c_str() << "\tD: " << c.normalized_distance_<<endl;
+    }
+    f << "Composite:"<<endl;
+    for (auto c : vfh_list_)
+      f << c.name_.c_str() << "\tD: " << c.normalized_distance_<<endl;
+    f<<"End of Candidate Lists, saved by PoseEstimation::saveCandidates"<<endl<<endl;
+    f.close();
+  }
+  else
+  {
+    print_error("%*s]\tError writing to %s...\n",20,__func__,file.string().c_str());
+    return;
+  }
+}
+
+void PoseEstimation::getCandidateList (vector<Candidate>& list, listType type)
+{
+  if ( !candidates_found_ )
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tLists of Candidates are not generated yet, not copying anything...\n",20,__func__);
+    return;
+  }
+  if (type == listType::vfh)
+  {
+    if (params_["useVFH"]>0)
+    {
+      boost::copy(vfh_list_, back_inserter(list) );
+    }
+    else if (params_["verbosity"]>0)
+      print_warn("%*s]\tVFH list was not generated, because 'useVFH' parameter was set to zero, not copying anything...\n",20,__func__);
+    return;
+  }
+  else if (type == listType::esf)
+  {
+    if (params_["useESF"]>0)
+    {
+      boost::copy(esf_list_, back_inserter(list) );
+    }
+    else if (params_["verbosity"]>0)
+      print_warn("%*s]\tESF list was not generated, because 'useESF' parameter was set to zero, not copying anything...\n",20,__func__);
+    return;
+  }
+  else if (type == listType::cvfh)
+  {
+    if (params_["useCVFH"]>0)
+    {
+      boost::copy(cvfh_list_, back_inserter(list) );
+    }
+    else if (params_["verbosity"]>0)
+      print_warn("%*s]\tCVFH list was not generated, because 'useCVFH' parameter was set to zero, not copying anything...\n",20,__func__);
+    return;
+  }
+  else if (type == listType::ourcvfh)
+  {
+    if (params_["useOURCVFH"]>0)
+    {
+      boost::copy(ourcvfh_list_, back_inserter(list) );
+    }
+    else if (params_["verbosity"]>0)
+      print_warn("%*s]\tOURCVFH list was not generated, because 'useOURCVFH' parameter was set to zero, not copying anything...\n",20,__func__);
+    return;
+  }
+  else if (type == listType::composite)
+  {
+    boost::copy(composite_list_, back_inserter(list) );
+    return;
+  }
+  else
+    print_error("%*s]\tUnknown listType, not copying anything...\n",20,__func__);
+}
+
+void PoseEstimation::printQuery()
+{
   //TODO
 }
+
+void PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)
+{
+  //TODO
+}
+
 #endif

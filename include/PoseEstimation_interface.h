@@ -4,10 +4,10 @@
 
 //Doxygen documentation
 
-/** \todo add all get, print, save and view of candidates, params, estimation etc..
- *  \todo add timestamps to files, when written by functions with save
- *  \todo implementation of saveParams, getEstimation, saveCandidates
- *  \todo operator= and copy constructor for Candidate
+/** \todo add view of candidates, estimation, query  etc..
+ *  \todo make all methods return true or false if successfull
+ *  \todo investigate CVFH and OURCVFH that takes too much time in matching (changed getDistance, maybe is that)
+ *  \todo change computeDistanceFromClusters_ to use lisType enum instead of strings
  */
 
 /** \mainpage notitle 
@@ -73,26 +73,64 @@ For example when changing preprocessing pipeline (i.e. altering search radius of
 | ourcvfhMinPoints  |50 | Set minimum number of points a cluster should contain to be considered such, during OURCVFH clustering. Relevant only if useOURCVFH=1 |
 | ourcvfhAxisRatio  | 0.95 | Set the minimum axis ratio between the SGURF axes. At the disambiguation phase of OURCVFH, this will decide if additional Reference Frames need to be created for the cluster, if they are ambiguous. Relevant only if useOURCVFH=1 |
 | ourcvfhMinAxisValue  | 0.01 | Set the minimum disambiguation axis value to generate several SGURFs for the cluster when disambiguition is difficult. Relevant if useOURCVFH=1 |
-| ourcvfhRefineClusters  |  1 | Set refinement factor for clusters during OURCVFH clustering phase, a value of 1 means 'dont refine clusters', while values between 0 and 1 will reduce clusters size by that number. Relevant only if uesOURCVFH=1 |
+| ourcvfhRefineClusters  |  1 | Set refinement factor for clusters during OURCVFH clustering phase, a value of 1 means 'dont refine clusters', while values between 0 and 1 will reduce clusters size by that number. Relevant only if useOURCVFH=1 |
 */
 
 #ifndef __INTERFACE_H_INCLUDED__
 #define __INTERFACE_H_INCLUDED__
 
 #include <iostream>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <boost/filesystem.hpp>
 #include <string>
 #include <unordered_map>
+#include <algorithm>
+#include <fstream>
+#include <cmath>
+#include <stdexcept>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/common/norms.h>
+#include <pcl/common/time.h>
+#include <pcl/common/centroid.h>
+#include <pcl/console/print.h>
+#include <pcl/surface/mls.h>
+#include <pcl/search/kdtree.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/features/vfh.h>
+#include <pcl/features/esf.h>
+#include <pcl/features/cvfh.h>
+#include <pcl/features/our_cvfh.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/registration/icp.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <flann/flann.h>
+#include <flann/io/hdf5.h>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+
 
 using namespace pcl;
 using namespace std;
+using namespace pcl::console;
+using namespace boost;
+using namespace boost::filesystem;
+using namespace flann;
 
 /** \addtogroup Definitions
  * 
  * Easier code writing
  * @{ */
+
+/**Degrees to radians conversion*/
+#define D2R 0.017453293 
+
+/**Current local time, seconds precision*/
+#define TIME_NOW boost::posix_time::second_clock::local_time()
+
 /** Chosen metric for VFH and Index type*/
 typedef flann::Index<flann::ChiSquareDistance<float> > indexVFH;
 /** Chosen metric for ESF and Index type*/
@@ -104,7 +142,11 @@ typedef PointXYZRGBA PT;
 /** Short writing for PointCloud containing the chosen Point Type*/
 typedef PointCloud<PT> PC;
 /** Map that stores configuration parameters in a key=value fashion*/
-typedef unordered_map<string,float> parameters;
+typedef std::unordered_map<std::string,float> parameters;
+/** Typedef for shorter writing of timestamps */
+typedef boost::posix_time::ptime timestamp;
+/** Enumerator for list of candidates, see getCandidateList() for an example usage*/
+enum class listType {vfh, esf, cvfh, ourcvfh, composite};
 /** @} */
 
 class PoseEstimation;
@@ -171,13 +213,16 @@ class PoseDB{
 
     /** \brief Save a database to disk
      * \param[in] pathDB Path to a directory on disk, inside which to save the database, directory must not exist.
-     * Return true if succesfull, false otherwise
+     * \return _True_ if successful, _false_ otherwise
+     *
+     * pathDB must be a valid path and must not already exists, overwriting is not supported
      */
-    void save(boost::filesystem::path pathDB);
+    bool save(boost::filesystem::path pathDB);
     
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
      * \param[in] params Shared pointer to parameters to use during database creation
+     * \return _True_ if successful, _false_ otherwise
      * 
      * This method uses the provided set of parameters to create the database, erasing any previously loaded databases.
      * Please note that:
@@ -186,10 +231,11 @@ class PoseDB{
 - PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
 - PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
      */
-    void create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
+    bool create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
     
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
+     * \return _True_ if successful, _false_ otherwise
      *  
      * This method creates a set of default parameters and creates the database from it, erasing any previously loaded databases. 
      * Please note that:
@@ -198,7 +244,7 @@ class PoseDB{
 - PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
 - PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
      */
-    void create(boost::filesystem::path pathClouds);
+    bool create(boost::filesystem::path pathClouds);
       
     /** \brief Copy assignment operator
      * \param[in] db OBject to copy
@@ -266,32 +312,63 @@ class Candidate{
      */
     Candidate (string str, PC::Ptr clp);
     
-    /** \brief Get Candidate Rank in the list of candidates
-     * \param[out] r The rank the candidate has in the list
+    /** \brief Copy Constructor from another Candidate
+     * \param[in] c Candidate to copy from
      */
-    void getRank (int& r) const;
+    Candidate (const Candidate& c);
+
+    /** \brief Copy assignment from another Candidate
+     * \param[in] c Candidate to copy from
+     */
+    Candidate& operator= (const Candidate& c);
+    
+    /** \brief Get Candidate Rank from the list of candidates it belongs
+     * \return The rank of Candidate in the list
+     *
+     * A Candidate has a rank only after list(s) of Candidates are built by PoseEstimation
+     */
+    int getRank () const;
     
     /** \brief Get the distance of Candidate from Query in the metric chosen by the feature
-     * \param[out] d The distance the candidate has from the query
+     * \return The distance the candidate has from the query
+     *
+     * A Candidate has a distance only after list(s) of Candidates are built by PoseEstimation
      */
-    void getDistance (float& d) const;
+    float getDistance () const;
     
-    /** \brief Get the Normalize distance of Candidate from Query
-     * \param[out] d The distance the candidate has from the query
-     * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k"
+    /** \brief Get the normalized distance of Candidate from Query
+     * \return The normalized distance the candidate has from the query
+     * 
+     * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k", they are indipendent of the
+     * current metric chosen to calculate them, thus could be compared with other normalized distances from other 
+     * lists. A Candidate has a normalized distance only after list(s) of Candidates are built by PoseEstimation
      */
-    void getNormalizedDistance (float& d) const;
+    float getNormalizedDistance () const;
     
     /** \brief Get Root Mean Square Error of Candidate as it was after the refinement
-     * \param[out] e The Root Mean Square Error of the Candidate
+     * \return The Root Mean Square Error of the Candidate
+     *
+     * A Candidate has an RMSE only after the refinement process has been performed by PoseEstimation
      */
-    void getRMSE (float& e) const;
+    float getRMSE () const;
     
     /** \brief Get Homogeneous Transformation that brings the Candidate over the Query
-     * \param[out] t Transformation that brings the Candidate over the Query
-     * The transformation is expressed in the Candidate Reference System
+     * \param[out] t The transformation that brings the Candidate over the Query
+     * 
+     * The transformation is expressed in the Candidate Reference System and it only has a meaning after the refinement
+     * process has been performed by PoseEstimation
      */
     void getTransformation (Eigen::Matrix4f& t) const;
+
+    /** \brief Get the point cloud that represent the Candidate
+     * \param[out] cloud Copy of the point cloud of the candidate
+     */
+    void getCloud (PC& cloud) const;
+
+    /** \brief Get Candidate name
+     * \param[out] name The name of the Candidate
+     */
+    void getName(string& name) const;
 };
 
 /**\brief Implements the procedure to achieve pose estimation of a given query object.
@@ -404,7 +481,7 @@ class PoseEstimation {
   PointCloud<Normal> normals_;
   
   ///Set a parameter of Pose Estimation from a string representing its value, used internally when reading parameters from a file
-  void setParam_ (string, string&);
+  bool setParam_ (string, string&);
   
   ///Initialize the Query by computing preprocessing and features, returns true if success, internal use
   bool initQuery_();
@@ -449,6 +526,7 @@ class PoseEstimation {
   /**\brief Set a parameter of the Class directly, knowing its name
   * \param[in] key the parameter name to change
   * \param[in] value the value that key should assume
+  * \return _True_ if successful, _false_ otherwise
   * 
   * Example Usage:
   * \code
@@ -459,38 +537,42 @@ class PoseEstimation {
   * pe.setParam(str, 2); //pe now has verbosity set to 2
   * \endcode
   */
-  void setParam (string key, float value);
+  bool setParam (string key, float value);
   
   /**\brief Set a parameter of the Class directly, knowing its name
   * \param[in] key the parameter name to change
   * \param[in] value the value that key should assume
+  * \return _True_ if successful, _false_ otherwise
   *
   * Overloaded for ints
   */
-  void setParam (string key, int value) {this->setParam(key, (float)value);}
+  bool setParam (string key, int value) {return (this->setParam(key, (float)value) );}
   
   /**\brief Set a parameter of the Class directly, knowing its name
   * \param[in] key the parameter name to change
   * \param[in] value the value that key should assume
+  * \return _True_ if successful, _false_ otherwise
   *
   * Overloaded for double
   */
-  void setParam (string key, double value) {this->setParam(key, (float)value);}
+  bool setParam (string key, double value) {return (this->setParam(key, (float)value) );}
   
   /** \brief Initialize the class with parameters found in config file
-  * \param[in] config_file Path to a config file to use 
+  * \param[in] config_file Path to a config file to use
+  * \return How many parameters were correctly found and set, or (-1) in case of errors
   *
   * Configuration file must have extension .conf and follow certain naming conventions, 
   * look at example .conf file provided for more details (i.e "config/parameters.conf")
   */
-  void initParams (boost::filesystem::path config_file);
+  int initParams (boost::filesystem::path config_file);
 
   /** \brief Initialize parameters of PoseEstimation from the map provided
    * \param[in] map shared pointer to unordered_map containing parameters to use
+   * \return How many parameters were correctly set, or (-1) in case of errors
    *
    * unordered_map must contain valid keys and values, otherwise they will be ignored
    */
-  void initParams (boost::shared_ptr<parameters> map);
+  int initParams (boost::shared_ptr<parameters> map);
   
   /**\brief Constructor with parameters to set.
    *\param[in] map Shared pointer to unordered_map containing parameters to use
@@ -512,15 +594,16 @@ class PoseEstimation {
    */
   PoseEstimation(boost::filesystem::path config_file) : PoseEstimation() {this->initParams(config_file);}
 
-  /**\brief Explicitly set the query viewpoint
+  /**\brief Explicitly set the query viewpoint for future query computations
    *\param[in] x Coordinate x of the viewpoint
    *\param[in] y Coordinate y of the viewpoint
    *\param[in] z Coordinate z ot the viewpoint
    *
    * THIS METHOD OVERRIDES ANY VIEWPOINT PARAMETERS SET, thus Pose Estimation
    * will ignore "useSOasViewpoint" and "computeViewpointFromName" parameters regardless of their value, 
-   * and will use the viewpoint set this way for the computations where a viewpoint is needed 
-   * (normals, VFH, CVFH ...)
+   * and will use only the viewpoint set this way for the computations where a viewpoint is needed 
+   * (normals, VFH, CVFH ...) until a new viewpoint is supplied again with this method.
+   * If you want to reset the viewpoint supplied this way and go back using the above parameters, use resetViewpoint() method.
    * This method should be used only if the the viewpoint cannot be obtained from sensor_origin of query cloud
    * or if it cannot be computed from query name (i.e. the above cited parameters failed to set it correctly)
    * The recommended and preferred way is to use the sensor_origin field, so prepare your query cloud accordingly
@@ -543,13 +626,9 @@ class PoseEstimation {
   /// \brief Print current parameter values on screen
   void printParams();
 
-  /** \brief Get a pointer to an unordered map holding a copy of current configuration parameters
-   * \return A pointer of a copy of current configuration parameters
-   */
-  boost::shared_ptr<parameters> getParams();
-
   /** \brief Save current configuration parameters into a .conf file
    * \param[in] file Path on disk where to write the .conf file
+   * \return _True_ if operation was successful, _false_ otherwise
    *
    * The path specified must not point to an already existant file, or saveParams() will refuse to write. 
    * The path may be absolute or relative and may or may not contain the extension, however remember that config files must have .conf extension to be accepted from PoseEstimation as valid config files, see also initParams()
@@ -562,7 +641,7 @@ class PoseEstimation {
    * pe.saveParams("verbose.wrong"); //the file will be written with warnings but initParams() will not read it back since the file has a wrong extension
    * \endcode
 */
-  void saveParams(boost::filesystem::path file);
+  bool saveParams(boost::filesystem::path file);
 
   /// \brief Print list(s) of Candidate to the query on screen
   void printCandidates();
@@ -668,8 +747,9 @@ class PoseEstimation {
       "foo/bar.f" will be treated as file "bar.f" inside relative directory "foo"
       */
   bool saveEstimation(boost::filesystem::path file, bool append = true);
-  /** \brief Returns a shared pointer of a copy of parameters used by the pose estimation
-   * 
+  /** \brief Get a shared pointer of a copy of parameters used by the pose estimation
+   *  \return Shared pointer of a copy of parameters used
+   *
    * Returned pointer can be modified but any changes are not reflected back to the class,
    * use setParam() or initParams() to modify PoseEstimation parameters
   */ 
@@ -683,5 +763,36 @@ class PoseEstimation {
   /** \brief Reset the viewpoint for current query, so that it can be computed again
    */
   void resetViewpoint(){ vp_supplied_ = false; }
+
+  /** \brief Get a vector containing a list of Candidates to the Query
+   * \param[out] list Vector containing the list of Candidates, ordered by rank
+   * \param[in] type listType enum to select which list is to be copied among those created
+   *
+   * Composite list is created by generateLists() and it is used by the refinement procedure, get that by passing type= listType::composite
+   * vfh, esf, cvfh and ourcvfh lists are created by the corresponding features and may or may not exists, depending on parameters set.
+   * To select one of them either pass type= listType::vfh, listType::esf, listType::cvfh or listType::ourcvfh
+   * Code example:
+   * \code
+   * PoseEstimation pe;
+   * // ... initialize query and generate list of candidates
+   * vector<Candidate> mylist;
+   * pe.getCandidateList(mylist, listType::composite ); //get the composite list, that always exists
+   * pe.getCandidateList(mylist, listType::vfh ); //if vfh list exists, now mylist holds it
+   * \endcode
+   */
+  void getCandidateList(vector<Candidate>& list, listType type);
+
+  /** \brief Print some information on Query object on screen
+   */
+  void printQuery();
+
+  /** \brief Get name and  pointers holding point clouds of query object (before and after eventual preprocessing)
+   * \param[out] name String containing query name
+   * \param[out] clp Shared Pointer to a copy of query point cloud before preprocessing
+   * \param[out] clp_pre Shared Pointer to a copy of query point cloud after preprocessing
+   *
+   * If no preprocessing was done (i.e. downsampling, upsampling and filtering parameters are all zero), clp and clp_pre are the same
+   */
+  void getQuery (string& name, PC::Ptr clp, PC::Ptr clp_pre);
 };
 #endif
