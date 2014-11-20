@@ -51,7 +51,7 @@ bool PoseDB::isEmpty()
 {
   if ( !(vfh_) || !(esf_) || !(cvfh_) || !(ourcvfh_) )
     return true;
-  else if (names_.empty() || clusters_cvfh_.empty() || clusters_ourcvfh_.empty() || clouds_.empty() )
+  else if (names_.empty() || names_cvfh_.empty() || names_ourcvfh_.empty() || clouds_.empty() )
     return true;
   else if ( !(vfh_idx_) || !(esf_idx_) )
     return true;
@@ -80,9 +80,9 @@ bool PoseDB::isValidPath(path dbPath)
     return false;
   if ( !is_regular_file(dbPath.string()+ "/names.list") || !(extension(dbPath.string()+ "/names.list") == ".list"))
     return false;
-  if ( !is_regular_file(dbPath.string()+ "/cvfh.cluster") || !(extension(dbPath.string()+ "/cvfh.cluster") == ".cluster"))
+  if ( !is_regular_file(dbPath.string()+ "/names.cvfh") || !(extension(dbPath.string()+ "/names.cvfh") == ".cvfh"))
     return false;
-  if ( !is_regular_file(dbPath.string()+ "/ourcvfh.cluster") || !(extension(dbPath.string()+ "/ourcvfh.cluster") == ".cluster"))
+  if ( !is_regular_file(dbPath.string()+ "/names.ourcvfh") || !(extension(dbPath.string()+ "/names.ourcvfh") == ".ourcvfh"))
     return false;
   
   return true;
@@ -111,8 +111,8 @@ PoseDB::PoseDB(const PoseDB& db)
       ourcvfh[i][j] = (*db.ourcvfh_)[i][j];
   ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
   boost::copy (db.names_, back_inserter(names_));
-  boost::copy (db.clusters_cvfh_, back_inserter(clusters_cvfh_));
-  boost::copy (db.clusters_ourcvfh_, back_inserter(clusters_ourcvfh_));
+  boost::copy (db.names_cvfh_, back_inserter(names_cvfh_));
+  boost::copy (db.names_ourcvfh_, back_inserter(names_ourcvfh_));
   boost::copy (db.clouds_, back_inserter(clouds_));
   dbPath_ = db.dbPath_;
   //only way to copy indexs that i'm aware of (save it to disk then load it)
@@ -152,8 +152,8 @@ PoseDB& PoseDB::operator= (const PoseDB& db)
       ourcvfh[i][j] = (*db.ourcvfh_)[i][j];
   this->ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
   boost::copy (db.names_, back_inserter(this->names_));
-  boost::copy (db.clusters_cvfh_, back_inserter(this->clusters_cvfh_));
-  boost::copy (db.clusters_ourcvfh_, back_inserter(this->clusters_ourcvfh_));
+  boost::copy (db.names_cvfh_, back_inserter(this->names_cvfh_));
+  boost::copy (db.names_ourcvfh_, back_inserter(this->names_ourcvfh_));
   boost::copy (db.clouds_, back_inserter(this->clouds_));
   this->dbPath_ = db.dbPath_;
   //only way to copy indexs that i'm aware of (save it to disk then load it)
@@ -294,68 +294,48 @@ bool PoseDB::load(path pathDB)
     }
     try
     {
-      ifstream file ((pathDB.string()+"/cvfh.cluster").c_str());
+      ifstream file ((pathDB.string()+"/names.cvfh").c_str());
       string line;
       if (file.is_open())
       {
         while (getline (file, line))
         {
           trim(line); //remove white spaces from line
-          int c;
-          try
-          {
-            c=stoi(line);
-          }
-          catch (...)
-          {
-            print_error("%*s]\tCannot convert string in cvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
-            return false;
-          }
-          clusters_cvfh_.push_back(c);
+          names_cvfh_.push_back(line);
         }//end of file
       }
       else
       {
-        print_error("%*s]\tError opening cvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
+        print_error("%*s]\tError opening names.cvfh, file is likely corrupted, try recreating database\n",20,__func__);
         return false;
       }
     }
     catch (...)
     {
-      print_error("%*s]\tError loading cvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
+      print_error("%*s]\tError loading names.cvfh, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
     try
     {
-      ifstream file ((pathDB.string()+"/ourcvfh.cluster").c_str());
+      ifstream file ((pathDB.string()+"/names.ourcvfh").c_str());
       string line;
       if (file.is_open())
       {
         while (getline (file, line))
         {
           trim(line); //remove white spaces from line
-          int c;
-          try
-          {
-            c=stoi(line);
-          }
-          catch (...)
-          {
-            print_error("%*s]\tCannot convert string in ourcvfh.cluster, file is likely corrupted, try recreating  database\n",20,__func__);
-            return false;
-          }
-          clusters_ourcvfh_.push_back(c);
+          namess_ourcvfh_.push_back(line);
         }//end of file
       }
       else
       {
-        print_error("%*s]\tError opening ourcvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
+        print_error("%*s]\tError opening names.ourcvfh, file is likely corrupted, try recreating database\n",20,__func__);
         return false;
       }
     }
     catch (...)
     {
-      print_error("%*s]\tError loading ourcvfh.cluster, file is likely corrupted, try recreating database\n",20,__func__);
+      print_error("%*s]\tError loading names.ourcvfh, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
   }
@@ -406,51 +386,75 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
           }
           else
           {//last cluster is part of another last object
-            //TODO
+            d = MinMaxDistance(query->points[n].histogram, cvfh_[i], 308);
+            if (n==0)
+              distIdx.push_back( make_pair(d, s++) );
+            else
+              distIdx[s++].first += d;
           }
         }
         else
         {//first cluster of first object
           d = MinMaxDistance (query->points[n].histogram, cvfh_[i], 308);
         }
-      }
-    }
+      }//end of for each cluster in db
+    }//end of for each query
+    return true;
+  }
+  else if ( feat == listType::ourcvfh )
+  { //ourcvfh list
+    for (int n=0; n<query.points.size(); ++n)
+    {//for each query cluster
+      float d; //tmp distance
+      int s=0; //counts objects
+      for (int i=0; i<names_ourcvfh_.size(); ++i)
+      {// for each cluster in database
+        if (i != 0 && i != (names_ourcvfh_.size()-1) ) //not first neither last
+        {
+          if (names_ourcvfh_[i].compare(names_ourcvfh_[i-1]) == 0) 
+          {//another cluster of the same object
+            d = min (d, (MinMaxDistance(query->points[n].histogram, ourcvfh_[i], 308)) );
+          }
+          else 
+          {//another cluster of another object
+            if (n==0)
+              distIdx.push_back( make_pair(d, s++) );
+            else
+              distIdx[s++].first += d;
+            d = MinMaxDistance (query->points[n].histogram, ourcvfh_[i], 308);
+          }
+        }
+        else if (i == (names_cvfh_.size() -1) )
+        {//last cluster of last object
+          if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
+          {//last cluster is still part of previous object
+            d = min (d, (MinMaxDistance(query->points[n].histogram, cvfh_[i], 308)) );
+            if (n==0)
+              distIdx.push_back( make_pair(d, s++) );
+            else
+              distIdx[s++].first += d;
+          }
+          else
+          {//last cluster is part of another last object
+            d = MinMaxDistance(query->points[n].histogram, ourcvfh_[i], 308);
+            if (n==0)
+              distIdx.push_back( make_pair(d, s++) );
+            else
+              distIdx[s++].first += d;
+          }
+        }
+        else
+        {//first cluster of first object
+          d = MinMaxDistance (query->points[n].histogram, ourcvfh_[i], 308);
+        }
+      }//end of for each cluster in db
+    }//end of for each query
+    return true;
   }
   else
   {
     print_error("%*s]\tfeat must be 'listType::cvfh' or 'listType::ourcvfh'! Exiting...\n",20,__func__);
     return false;
-  }
-  for (int i=0; i< clusters_query; ++i)
-  {
-    vector<float> tmp_dist;
-    vector<float> hist_query;
-    for (int n=0; n<308; ++n)
-      hist_query.push_back(query->points[i].histogram[n]);
-    for (int j=0; j< clusters; ++j)
-    {
-      vector<float> hist;
-      if (cvfh)
-      {
-        //find index in matrix, because it is different from the one in names cause of clusters
-        int idxc=0;
-        for (int m=0; m<idx; ++m)
-          idxc+=clusters_cvfh_[m];
-        for (int n=0; n<cvfh_->cols; ++n)
-          hist.push_back((*cvfh_)[idxc+j][n]);
-      }
-      else if (ourcvfh)
-      {
-        //find index in matrix, because it is different from the one in names cause of clusters
-        int idxc=0;
-        for (int m=0; m<idx; ++m)
-          idxc+=clusters_ourcvfh_[m];
-        for (int n=0; n<ourcvfh_->cols; ++n)
-          hist.push_back((*ourcvfh_)[idxc+j][n]);
-      }
-      tmp_dist.push_back(MinMaxDistance(hist_query, hist));
-    }
-    distance += *min_element(tmp_dist.begin(), tmp_dist.end());
   }
 }
 ///////////////////////////////////////
@@ -461,15 +465,15 @@ void PoseDB::clear()
   cvfh_.reset();
   ourcvfh_.reset();
   names_.clear();
-  clusters_cvfh_.clear();
-  clusters_ourcvfh_.clear();
+  names_cvfh_.clear();
+  names_ourcvfh_.clear();
   vfh_idx_.reset();
   esf_idx_.reset();
   clouds_.clear();
   dbPath_="UNSET";
 }
 /////////////////////////////////////////
-bool PoseDB::save(path pathDB)
+bool PoseDB::save(path pathDB)  
 {
   if (this->isEmpty())
   {
@@ -491,16 +495,16 @@ bool PoseDB::save(path pathDB)
   PCDWriter writer;
   ofstream names, c_cvfh, c_ourcvfh, info;
   names.open((pathDB.string()+ "/names.list").c_str());
-  c_cvfh.open((pathDB.string()+ "/cvfh.cluster").c_str());
-  c_ourcvfh.open((pathDB.string()+ "/ourcvfh.cluster").c_str());
+  c_cvfh.open((pathDB.string()+ "/names.cvfh").c_str());
+  c_ourcvfh.open((pathDB.string()+ "/names.ourcvfh").c_str());
   for (size_t i=0; i< names_.size(); ++i)
   {
     try
     {
       writer.writeBinaryCompressed(pathDB.string() + "/Clouds/" + names_[i] + ".pcd", clouds_[i]);
       names << names_[i] <<endl;
-      c_cvfh << clusters_cvfh_[i] <<endl;
-      c_ourcvfh << clusters_ourcvfh_[i] <<endl;
+      c_cvfh << names_cvfh_[i] <<endl;
+      c_ourcvfh << names_ourcvfh_[i] <<endl;
     }
     catch (...)
     {
@@ -525,7 +529,7 @@ bool PoseDB::save(path pathDB)
   print_info("%*s]\tDone saving database, %d poses written to disk\n",20,__func__,names_.size());
   return true;
 }
-/////////////////////////////////////////
+/////////////////////////////////////////TODO update names_cvfh_ and ourcvfh
 bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params)
 {
   //Check Parameters correctness 
@@ -1899,7 +1903,7 @@ bool PoseEstimation::findCandidate_(vector<Candidate>& list, string name, float&
   }
   return false;
 }
-//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////TODO Update clusters list
 void PoseEstimation::generateLists()
 {
   int k = params_["kNeighbors"];

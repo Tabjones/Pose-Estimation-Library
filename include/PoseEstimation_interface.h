@@ -4,10 +4,9 @@
 
 //Doxygen documentation
 
-/** \todo add view of candidates, estimation, query  etc..
+/** \todo update function in todo tag, to match new method to calc distance
+ *  \todo add view of candidates, estimation, query  etc..
  *  \todo make all methods return true or false if successfull
- *  \todo investigate CVFH and OURCVFH that takes too much time in matching (changed getDistance, maybe is that)
- *  \todo change computeDistanceFromClusters_ to use lisType enum instead of strings
  */
 
 /** \mainpage notitle 
