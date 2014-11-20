@@ -177,7 +177,7 @@ class PoseDB{
   friend class PoseEstimation;
   boost::shared_ptr<histograms> vfh_, esf_, cvfh_, ourcvfh_;
   vector<string> names_;
-  vector<int> clusters_cvfh_, clusters_ourcvfh_;
+  vector<string> names_cvfh_, names_ourcvfh_;
   boost::filesystem::path dbPath_; 
   vector<PC> clouds_;
   boost::shared_ptr<indexVFH> vfh_idx_;
@@ -185,11 +185,11 @@ class PoseDB{
 
   /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
    * \param[in] query Pointer to the query histogram(s)
-   * \param[in] idx Index of object to compare with
-   * \param[in] feature String containing either "CVFH" or "OURCVFH", to tell the method which feature is involved
-   * \param[out] distance Unnormalized distance of object at index from query
+   * \param[in] feat Enum that indicates which list: listType::cvfh or listType::ourcvfh
+   * \param[out] distIdx Vector of unnormalized distances of objects and they relative index
+   * \return _True_ if distances are correctly computed, _false_ otherwise
    */
-  void computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query, int idx, string feature, float& distance);
+  bool computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, listType feat, vector<pair<float, int> >& distIdx);
 
   public:
     /** \brief Default empty Constructor
@@ -547,6 +547,7 @@ class PoseEstimation {
   * \return _True_ if successful, _false_ otherwise
   *
   * Overloaded for ints
+  * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, int value) {return (this->setParam(key, (float)value) );}
   
@@ -556,6 +557,7 @@ class PoseEstimation {
   * \return _True_ if successful, _false_ otherwise
   *
   * Overloaded for double
+  * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, double value) {return (this->setParam(key, (float)value) );}
   
@@ -564,7 +566,8 @@ class PoseEstimation {
   * \return How many parameters were correctly found and set, or (-1) in case of errors
   *
   * Configuration file must have extension .conf and follow certain naming conventions, 
-  * look at example .conf file provided for more details (i.e "config/parameters.conf")
+  * look at example .conf file provided for more details or at \ref param.
+  * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   int initParams (boost::filesystem::path config_file);
 
@@ -572,16 +575,18 @@ class PoseEstimation {
    * \param[in] map shared pointer to unordered_map containing parameters to use
    * \return How many parameters were correctly set, or (-1) in case of errors
    *
-   * unordered_map must contain valid keys and values, otherwise they will be ignored
+   * unordered_map must contain valid keys and values, otherwise they will be ignored. For more inforamtion look at \ref param.
+  * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
    */
   int initParams (boost::shared_ptr<parameters> map);
   
   /**\brief Constructor with parameters to set.
    *\param[in] map Shared pointer to unordered_map containing parameters to use
    *
+   * For more information on parameters look at \ref param.
    * Note: This constructor uses C++11 functionality and will  not compile without -std=c++11 
    * It delegates construction to empty contructor then calls initParams()
-   * It is the same way as calling empty constructor and then initParams() method
+   * It is the same way as calling empty constructor and then initParams() method.
    */
   PoseEstimation(boost::shared_ptr<parameters> map) : PoseEstimation() {this->initParams(map);}
   
@@ -589,7 +594,7 @@ class PoseEstimation {
    *\param[in] config_file Path to a config file to use
    *
    * Configuration file must have extension .conf and follow certain naming conventions, 
-   * look at example .conf file provided for more details (i.e "config/parameters.conf")
+   * look at example .conf file provided for more details, or look at \ref param.
    * Note: This constructor uses C++11 functionality and will probably not compile without -std=c++11 
    * It delegates construction to empty contructor then calls initParams()
    * It is the same way as calling empty constructor and then initParams() method
@@ -601,7 +606,7 @@ class PoseEstimation {
    *\param[in] y Coordinate y of the viewpoint
    *\param[in] z Coordinate z ot the viewpoint
    *
-   * THIS METHOD OVERRIDES ANY VIEWPOINT PARAMETERS SET, thus Pose Estimation
+   * __This method overrides any viewpoint parameters set__ , thus Pose Estimation
    * will ignore "useSOasViewpoint" and "computeViewpointFromName" parameters regardless of their value, 
    * and will use only the viewpoint set this way for the computations where a viewpoint is needed 
    * (normals, VFH, CVFH ...) until a new viewpoint is supplied again with this method.
@@ -796,5 +801,17 @@ class PoseEstimation {
    * If no preprocessing was done (i.e. downsampling, upsampling and filtering parameters are all zero), clp and clp_pre are the same
    */
   void getQuery (string& name, PC::Ptr clp, PC::Ptr clp_pre);
+
+  /** \brief Get the estimated features (including normals) from the query
+   * \param[out] vfh Point cloud pointer that will hold the VFH feature
+   * \param[out] cvfh Point cloud pointer that will hold the CVFH feature
+   * \param[out] ourcvfh Point cloud pointer that will hold the OURCVFH feature
+   * \param[out] esf Point cloud pointer that will hold the ESF feature
+   * \param[out] normals Point cloud pointer that will hold the feature normals
+   *
+   * Note that some features may not be available for the current query, because they were not estimated, check set parameters
+   */
+  void getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, PointCloud<VFHSignature308>::Ptr cvfh, PointCloud<VFHSignature308>::Ptr ourcvfh, PointCloud<ESFSignature640>::Ptr esf, PointCloud<Normal>::Ptr normals);
+
 };
 #endif

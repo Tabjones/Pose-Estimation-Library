@@ -24,16 +24,8 @@
  * \f]
  * where n=308 for CVFH/OURCVFH histograms
  */
-float MinMaxDistance (vector<float>& a, vector<float>& b)
+float MinMaxDistance (const float[]& a, const float[]& b, const int size)
 {
-  if (a.size() != b.size())
-  {
-    print_error("%*s]\tVectors size mismatch!\n",20,__func__);
-    return (-1);
-  }
-  else
-  {
-    int size = a.size();
     float num(1.0f), den(1.0f);
     //Process 11 items with each loop for efficency (since it should be applied to vectors of 308 elements)
     int i=0;
@@ -376,26 +368,58 @@ bool PoseDB::load(path pathDB)
   return true;
 }
 //////////////////////////////////////
-void PoseDB::computeDistanceFromClusters_(PointCloud<VFHSignature308>::Ptr query, int idx, string feature, float& distance)
+bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, listType feat, vector<pair<float, int> >& distIdx)
 {
-  int clusters_query = query->points.size();
-  int clusters;
-  distance = 0;
-  bool cvfh(false), ourcvfh(false);
-  if ( feature.compare("CVFH")==0 )
-  {
-    cvfh=true;
-    clusters = clusters_cvfh_[idx];
-  }
-  else if ( feature.compare("OURCVFH")==0 )
-  {
-    ourcvfh=true;
-    clusters = clusters_ourcvfh_[idx];
+  distIdx.clear();
+  if ( feat == listType::cvfh )
+  { //cvfh list
+    for (int n=0; n<query.points.size(); ++n)
+    {//for each query cluster
+      float d; //tmp distance
+      int s=0; //counts objects
+      for (int i=0; i<names_cvfh_.size(); ++i)
+      {// for each cluster in database
+        if (i != 0 && i != (names_cvfh_.size()-1) ) //not first neither last
+        {
+          if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0) 
+          {//another cluster of the same object
+            d = min (d, (MinMaxDistance(query->points[n].histogram, cvfh_[i], 308)) );
+          }
+          else 
+          {//another cluster of another object
+            if (n==0)
+              distIdx.push_back( make_pair(d, s++) );
+            else
+              distIdx[s++].first += d;
+            d = MinMaxDistance (query->points[n].histogram, cvfh_[i], 308);
+          }
+        }
+        else if (i == (names_cvfh_.size() -1) )
+        {//last cluster of last object
+          if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
+          {//last cluster is still part of previous object
+            d = min (d, (MinMaxDistance(query->points[n].histogram, cvfh_[i], 308)) );
+            if (n==0)
+              distIdx.push_back( make_pair(d, s++) );
+            else
+              distIdx[s++].first += d;
+          }
+          else
+          {//last cluster is part of another last object
+            //TODO
+          }
+        }
+        else
+        {//first cluster of first object
+          d = MinMaxDistance (query->points[n].histogram, cvfh_[i], 308);
+        }
+      }
+    }
   }
   else
   {
-    print_error("%*s]\tFeature must be 'CVFH' or 'OURCVFH'! Exiting...\n",20,__func__);
-    return;
+    print_error("%*s]\tfeat must be 'listType::cvfh' or 'listType::ourcvfh'! Exiting...\n",20,__func__);
+    return false;
   }
   for (int i=0; i< clusters_query; ++i)
   {
@@ -864,7 +888,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         filter.setMeanK ( params->at("filterMeanK") );
         filter.setStddevMulThresh ( params->at("filterStdDevMulThresh") );
         filter.setInputCloud(input);
-        filter.filter(*output);
+        filter.filter(*output); //Process Filtering
         copyPointCloud(*output, *input);
       }
       if (params->at("upsampling") >0)
@@ -1743,6 +1767,10 @@ bool PoseEstimation::initQuery_()
   if (! query_cloud_processed_ )
     query_cloud_processed_ = query_cloud_;
 
+  vfh_.clear();
+  esf_.clear();
+  cvfh_.clear();
+  ourcvfh_.clear();
   //Check if we need ESF descriptor
   if (params_["useESF"] >= 1)
     computeESF_();
@@ -2841,14 +2869,129 @@ void PoseEstimation::printQuery()
   print_value("%d\n", query_cloud_->points.size());
   print_info("Was preprocessed and now has ");
   print_value("%d",query_cloud_processed_->points.size());
-  //TODO
-  
-
+  print_info(" points\n");
+  if (vfh_.points.size() != 0)
+  {
+    print_value("%d ",vfh_.points.size());
+    print_info("VFH histogram estimated\n");
+  }
+  if (esf_.points.size() != 0)
+  {
+    print_value("%d ",esf_.points.size());
+    print_info("ESF histogram estimated\n");
+  }
+  if (cvfh_.points.size() != 0)
+  {
+    print_value("%d ",cvfh_.points.size());
+    print_info("CVFH histogram(s) estimated\n");
+  }
+  if (ourcvfh_.points.size() != 0)
+  {
+    print_value("%d ",ourcvfh_.points.size());
+    print_info("OURCVFH histogram(s) estimated\n");
+  }
 }
 
 void PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)
 {
-  //TODO
+  if (!query_set_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tQuery is not set yet...\n",20,__func__);
+    return;
+  }
+  name = query_name_;
+  if (clp)
+    copyPointCloud(*query_cloud_, *clp);
+  else
+  {
+    PC cl;
+    copyPointCloud(*query_cloud_, cl);
+    clp = cl.makeShared();
+  } 
+  if (clp_pre)
+    copyPointCloud(*query_cloud_processed_, *clp_pre);
+  else
+  {
+    PC cl;
+    copyPointCloud(*query_cloud_processed_, cl);
+    clp_pre = cl.makeShared();
+  } 
+}
+
+void PoseEstimation::getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, PointCloud<VFHSignature308>::Ptr cvfh, PointCloud<VFHSignature308>::Ptr ourcvfh, PointCloud<ESFSignature640>::Ptr esf, PointCloud<Normal>::Ptr normals)
+{
+  if (!query_set_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tQuery is not set yet...\n",20,__func__);
+    return;
+  }
+  if (vfh && vfh_.points.size() != 0)
+    copyPointCloud(vfh_, *vfh);
+  else if (!vfh && vfh_.points.size() != 0)
+  {
+    PointCloud<VFHSignature308> cl;
+    copyPointCloud(vfh_, cl);
+    vfh = cl.makeShared();
+  }
+  else
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tVFH feature was not calculated\n",20,__func__);
+  }
+  if (cvfh && cvfh_.points.size() != 0)
+    copyPointCloud(cvfh_, *cvfh);
+  else if (!cvfh && cvfh_.points.size() != 0)
+  {
+    PointCloud<VFHSignature308> cl;
+    copyPointCloud(cvfh_, cl);
+    cvfh = cl.makeShared();
+  }
+  else
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tCVFH feature was not calculated\n",20,__func__);
+  }
+  if (ourcvfh && ourcvfh_.points.size() != 0)
+    copyPointCloud(ourcvfh_, *ourcvfh);
+  else if (!ourcvfh && ourcvfh_.points.size() != 0)
+  {
+    PointCloud<VFHSignature308> cl;
+    copyPointCloud(ourcvfh_, cl);
+    ourcvfh = cl.makeShared();
+  }
+  else
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tOURCVFH feature was not calculated\n",20,__func__);
+  }
+  if (esf && esf_.points.size() != 0)
+    copyPointCloud(esf_, *esf);
+  else if (!esf && esf_.points.size() != 0)
+  {
+    PointCloud<ESFSignature640> cl;
+    copyPointCloud(esf_, cl);
+    esf = cl.makeShared();
+  }
+  else
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tESF feature was not calculated\n",20,__func__);
+  }
+  if (normals && normals_.points.size() != 0)
+    copyPointCloud(normals_, *normals);
+  else if (!normals && normals_.points.size() != 0)
+  {
+    PointCloud<Normal> cl;
+    copyPointCloud(normals_, cl);
+    normals = cl.makeShared();
+  }
+  else
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tNormals were not calculated\n",20,__func__);
+  }
 }
 
 #endif
