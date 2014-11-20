@@ -1197,7 +1197,7 @@ void Candidate::getName(string& name) const
 /* Class PoseEstimation Implementation */
 PoseEstimation::PoseEstimation ()
 {
-  vp_supplied_ = query_set_ = candidates_found_ = refinement_done_ = false;
+  vp_supplied_ = vp_set_ = query_set_ = candidates_found_ = refinement_done_ = false;
   feature_count_ = 4;
   params_["verbosity"]=1;
   params_["useVFH"]=params_["useESF"]=params_["useCVFH"]=params_["useOURCVFH"]=1;
@@ -1505,6 +1505,7 @@ bool PoseEstimation::computeNormals_()
   ne.setInputCloud(query_cloud_processed_);
   if (vp_supplied_)
   {
+    vp_set_ = true;
     //A Viewpoint was already supplied by setQueryViewpoint, so we use it
     ne.setViewPoint (vpx_, vpy_, vpz_);
     if (params_["verbosity"] >1)
@@ -1519,21 +1520,17 @@ bool PoseEstimation::computeNormals_()
       //If something goes wrong an exception is catched
       vector<string> vst;
       split(vst, query_name_, boost::is_any_of("_"), boost::token_compress_on);
-      float vx,vy,vz;
       int lat,lon;
       lat = stoi(vst.at(1));
       lon = stoi(vst.at(2));
       //assume radius of one meter and reference frame in object center
-      vx = cos(lat*D2R)*sin(lon*D2R);
-      vy = sin(lat*D2R);
-      vz = cos(lat*D2R)*cos(lon*D2R);
-      setQueryViewpoint(vx,vy,vz);
-      if (vp_supplied_)
-      {
-        if (params_["verbosity"]>1)
-          print_info("%*s]\tUsing calculated viewpoint: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
-        ne.setViewPoint(vpx_, vpy_, vpz_);
-      }
+      vpx_ = cos(lat*D2R)*sin(lon*D2R);
+      vpy_ = sin(lat*D2R);
+      vpz_ = cos(lat*D2R)*cos(lon*D2R);
+      if (params_["verbosity"]>1)
+        print_info("%*s]\tUsing calculated viewpoint: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
+      ne.setViewPoint(vpx_, vpy_, vpz_);
+      vp_set_ = true;
     }
     catch (...)
     {
@@ -1547,26 +1544,25 @@ bool PoseEstimation::computeNormals_()
     //Use Viewpoint stored in sensor_origin_ of query cloud
     //However we want to save it in class designated spots so it can be used again by 
     //other features
-    float vx,vy,vz;
-    vx = query_cloud_->sensor_origin_[0];
-    vy = query_cloud_->sensor_origin_[1];
-    vz = query_cloud_->sensor_origin_[2];
-    setQueryViewpoint(vx,vy,vz);
-    if (vp_supplied_)
+    try
     {
-      ne.setViewPoint (vpx_, vpy_, vpz_);
-      if (params_["verbosity"]>1)
-        print_info("%*s]\tUsing viewpoint from sensor_origin_: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
+    vpx_ = query_cloud_->sensor_origin_[0];
+    vpy_ = query_cloud_->sensor_origin_[1];
+    vpz_ = query_cloud_->sensor_origin_[2];
+    ne.setViewPoint (vpx_, vpy_, vpz_);
+    vp_set_ = true;
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tUsing viewpoint from sensor_origin_: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
     }
-    else
-    {
-      print_error("%*s]\tCannot set viewpoint from sensor_origin_...\n",20,__func__);
+    catch (...)
+    { 
+      print_error("%*s]\tError setting viewpoint from sensor origin\n",20,__func__);
       return false;
     }
   }
   else
   {
-    print_error("%*s]\tNo Viewpoint supplied!! Cannot continue!!\n",20,__func__);
+    print_error("%*s]\tNo methods to calculate viewpoint and it was not supplied. Cannot continue!!\n",20,__func__);
     print_error("%*s]\tEither use setQueryViewpoint or set 'useSOasViewpoint'/'computeViewpointFromName'\n",20,__func__);
     return false;
   }
@@ -1582,7 +1578,7 @@ bool PoseEstimation::computeNormals_()
 //////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::computeVFH_()
 {
-  if(!vp_supplied_)
+  if(!vp_set_)
   {
     //Should never happen, viewpoint was set by normal estimation
     print_error("%*s]\tCannot estimate VFH of query, viewpoint was not set...\n",20,__func__);
@@ -1635,7 +1631,7 @@ void PoseEstimation::computeESF_()
 //////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::computeCVFH_()
 {
-  if(!vp_supplied_)
+  if(!vp_set_)
   {
     //Should never happen, viewpoint was set by normal estimation
     print_error("%*s]\tCannot estimate CVFH of query, viewpoint was not set...\n",20,__func__);
@@ -1677,7 +1673,7 @@ void PoseEstimation::computeCVFH_()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::computeOURCVFH_()
 {
-  if(!vp_supplied_)
+  if(!vp_set_)
   {
     //Should never happen, viewpoint was set by normal estimation
     print_error("%*s]\tCannot estimate OURCVFH of query, viewpoint was not set...\n",20,__func__);
@@ -1778,6 +1774,7 @@ bool PoseEstimation::initQuery_()
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
+  vp_set_ = false; //Reset it to calculate it again for a new query
   return true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
@@ -2830,7 +2827,23 @@ void PoseEstimation::getCandidateList (vector<Candidate>& list, listType type)
 
 void PoseEstimation::printQuery()
 {
+  if (!query_set_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tQuery is not set yet...\n",20,__func__);
+    return;
+  }
+  if (params_["verbosity"]>1)
+    print_info("%*s]\tPrinting query informations:\n",20,__func__);
+  print_info("Query: ");
+  print_value("%s",query_name_.c_str());
+  print_info(" with a total of ");
+  print_value("%d\n", query_cloud_->points.size());
+  print_info("Was preprocessed and now has ");
+  print_value("%d",query_cloud_processed_->points.size());
   //TODO
+  
+
 }
 
 void PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)

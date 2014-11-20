@@ -458,8 +458,10 @@ class PoseEstimation {
   ///Viewpoint coordinate z, used in computations like VFH and Normal estimation
   float vpz_;
   
-  ///Internal parameter to check if viewpoint has been supplied.
+  ///Internal parameter to check if viewpoint has been supplied from setQueryViewpoint.
   bool vp_supplied_;
+  ///Internal to see if viewpoint was calculated
+  bool vp_set_;
   ///Internal parameter to check if the query was succesfully set and its features estimated
   bool query_set_;
   ///Internal parameter to check if list(s) of candidates are successfully generated
