@@ -525,6 +525,7 @@ class PoseEstimation {
   * \param[in] value the value that key should assume
   * \return _True_ if successful, _false_ otherwise
   * 
+  * For more information on possible parameters look at \ref param.
   * Example Usage:
   * \code
   * PoseEstimation pe; //construct and sets default parameters
@@ -533,6 +534,7 @@ class PoseEstimation {
   * str = "verbosity";
   * pe.setParam(str, 2); //pe now has verbosity set to 2
   * \endcode
+  * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, float value);
   
@@ -541,7 +543,8 @@ class PoseEstimation {
   * \param[in] value the value that key should assume
   * \return _True_ if successful, _false_ otherwise
   *
-  * Overloaded for ints
+  * Overloaded for ints.
+  * For more information on possible parameters look at \ref param.
   * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, int value) {return (this->setParam(key, (float)value) );}
@@ -552,6 +555,7 @@ class PoseEstimation {
   * \return _True_ if successful, _false_ otherwise
   *
   * Overloaded for double
+  * For more information on possible parameters look at \ref param.
   * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, double value) {return (this->setParam(key, (float)value) );}

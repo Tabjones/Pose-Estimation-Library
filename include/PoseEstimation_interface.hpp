@@ -16,6 +16,7 @@
 /**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
  * \param[in] a The first histogram
  * \param[in] b The second histogram
+ * \param[in] size Size of vectors 
  * \returns The computed dstance _D_
  *
  * The distance _D_ is defined by the following metric:
