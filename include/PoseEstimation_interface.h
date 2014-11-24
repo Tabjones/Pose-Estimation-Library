@@ -4,9 +4,8 @@
 
 //Doxygen documentation
 
-/** \todo update function in todo tag, to match new method to calc distance
+/** 
  *  \todo add view of candidates, estimation, query  etc..
- *  \todo make all methods return true or false if successfull
  */
 
 /** \mainpage notitle 
@@ -446,9 +445,6 @@ class PoseEstimation {
   vector<Candidate> ourcvfh_list_;
   ///List of candidates to the query composed from the other features
   vector<Candidate> composite_list_;
-
-  ///Path to the directory containing the database of known poses (if specified)
-  boost::filesystem::path dbPath_;
   
   ///Viewpoint coordinate x, used in computations like VFH and Normal estimation
   float vpx_;
@@ -654,10 +650,11 @@ class PoseEstimation {
 
   /** \brief Save list(s) of Candidate to query on a file
    * \param[in] file Path to a file where to write the candidate list(s)
+   * \return _True_ if operation was successful, _false_ otherwise
    *
    * Path specified may exist, in that case the file will be appended
    */
-  void saveCandidates(boost::filesystem::path file);
+  bool saveCandidates(boost::filesystem::path file);
 
   /** \brief Set a database of known poses to be used for pose estimation procedure.
    * \param[in] dbPath The path to the directory containing the database
@@ -672,16 +669,27 @@ class PoseEstimation {
 
   /** \brief Generates list(s) of candidates to the query using the database provided as argument
    * \param[in] dbPath The path to the directory containing the database of poses, previously generated.
-   * 
+   * \return _True_ if successful, _false_ otherwise
+   *
    * Note that this method also calls setDatabase() on the path specified for future lists computations.
    */
-  void generateLists(boost::filesystem::path dbPath);
+  bool generateLists(boost::filesystem::path dbPath);
+  
+  /** \brief Generates list(s) of candidates to the query using the database provided as argument
+   * \param[in] db The PoseDB object containing the database of poses, previously generated or loaded.
+   * \return _True_ if successful, _false_ otherwise
+   *
+   * Note that this method also calls setDatabase() for future lists computations.
+   */
+  bool generateLists(PoseDB& db);
   
   /** \brief Generates list(s) of candidates to the query using previously set database
+   * \return _True_ if successful, _false_ otherwise
    */
-  void generateLists();
+  bool generateLists();
 
   /**\brief Start the refinement procedure with ICP to obtain a final candidate from the composite list
+   * \return _True_ if refinement is successful and one final candidates is obtained, _false_ otherwise
    *
    * Currently two methods for refinemente are implemented: Progressive Bisection (default) and Brute Force
    * To chose Progressive Bisection set "progBisection" parameter to 1, to chose Brute Force set it to 0
@@ -695,47 +703,51 @@ class PoseEstimation {
   3. Discard a fraction of the list multiplying its size by "progFraction" (default 0.5), eliminating candidates with worst rmse
   4. Repeat from step 1 until one candidates falls below the "rmseThreshold" (default 0.003) or only one candidate survives
   */
-  void refineCandidates();
+  bool refineCandidates();
 
   /** \brief Undergo the whole process of pose estimation
    *\param[in] name Name of the new query object to estimate
     \param[in] cloud Point cloud containing the query object to estimate (segmented)
     \param[in] db_path Path to a directory containing the database of poses to load
+    \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
     already set parameters 
     */
-  void estimate(string name, PC& cloud, boost::filesystem::path db_path);
+  bool estimate(string name, PC& cloud, boost::filesystem::path db_path);
   
   /** \brief Undergo the whole process of pose estimation
    *\param[in] name Name of the new query object to estimate
     \param[in] cloud_pointer Pointer to a point cloud containing the query object to estimate (segmented)
     \param[in] db_path Path to a directory containing the database of poses to load
+    \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
     already set parameters 
     */
-  void estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path);
+  bool estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path);
   
   /** \brief Undergo the whole process of pose estimation
    *\param[in] name Name of the new query object to estimate
     \param[in] cloud Point cloud containing the query object to estimate (segmented)
     \param[in] database PoseDB object to use as database 
+    \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
     already set parameters 
     */
-  void estimate(string name, PC& cloud, PoseDB& database);
+  bool estimate(string name, PC& cloud, PoseDB& database);
   
   /** \brief Undergo the whole process of pose estimation
    *\param[in] name Name of the new query object to estimate 
     \param[in] cloud_pointer Pointer to a point cloud containing the query object to estimate (segmented)
     \param[in] database PoseDB object to use as database 
+    \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
     already set parameters 
     */
-  void estimate(string name, PC::Ptr cloud_pointer, PoseDB& database);
+  bool estimate(string name, PC::Ptr cloud_pointer, PoseDB& database);
 
   /** \brief Print final estimation informations (such as name, distance, rmse and transformation) on screen
    */
@@ -760,19 +772,34 @@ class PoseEstimation {
    * use setParam() or initParams() to modify PoseEstimation parameters
   */ 
   boost::shared_ptr<parameters> getParams();
+  /** \brief Get a shared pointer of a copy of parameters used by the pose estimation
+   *  \param[out] params Shared pointer of a copy of parameters used
+   *  \return _True_ if params correctly contains the class parameters, _false_ otherwise
+   *
+   * Passed pointer can be modified but any changes are not reflected back to the class,
+   * use setParam() or initParams() to modify PoseEstimation parameters
+  */ 
+  bool getParams(boost::shared_ptr<parameters> params);
 
   /** \brief Get a pointer to a copy of final chosen Candidate, representing the pose estimation
    * \return A pointer to a copy of the final Candidate
    */
   boost::shared_ptr<Candidate> getEstimation();
+  
+  /** \brief Get a pointer to a copy of final chosen Candidate, representing the pose estimation
+   * \param[out] est A pointer to a copy of the final Candidate chosen by refinement
+   * \return _True_ if est correctly points to final pose estimation, _false_ otherwise
+   */
+  bool getEstimation(boost::shared_ptr<Candidate> est);
 
   /** \brief Reset the viewpoint for current query, so that it can be computed again
    */
   void resetViewpoint(){ vp_supplied_ = false; }
 
   /** \brief Get a vector containing a list of Candidates to the Query
-   * \param[out] list Vector containing the list of Candidates, ordered by rank
-   * \param[in] type listType enum to select which list is to be copied among those created
+   * \param[out] list Vector containing a copy of Candidates list, ordered by rank
+   * \param[in] type listType enumerate to select which list is to be copied among those created
+   * \return _True_ if the selected list is correctly copied, _false_ otherwise
    *
    * Composite list is created by generateLists() and it is used by the refinement procedure, get that by passing type= listType::composite
    * vfh, esf, cvfh and ourcvfh lists are created by the corresponding features and may or may not exists, depending on parameters set.
@@ -786,7 +813,7 @@ class PoseEstimation {
    * pe.getCandidateList(mylist, listType::vfh ); //if vfh list exists, now mylist holds it
    * \endcode
    */
-  void getCandidateList(vector<Candidate>& list, listType type);
+  bool getCandidateList(vector<Candidate>& list, listType type);
 
   /** \brief Print some information on Query object on screen
    */
@@ -796,10 +823,11 @@ class PoseEstimation {
    * \param[out] name String containing query name
    * \param[out] clp Shared Pointer to a copy of query point cloud before preprocessing
    * \param[out] clp_pre Shared Pointer to a copy of query point cloud after preprocessing
+   * \return _True_ if operation was successful, _false_ otherwise 
    *
-   * If no preprocessing was done (i.e. downsampling, upsampling and filtering parameters are all zero), clp and clp_pre are the same
+   * If no preprocessing was done (i.e. downsampling, upsampling and filtering parameters are all zero), clp and clp_pre point the same cloud
    */
-  void getQuery (string& name, PC::Ptr clp, PC::Ptr clp_pre);
+  bool getQuery (string& name, PC::Ptr clp, PC::Ptr clp_pre);
 
   /** \brief Get the estimated features (including normals) from the query
    * \param[out] vfh Point cloud pointer that will hold the VFH feature
@@ -807,10 +835,11 @@ class PoseEstimation {
    * \param[out] ourcvfh Point cloud pointer that will hold the OURCVFH feature
    * \param[out] esf Point cloud pointer that will hold the ESF feature
    * \param[out] normals Point cloud pointer that will hold the feature normals
+   * \return How many features were currently copied, or (-1) in case of errors
    *
-   * Note that some features may not be available for the current query, because they were not estimated, check set parameters
+   * Note that some features may not be available for the current query, because they were not estimated, check parameter settings
    */
-  void getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, PointCloud<VFHSignature308>::Ptr cvfh, PointCloud<VFHSignature308>::Ptr ourcvfh, PointCloud<ESFSignature640>::Ptr esf, PointCloud<Normal>::Ptr normals);
+  int getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, PointCloud<VFHSignature308>::Ptr cvfh, PointCloud<VFHSignature308>::Ptr ourcvfh, PointCloud<ESFSignature640>::Ptr esf, PointCloud<Normal>::Ptr normals);
 
 };
 #endif

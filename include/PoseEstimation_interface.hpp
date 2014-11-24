@@ -24,27 +24,26 @@
  * \f]
  * where n=308 for CVFH/OURCVFH histograms
  */
-float MinMaxDistance (const float[]& a, const float[]& b, const int size)
+float MinMaxDistance (float* a, float* b, int size)
 {
-    float num(1.0f), den(1.0f);
-    //Process 11 items with each loop for efficency (since it should be applied to vectors of 308 elements)
-    int i=0;
-    for (; i<(size-10); i+=11)
-    { 
-      num += min(a[i],b[i]) + min(a[i+1],b[i+1]) + min(a[i+2],b[i+2]) + min(a[i+3],b[i+3]) + min(a[i+4],b[i+4]) + min(a[i+5],b[i+5]);
-      num += min(a[i+6],b[i+6]) + min(a[i+7],b[i+7]) + min(a[i+8],b[i+8]) + min(a[i+9],b[i+9]) + min(a[i+10],b[i+10]);
-      den += max(a[i],b[i]) + max(a[i+1],b[i+1]) + max(a[i+2],b[i+2]) + max(a[i+3],b[i+3]) + max(a[i+4],b[i+4]) + max(a[i+5],b[i+5]);
-      den += max(a[i+6],b[i+6]) + max(a[i+7],b[i+7]) + max(a[i+8],b[i+8]) + max(a[i+9],b[i+9]) + max(a[i+10],b[i+10]);
-    }
-    //process last 0-10 elements (if size!=308)
-    while ( i < size)
-    {
-      num += min(a[i],b[i]);
-      den += max(a[i],b[i]);
-      ++i;
-    }
-    return (1 - (num/den));
+  float num(1.0f), den(1.0f);
+  //Process 11 items with each loop for efficency (since it should be applied to vectors of 308 elements)
+  int i=0;
+  for (; i<(size-10); i+=11)
+  { 
+    num += min(a[i],b[i]) + min(a[i+1],b[i+1]) + min(a[i+2],b[i+2]) + min(a[i+3],b[i+3]) + min(a[i+4],b[i+4]) + min(a[i+5],b[i+5]);
+    num += min(a[i+6],b[i+6]) + min(a[i+7],b[i+7]) + min(a[i+8],b[i+8]) + min(a[i+9],b[i+9]) + min(a[i+10],b[i+10]);
+    den += max(a[i],b[i]) + max(a[i+1],b[i+1]) + max(a[i+2],b[i+2]) + max(a[i+3],b[i+3]) + max(a[i+4],b[i+4]) + max(a[i+5],b[i+5]);
+    den += max(a[i+6],b[i+6]) + max(a[i+7],b[i+7]) + max(a[i+8],b[i+8]) + max(a[i+9],b[i+9]) + max(a[i+10],b[i+10]);
   }
+  //process last 0-10 elements (if size!=308)
+  while ( i < size)
+  {
+    num += min(a[i],b[i]);
+    den += max(a[i],b[i]);
+    ++i;
+  }
+  return (1 - (num/den));
 }
 /** @}*/
 bool PoseDB::isEmpty()
@@ -324,7 +323,7 @@ bool PoseDB::load(path pathDB)
         while (getline (file, line))
         {
           trim(line); //remove white spaces from line
-          namess_ourcvfh_.push_back(line);
+          names_ourcvfh_.push_back(line);
         }//end of file
       }
       else
@@ -353,7 +352,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
   distIdx.clear();
   if ( feat == listType::cvfh )
   { //cvfh list
-    for (int n=0; n<query.points.size(); ++n)
+    for (int n=0; n<query->points.size(); ++n)
     {//for each query cluster
       float d; //tmp distance
       int s=0; //counts objects
@@ -363,7 +362,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
         {
           if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0) 
           {//another cluster of the same object
-            d = min (d, (MinMaxDistance(query->points[n].histogram, cvfh_[i], 308)) );
+            d = min (d, (MinMaxDistance(query->points[n].histogram, (*cvfh_)[i], 308)) );
           }
           else 
           {//another cluster of another object
@@ -371,14 +370,14 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
               distIdx.push_back( make_pair(d, s++) );
             else
               distIdx[s++].first += d;
-            d = MinMaxDistance (query->points[n].histogram, cvfh_[i], 308);
+            d = MinMaxDistance (query->points[n].histogram, (*cvfh_)[i], 308);
           }
         }
         else if (i == (names_cvfh_.size() -1) )
         {//last cluster of last object
           if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
           {//last cluster is still part of previous object
-            d = min (d, (MinMaxDistance(query->points[n].histogram, cvfh_[i], 308)) );
+            d = min (d, (MinMaxDistance(query->points[n].histogram, (*cvfh_)[i], 308)) );
             if (n==0)
               distIdx.push_back( make_pair(d, s++) );
             else
@@ -386,7 +385,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
           }
           else
           {//last cluster is part of another last object
-            d = MinMaxDistance(query->points[n].histogram, cvfh_[i], 308);
+            d = MinMaxDistance(query->points[n].histogram, (*cvfh_)[i], 308);
             if (n==0)
               distIdx.push_back( make_pair(d, s++) );
             else
@@ -395,7 +394,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
         }
         else
         {//first cluster of first object
-          d = MinMaxDistance (query->points[n].histogram, cvfh_[i], 308);
+          d = MinMaxDistance (query->points[n].histogram, (*cvfh_)[i], 308);
         }
       }//end of for each cluster in db
     }//end of for each query
@@ -403,7 +402,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
   }
   else if ( feat == listType::ourcvfh )
   { //ourcvfh list
-    for (int n=0; n<query.points.size(); ++n)
+    for (int n=0; n<query->points.size(); ++n)
     {//for each query cluster
       float d; //tmp distance
       int s=0; //counts objects
@@ -413,7 +412,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
         {
           if (names_ourcvfh_[i].compare(names_ourcvfh_[i-1]) == 0) 
           {//another cluster of the same object
-            d = min (d, (MinMaxDistance(query->points[n].histogram, ourcvfh_[i], 308)) );
+            d = min (d, (MinMaxDistance(query->points[n].histogram, (*ourcvfh_)[i], 308)) );
           }
           else 
           {//another cluster of another object
@@ -421,14 +420,14 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
               distIdx.push_back( make_pair(d, s++) );
             else
               distIdx[s++].first += d;
-            d = MinMaxDistance (query->points[n].histogram, ourcvfh_[i], 308);
+            d = MinMaxDistance (query->points[n].histogram, (*ourcvfh_)[i], 308);
           }
         }
         else if (i == (names_cvfh_.size() -1) )
         {//last cluster of last object
           if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
           {//last cluster is still part of previous object
-            d = min (d, (MinMaxDistance(query->points[n].histogram, cvfh_[i], 308)) );
+            d = min (d, (MinMaxDistance(query->points[n].histogram, (*ourcvfh_)[i], 308)) );
             if (n==0)
               distIdx.push_back( make_pair(d, s++) );
             else
@@ -436,7 +435,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
           }
           else
           {//last cluster is part of another last object
-            d = MinMaxDistance(query->points[n].histogram, ourcvfh_[i], 308);
+            d = MinMaxDistance(query->points[n].histogram, (*ourcvfh_)[i], 308);
             if (n==0)
               distIdx.push_back( make_pair(d, s++) );
             else
@@ -445,7 +444,7 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
         }
         else
         {//first cluster of first object
-          d = MinMaxDistance (query->points[n].histogram, ourcvfh_[i], 308);
+          d = MinMaxDistance (query->points[n].histogram, (*ourcvfh_)[i], 308);
         }
       }//end of for each cluster in db
     }//end of for each query
@@ -529,7 +528,7 @@ bool PoseDB::save(path pathDB)
   print_info("%*s]\tDone saving database, %d poses written to disk\n",20,__func__,names_.size());
   return true;
 }
-/////////////////////////////////////////TODO update names_cvfh_ and ourcvfh
+
 bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params)
 {
   //Check Parameters correctness 
@@ -994,9 +993,11 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       cvfhE.setMinPoints(params->at("cvfhMinPoints"));
       cvfhE.setNormalizeBins(false);
       cvfhE.compute (out);
-      clusters_cvfh_.push_back(out.points.size());
       for (size_t n=0; n<out.points.size(); ++n)
+      {
+        names_cvfh_.push_back(names_[i]);
         tmp_cvfh->push_back(out.points[n]);
+      }
       //OURCVFH
       //For some reason OURCVFHEstimation is not templated to treat PointXYZRGBA point types...
       //Using PointXYZ...
@@ -1016,9 +1017,11 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       ourcvfhE.setMinAxisValue(params->at("ourcvfhMinAxisValue"));
       ourcvfhE.setRefineClusters(params->at("ourcvfhRefineClusters"));
       ourcvfhE.compute (out);
-      clusters_ourcvfh_.push_back(out.points.size());
       for (size_t n=0; n<out.points.size(); ++n)
+      {
         tmp_ourcvfh->push_back(out.points[n]);
+        names_ourcvfh_.push_back(names_[i]);
+      }
       print_info("%*s]\t%d clouds processed so far...\r",20,__func__,i+1);
       cout<<std::flush;
     }
@@ -1903,19 +1906,24 @@ bool PoseEstimation::findCandidate_(vector<Candidate>& list, string name, float&
   }
   return false;
 }
-//////////////////////////////////////////////////////////////////////////////////////////TODO Update clusters list
-void PoseEstimation::generateLists()
+////////////////////////////////////////////////////////////////////////////////////////
+bool PoseEstimation::generateLists()
 {
   int k = params_["kNeighbors"];
   if (!db_set_)
   {
     print_error("%*s]\tDatabase is not set, set it with setDatabase first! Exiting...\n",20,__func__);
-    return;
+    return false;
   }
   if (!query_set_)
   {
     print_error("%*s]\tQuery is not set, set it with setQuery first! Exiting...\n",20,__func__);
-    return;
+    return false;
+  }
+  if (k > database_.names_.size())
+  {
+    print_error("%*]\tNot enough candidates to select in database, kNeighbors is bigger than database size, aborting...\n",20,__func__);
+    return false;
   }
   if (params_["verbosity"]>1)
     print_info("%*s]\tStarting Candidate list(s) generation...\n",20,__func__);
@@ -1950,7 +1958,7 @@ void PoseEstimation::generateLists()
       if (params_["verbosity"]>1)
         print_error("ERROR\n");
       print_error("%*s]\tError Computing VFH list\n",20,__func__);
-      return;
+      return false;
     }
     if (params_["verbosity"]>1)
     {
@@ -1987,7 +1995,7 @@ void PoseEstimation::generateLists()
       if (params_["verbosity"]>1)
         print_error("ERROR\n");
       print_error("%*s]\tError Computing ESF list\n",20,__func__);
-      return;
+      return false;
     }
     if (params_["verbosity"]>1)
     {
@@ -2003,34 +2011,30 @@ void PoseEstimation::generateLists()
     try
     {
       cvfh_list_.clear();
-      for (int i=0; i<database_.names_.size(); ++i)
+      vector<pair<float, int> > dists;
+      if (database_.computeDistFromClusters_(cvfh_.makeShared(), listType::cvfh, dists) )
       {
-        Candidate c;
-        c.name_ = database_.names_[i];
-        c.cloud_ = database_.clouds_[i].makeShared();
-        database_.computeDistanceFromClusters_(cvfh_.makeShared() ,i ,"CVFH", c.distance_);
-        cvfh_list_.push_back(c);
-      }
-      if ( cvfh_list_.size() >=k )
-      {
-        sort(cvfh_list_.begin(), cvfh_list_.end(),
-            [](Candidate const &a, Candidate const &b)
+        sort(dists.begin(), dists.end(),
+            [](pair<float, int> const& a, pair<float, int> const& b)
             {
-            return (a.distance_ < b.distance_ );
+            return (a.first < b.first );
             });
-        cvfh_list_.resize(k);
+        dists.resize(k);
+        for (int i=0; i<k ; ++i)
+        {
+          Candidate c (database_.names_[dists[i].second], database_.clouds_[dists[i].second] );
+          c.rank_ = i+1;
+          c.distance_ = dists[i].first;
+          c.normalized_distance_ = (dists[i].first - dists[0].first)/(dists[k-1].first - dists[0].first);
+          cvfh_list_.push_back(c);
+        }
       }
       else
       {
         if (params_["verbosity"]>1)
           print_error("ERROR\n");
-        print_error("%*s]\tNot enough candidates to select in CVFH list (kNeighbors is too big)...\n",20,__func__);
-        return;
-      }
-      for (int i=0; i<k; ++i)
-      {
-        cvfh_list_[i].rank_ = i+1;
-        cvfh_list_[i].normalized_distance_=(cvfh_list_[i].distance_ - cvfh_list_[0].distance_)/(cvfh_list_[k-1].distance_ - cvfh_list_[0].distance_);
+        print_error("%*s]\tError generating CVFH list, computeDistFromClusters returned false...\n",20,__func__);
+        return false;
       }
     }
     catch (...)
@@ -2038,7 +2042,7 @@ void PoseEstimation::generateLists()
       if (params_["verbosity"]>1)
         print_error("ERROR\n");
       print_error("%*s]\tError computing CVFH list\n",20,__func__);
-      return;
+      return false;
     }
     if (params_["verbosity"]>1)
     {
@@ -2054,34 +2058,30 @@ void PoseEstimation::generateLists()
     try
     {
       ourcvfh_list_.clear();
-      for (int i=0; i<database_.names_.size(); ++i)
+      vector<pair<float, int> > dists;
+      if (database_.computeDistFromClusters_(ourcvfh_.makeShared(), listType::ourcvfh, dists) )
       {
-        Candidate c;
-        c.name_ = database_.names_[i];
-        c.cloud_ = database_.clouds_[i].makeShared();
-        database_.computeDistanceFromClusters_(ourcvfh_.makeShared() ,i ,"OURCVFH", c.distance_);
-        ourcvfh_list_.push_back(c);
-      }
-      if ( ourcvfh_list_.size() >=k )
-      {
-        sort(ourcvfh_list_.begin(), ourcvfh_list_.end(),
-            [](Candidate const &a, Candidate const &b)
+        sort(dists.begin(), dists.end(),
+            [](pair<float, int> const& a, pair<float, int> const& b)
             {
-            return (a.distance_ < b.distance_ );
+            return (a.first < b.first );
             });
-        ourcvfh_list_.resize(k);
+        dists.resize(k);
+        for (int i=0; i<k ; ++i)
+        {
+          Candidate c (database_.names_[dists[i].second], database_.clouds_[dists[i].second] );
+          c.rank_ = i+1;
+          c.distance_ = dists[i].first;
+          c.normalized_distance_ = (dists[i].first - dists[0].first)/(dists[k-1].first - dists[0].first);
+          ourcvfh_list_.push_back(c);
+        }
       }
       else
       {
         if (params_["verbosity"]>1)
           print_error("ERROR\n");
-        print_error("%*s]\tNot enough candidates to select in OURCVFH list (kNeighbors is too big)...\n",20,__func__);
-        return;
-      }
-      for (int i=0; i<k; ++i)
-      {
-        ourcvfh_list_[i].rank_ = i+1;
-        ourcvfh_list_[i].normalized_distance_=(ourcvfh_list_[i].distance_ - ourcvfh_list_[0].distance_)/(ourcvfh_list_[k-1].distance_ - ourcvfh_list_[0].distance_);
+        print_error("%*s]\tError generating OURCVFH list, computeDistFromClusters returned false...\n",20,__func__);
+        return false;
       }
     }
     catch (...)
@@ -2089,7 +2089,7 @@ void PoseEstimation::generateLists()
       if (params_["verbosity"]>1)
         print_error("ERROR\n");
       print_error("%*s]\tError computing OURCVFH list\n",20,__func__);
-      return;
+      return false;
     }
     if (params_["verbosity"]>1)
     {
@@ -2114,7 +2114,7 @@ void PoseEstimation::generateLists()
         print_value("%g",t.getTime());
         print_info(" ms elapsed\n");
       }
-      return;
+      return true;
     }
     boost::copy(vfh_list_, back_inserter(tmp_vfh) );
   }
@@ -2129,7 +2129,7 @@ void PoseEstimation::generateLists()
         print_value("%g",t.getTime());
         print_info(" ms elapsed\n");
       }
-      return;
+      return true;
     }
     boost::copy(esf_list_, back_inserter(tmp_esf) );
   }
@@ -2144,7 +2144,7 @@ void PoseEstimation::generateLists()
         print_value("%g",t.getTime());
         print_info(" ms elapsed\n");
       }
-      return;
+      return true;
     }
     boost::copy(cvfh_list_, back_inserter(tmp_cvfh) );
   }
@@ -2159,7 +2159,7 @@ void PoseEstimation::generateLists()
         print_value("%g",t.getTime());
         print_info(" ms elapsed\n");
       }
-      return;
+      return true;
     }
     boost::copy(ourcvfh_list_, back_inserter(tmp_ourcvfh) );
   }
@@ -2272,15 +2272,15 @@ void PoseEstimation::generateLists()
     print_value("%g",timer.getTime());
     print_info(" ms\n");
   }
-  return;
+  return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::generateLists(boost::filesystem::path dbPath)
+bool PoseEstimation::generateLists(boost::filesystem::path dbPath)
 {
   if (!query_set_)
   {
     print_error("%*s]\tQuery is not set, set it with setQuery first! Exiting...\n",20,__func__);
-    return;
+    return false;
   }
   if (db_set_ && params_["verbosity"]>0)
   {
@@ -2288,9 +2288,24 @@ void PoseEstimation::generateLists(boost::filesystem::path dbPath)
     print_warn("%*s\tUse generateLists() without arguments if you want to keep using the previously loaded database\n",20,__func__);
   }
   setDatabase(dbPath);
-  generateLists();
+  return (this->generateLists());
 }
-////////////////////////////////////////////////77
+bool PoseEstimation::generateLists(PoseDB& db)
+{
+  if (!query_set_)
+  {
+    print_error("%*s]\tQuery is not set, set it with setQuery first! Exiting...\n",20,__func__);
+    return false;
+  }
+  if (db_set_ && params_["verbosity"]>0)
+  {
+    print_warn("%*s]\tDatabase was already set, but a new one was specified, loading the new database...\n",20,__func__);
+    print_warn("%*s\tUse generateLists() without arguments if you want to keep using the previously loaded database\n",20,__func__);
+  }
+  setDatabase(db);
+  return (this->generateLists());
+}
+///////////////////////////////////////////////
 void PoseEstimation::printCandidates()
 {
   if (!candidates_found_)
@@ -2349,12 +2364,12 @@ void PoseEstimation::printCandidates()
   }
 }
 
-void PoseEstimation::refineCandidates()
+bool PoseEstimation::refineCandidates()
 {
   if (!candidates_found_)
   {
     print_error("%*s]\tList of Candidates are not yet generated, call generateLists first...\n",20,__func__);
-    return;
+    return false;
   }
   if (params_["progBisection"]>0)
   {
@@ -2411,7 +2426,7 @@ void PoseEstimation::refineCandidates()
           print_value("%g",timer.getTime());
           print_info(" ms\n");
         }
-        return;
+        return true;
       }
       else
       {
@@ -2436,7 +2451,7 @@ void PoseEstimation::refineCandidates()
       print_value("%g",timer.getTime());
       print_info(" ms\n");
     }
-    return;
+    return true;
   }
   else
   {
@@ -2480,7 +2495,7 @@ void PoseEstimation::refineCandidates()
           print_value("%g",timer.getTime());
           print_info(" ms\n");
         }
-        return;
+        return true;
       }
     }
     //no candidate converged, pose estimation failed
@@ -2494,41 +2509,45 @@ void PoseEstimation::refineCandidates()
       print_value("%g",timer.getTime());
       print_info(" ms\n");
     }
-    return;
+    return false;
   }
 }
 
-void PoseEstimation::estimate(string name, PC& cloud, boost::filesystem::path db_path)
+bool PoseEstimation::estimate(string name, PC& cloud, boost::filesystem::path db_path)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud);
-  setDatabase(db_path);
-  generateLists();
-  refineCandidates();
+  if (generateLists(db_path))
+    return (refineCandidates());
+  else
+    return false;
 }
-void PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path)
+bool PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud_pointer);
-  setDatabase(db_path);
-  generateLists();
-  refineCandidates();
+  if (generateLists(db_path))
+    return (refineCandidates());
+  else
+    return false;
 }
-void PoseEstimation::estimate(string name, PC& cloud, PoseDB& database)
+bool PoseEstimation::estimate(string name, PC& cloud, PoseDB& database)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud);
-  setDatabase(database);
-  generateLists();
-  refineCandidates();
+  if ( generateLists(database) )
+    return ( refineCandidates() );
+  else
+    return false;
 }
-void PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, PoseDB& database)
+bool PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, PoseDB& database)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud_pointer);
-  setDatabase(database);
-  generateLists();
-  refineCandidates();
+  if ( generateLists(database) )
+    return ( refineCandidates() );
+  else
+    return false;
 }
 void PoseEstimation::printEstimation()
 {
@@ -2560,6 +2579,22 @@ boost::shared_ptr<parameters> PoseEstimation::getParams()
   boost::shared_ptr<parameters> ptr;
   ptr = boost::make_shared<parameters>(p);
   return ptr;
+}
+bool PoseEstimation::getParams(boost::shared_ptr<parameters> params)
+{
+  try
+  {
+    parameters p = {{"key",-1}}; //initialize p with something so that copy assigned is performed instead of move (to preserve param_)
+    p = params_;
+    boost::shared_ptr<parameters> ptr;
+    params = boost::make_shared<parameters>(p);
+  }
+  catch (...)
+  {//something went wrong
+    print_error("%*s]\tError copying parameters...\n",20,__func__);
+    return false;
+  }
+  return true;
 }
 bool PoseEstimation::saveEstimation(path file, bool append)
 {
@@ -2744,14 +2779,29 @@ boost::shared_ptr<Candidate> PoseEstimation::getEstimation()
   c = *pose_estimation_;
   return ( boost::make_shared<Candidate> (c) );
 }
+bool PoseEstimation::getEstimation(boost::shared_ptr<Candidate> est)
+{
+  if (! refinement_done_ )
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*]\tRefinement has not yet been done, Pose Estimation is not complete, returning false\n",20,__func__);
+    return false;
+  }
+  if (est)
+    est.reset();
+  Candidate c;
+  c = *pose_estimation_;
+  est = boost::make_shared<Candidate> (c);
+  return true;
+}
 
-void PoseEstimation::saveCandidates(boost::filesystem::path file)
+bool PoseEstimation::saveCandidates(boost::filesystem::path file)
 {
   if (!candidates_found_)
   {
     if (params_["verbosity"]>0)
       print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to save them!\n",20,__func__); 
-    return;
+    return false;
   }
   if (exists(file) && params_["verbosity"]>1)
     print_info("%*s]\tAppending lists of candidates to %s\n",20,__func__,file.string().c_str());
@@ -2796,65 +2846,76 @@ void PoseEstimation::saveCandidates(boost::filesystem::path file)
   else
   {
     print_error("%*s]\tError writing to %s...\n",20,__func__,file.string().c_str());
-    return;
+    return false;
   }
+  return true;
 }
 
-void PoseEstimation::getCandidateList (vector<Candidate>& list, listType type)
+bool PoseEstimation::getCandidateList (vector<Candidate>& list, listType type)
 {
   if ( !candidates_found_ )
   {
     if (params_["verbosity"]>0)
       print_warn("%*s]\tLists of Candidates are not generated yet, not copying anything...\n",20,__func__);
-    return;
+    return false;
   }
   if (type == listType::vfh)
   {
     if (params_["useVFH"]>0)
     {
+      list.clear();
       boost::copy(vfh_list_, back_inserter(list) );
+      return true;
     }
     else if (params_["verbosity"]>0)
       print_warn("%*s]\tVFH list was not generated, because 'useVFH' parameter was set to zero, not copying anything...\n",20,__func__);
-    return;
+    return false;
   }
   else if (type == listType::esf)
   {
     if (params_["useESF"]>0)
     {
+      list.clear();
       boost::copy(esf_list_, back_inserter(list) );
+      return true;
     }
     else if (params_["verbosity"]>0)
       print_warn("%*s]\tESF list was not generated, because 'useESF' parameter was set to zero, not copying anything...\n",20,__func__);
-    return;
+    return false;
   }
   else if (type == listType::cvfh)
   {
     if (params_["useCVFH"]>0)
     {
+      list.clear();
       boost::copy(cvfh_list_, back_inserter(list) );
+      return true;
     }
     else if (params_["verbosity"]>0)
       print_warn("%*s]\tCVFH list was not generated, because 'useCVFH' parameter was set to zero, not copying anything...\n",20,__func__);
-    return;
+    return false;
   }
   else if (type == listType::ourcvfh)
   {
     if (params_["useOURCVFH"]>0)
     {
+      list.clear();
       boost::copy(ourcvfh_list_, back_inserter(list) );
+      return true;
     }
     else if (params_["verbosity"]>0)
       print_warn("%*s]\tOURCVFH list was not generated, because 'useOURCVFH' parameter was set to zero, not copying anything...\n",20,__func__);
-    return;
+    return false;
   }
   else if (type == listType::composite)
   {
+    list.clear();
     boost::copy(composite_list_, back_inserter(list) );
-    return;
+    return true;
   }
   else
     print_error("%*s]\tUnknown listType, not copying anything...\n",20,__func__);
+  return false;
 }
 
 void PoseEstimation::printQuery()
@@ -2896,13 +2957,13 @@ void PoseEstimation::printQuery()
   }
 }
 
-void PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)
+bool PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)
 {
   if (!query_set_)
   {
     if (params_["verbosity"]>0)
       print_warn("%*s]\tQuery is not set yet...\n",20,__func__);
-    return;
+    return false;
   }
   name = query_name_;
   if (clp)
@@ -2920,82 +2981,113 @@ void PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)
     PC cl;
     copyPointCloud(*query_cloud_processed_, cl);
     clp_pre = cl.makeShared();
-  } 
+  }
+  return true;
 }
 
-void PoseEstimation::getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, PointCloud<VFHSignature308>::Ptr cvfh, PointCloud<VFHSignature308>::Ptr ourcvfh, PointCloud<ESFSignature640>::Ptr esf, PointCloud<Normal>::Ptr normals)
+int PoseEstimation::getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, PointCloud<VFHSignature308>::Ptr cvfh, PointCloud<VFHSignature308>::Ptr ourcvfh, PointCloud<ESFSignature640>::Ptr esf, PointCloud<Normal>::Ptr normals)
 {
   if (!query_set_)
   {
     if (params_["verbosity"]>0)
       print_warn("%*s]\tQuery is not set yet...\n",20,__func__);
-    return;
+    return 0;
   }
-  if (vfh && vfh_.points.size() != 0)
-    copyPointCloud(vfh_, *vfh);
-  else if (!vfh && vfh_.points.size() != 0)
+  int count (0);
+  try
   {
-    PointCloud<VFHSignature308> cl;
-    copyPointCloud(vfh_, cl);
-    vfh = cl.makeShared();
+    if (vfh && vfh_.points.size() != 0)
+    {
+      copyPointCloud(vfh_, *vfh);
+      ++count;
+    }
+    else if (!vfh && vfh_.points.size() != 0)
+    {
+      PointCloud<VFHSignature308> cl;
+      copyPointCloud(vfh_, cl);
+      vfh = cl.makeShared();
+      ++count;
+    }
+    else
+    {
+      if (params_["verbosity"]>0)
+        print_warn("%*s]\tVFH feature was not calculated\n",20,__func__);
+    }
+    if (cvfh && cvfh_.points.size() != 0)
+    {
+      copyPointCloud(cvfh_, *cvfh);
+      ++count;
+    }
+    else if (!cvfh && cvfh_.points.size() != 0)
+    {
+      PointCloud<VFHSignature308> cl;
+      copyPointCloud(cvfh_, cl);
+      cvfh = cl.makeShared();
+      ++count;
+    }
+    else
+    {
+      if (params_["verbosity"]>0)
+        print_warn("%*s]\tCVFH feature was not calculated\n",20,__func__);
+    }
+    if (ourcvfh && ourcvfh_.points.size() != 0)
+    {
+      copyPointCloud(ourcvfh_, *ourcvfh);
+      ++count;
+    }
+    else if (!ourcvfh && ourcvfh_.points.size() != 0)
+    {
+      PointCloud<VFHSignature308> cl;
+      copyPointCloud(ourcvfh_, cl);
+      ourcvfh = cl.makeShared();
+      ++count;
+    }
+    else
+    {
+      if (params_["verbosity"]>0)
+        print_warn("%*s]\tOURCVFH feature was not calculated\n",20,__func__);
+    }
+    if (esf && esf_.points.size() != 0)
+    {
+      copyPointCloud(esf_, *esf);
+      ++count;
+    }
+    else if (!esf && esf_.points.size() != 0)
+    {
+      PointCloud<ESFSignature640> cl;
+      copyPointCloud(esf_, cl);
+      esf = cl.makeShared();
+      ++count;
+    }
+    else
+    {
+      if (params_["verbosity"]>0)
+        print_warn("%*s]\tESF feature was not calculated\n",20,__func__);
+    }
+    if (normals && normals_.points.size() != 0)
+    {
+      copyPointCloud(normals_, *normals);
+      ++count;
+    }
+    else if (!normals && normals_.points.size() != 0)
+    {
+      PointCloud<Normal> cl;
+      copyPointCloud(normals_, cl);
+      normals = cl.makeShared();
+      ++count;
+    }
+    else
+    {
+      if (params_["verbosity"]>0)
+        print_warn("%*s]\tNormals were not calculated\n",20,__func__);
+    }
   }
-  else
+  catch (...)
   {
-    if (params_["verbosity"]>0)
-      print_warn("%*s]\tVFH feature was not calculated\n",20,__func__);
+    print_error("%*s]\tError copying features...\n",20,__func__);
+    return (-1);
   }
-  if (cvfh && cvfh_.points.size() != 0)
-    copyPointCloud(cvfh_, *cvfh);
-  else if (!cvfh && cvfh_.points.size() != 0)
-  {
-    PointCloud<VFHSignature308> cl;
-    copyPointCloud(cvfh_, cl);
-    cvfh = cl.makeShared();
-  }
-  else
-  {
-    if (params_["verbosity"]>0)
-      print_warn("%*s]\tCVFH feature was not calculated\n",20,__func__);
-  }
-  if (ourcvfh && ourcvfh_.points.size() != 0)
-    copyPointCloud(ourcvfh_, *ourcvfh);
-  else if (!ourcvfh && ourcvfh_.points.size() != 0)
-  {
-    PointCloud<VFHSignature308> cl;
-    copyPointCloud(ourcvfh_, cl);
-    ourcvfh = cl.makeShared();
-  }
-  else
-  {
-    if (params_["verbosity"]>0)
-      print_warn("%*s]\tOURCVFH feature was not calculated\n",20,__func__);
-  }
-  if (esf && esf_.points.size() != 0)
-    copyPointCloud(esf_, *esf);
-  else if (!esf && esf_.points.size() != 0)
-  {
-    PointCloud<ESFSignature640> cl;
-    copyPointCloud(esf_, cl);
-    esf = cl.makeShared();
-  }
-  else
-  {
-    if (params_["verbosity"]>0)
-      print_warn("%*s]\tESF feature was not calculated\n",20,__func__);
-  }
-  if (normals && normals_.points.size() != 0)
-    copyPointCloud(normals_, *normals);
-  else if (!normals && normals_.points.size() != 0)
-  {
-    PointCloud<Normal> cl;
-    copyPointCloud(normals_, cl);
-    normals = cl.makeShared();
-  }
-  else
-  {
-    if (params_["verbosity"]>0)
-      print_warn("%*s]\tNormals were not calculated\n",20,__func__);
-  }
+  return count;
 }
 
 #endif
