@@ -136,7 +136,7 @@ using namespace flann;
  * where n=308 for CVFH/OURCVFH histograms
  */
 float MinMaxDistance (float* a, float* b, int size);
-/** \brief Display current PoseEstimation version
+/** \brief Display current Pose Estimation Library version
  */
 void printVersion()
 {
