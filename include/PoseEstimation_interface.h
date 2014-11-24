@@ -386,15 +386,15 @@ class Candidate{
   pe.setQuery("funnel_20_30", cl); //set a new query to be a point cloud contained in "cl" and name it "funnel_20_30"
   pe.setDatabase("../Database"); //load a database from disk contained in directory "../Database"
 \endcode
-- Generate the list(s) of candidates to the query with member generateLists()
+- Generate the list(s) of candidates to the query with method generateLists()
 \code
   pe.generateLists(); //list of candidates are computed, based on type of parameters set
 \endcode
-- Obtain the final candidate with member refineCandidates()
+- Obtain the final candidate with method refineCandidates()
 \code
   pe.refineCandidates(); //Select one final candidate from the lists, representing the pose estimation
 \endcode
-- Print, Get or Save the final pose estimation with the corresponding member functions
+- Print, Get or Save the final pose estimation with corresponding methods
 \code
   pe.saveEstimation("file.pose"); //Save the estimation to a file on disk
   pe.printEstimation(); //print the estimation on screen
@@ -408,7 +408,7 @@ Alternatively the method estimate() can be called right after initialization wit
   //... 
   //Put somethging in cloud
   //...
-  pe.estimate("query object", cloud, "DB_PATH"); //calls setQuery(), setDatabase(), generateList(), refineCandidates()
+  pe.estimate("query object", cloud, "DB_PATH"); //calls setQuery("query object", cloud), setDatabase("DB_PATH"), generateList(), refineCandidates()
 \endcode
 
 \author Federico Spinelli
