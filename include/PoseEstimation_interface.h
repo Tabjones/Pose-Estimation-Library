@@ -110,6 +110,7 @@ For example when changing preprocessing pipeline (i.e. altering search radius of
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
+#include "version.h"
 
 using namespace pcl;
 using namespace std;
@@ -117,6 +118,31 @@ using namespace pcl::console;
 using namespace boost;
 using namespace boost::filesystem;
 using namespace flann;
+
+/**\addtogroup global Global Functions
+ *
+ * General utilities functions
+ * @{ */
+/**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
+ * \param[in] a The first histogram
+ * \param[in] b The second histogram
+ * \param[in] size Size of vectors 
+ * \returns The computed dstance _D_
+ *
+ * The distance _D_ is defined by the following metric:
+ * \f[
+ *  D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
+ * \f]
+ * where n=308 for CVFH/OURCVFH histograms
+ */
+float MinMaxDistance (float* a, float* b, int size);
+/** \brief Display current PoseEstimation version
+ */
+void printVersion()
+{
+  print_highlight("Pose Estimation Library (PEL)\t version %d.%d\n", PEL_VER_MAJ, PEL_VER_MIN);
+}
+/** @}*/
 
 /** \addtogroup Definitions
  * 

@@ -1,4 +1,4 @@
-#include "PoseEstimation_interface.hpp"
+#include <PoseEstimation_interface.h>
 
 ////////////////////////////////////////////////////
 //////////////////  Main  //////////////////////////
@@ -6,6 +6,7 @@
 int
 main (int argc, char *argv[])
 {
+  printVersion();
   PointCloud<PointXYZRGBA> cloud;
   pcl::io::loadPCDFile(argv[1], cloud);
   PoseEstimation prova;

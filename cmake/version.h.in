@@ -1,0 +1,3 @@
+//Configured options set in CMakeLists
+#define PEL_VER_MAJ @PEL_VERSION_MAJOR@
+#define PEL_VER_MIN @PEL_VERSION_MINOR@

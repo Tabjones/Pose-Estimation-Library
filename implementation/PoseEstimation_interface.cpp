@@ -1,30 +1,10 @@
 /* This file implementes the Pose Estimation interface, thus contains definitions,
  * for the interface declarations look in PoseEstimation_interface.h
  */
-#ifndef __INTERFACE_HPP_INCLUDED__
-#define __INTERFACE_HPP_INCLUDED__
 
 //Definition header
 #include "PoseEstimation_interface.h"
 
-
-
-/**\addtogroup global Global Functions
- *
- * General utilities functions
- * @{ */
-/**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
- * \param[in] a The first histogram
- * \param[in] b The second histogram
- * \param[in] size Size of vectors 
- * \returns The computed dstance _D_
- *
- * The distance _D_ is defined by the following metric:
- * \f[
- *  D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
- * \f]
- * where n=308 for CVFH/OURCVFH histograms
- */
 float MinMaxDistance (float* a, float* b, int size)
 {
   float num(1.0f), den(1.0f);
@@ -46,7 +26,9 @@ float MinMaxDistance (float* a, float* b, int size)
   }
   return (1 - (num/den));
 }
-/** @}*/
+
+
+/*PoseDB implementation */
 bool PoseDB::isEmpty()
 {
   if ( !(vfh_) || !(esf_) || !(cvfh_) || !(ourcvfh_) )
@@ -3091,4 +3073,3 @@ int PoseEstimation::getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, Point
   return count;
 }
 
-#endif
