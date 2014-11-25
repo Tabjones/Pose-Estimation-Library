@@ -4,10 +4,10 @@ project(PEL)
 
 set (PEL_VERSION_MAJOR  1)
 set (PEL_VERSION_MINOR  0)
-set (PEL_VERSION ${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR} )
+set (PEL_VERSION ${NPEL_VERSION_MAJOR}.${PEL_VERSION_MINOR} )
 set (PEL_INSTALL_DIR "lib/pel-${PEL_VERSION}" CACHE PATH "Installation directory for library" )
 set (PEL_INCLUDE_DIR "include/pel-${PEL_VERSION}" CACHE PATH "Installation directory for header files" )
-set (PEL_CMAKE_DIR "lib/CMake/pel" CACHE PATH "Installation directory for CMake files")
+set (PEL_INSTALLCMAKE_DIR "lib/CMake/PEL" CACHE PATH "Installation directory for CMake files")
 
 #configure version file 
 configure_file (
@@ -16,7 +16,7 @@ configure_file (
   )
 
 #make relative path absolute (needed later on...)
-foreach(p INSTALL INCLUDE CMAKE)
+foreach(p INSTALL INCLUDE INSTALLCMAKE)
   set (var PEL_${p}_DIR)
   if (NOT IS_ABSOLUTE "${${var}}")
     set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
@@ -38,7 +38,7 @@ export (TARGETS pel
 export (PACKAGE PEL)
 
 #Create PELConfig.cmake and PELConfigVersion files
-file (RELATIVE_PATH REL_INCLUDE_DIR "${PEL_CMAKE_DIR}"
+file (RELATIVE_PATH REL_INCLUDE_DIR "${PEL_INSTALLCMAKE_DIR}"
   "${PEL_INCLUDE_DIR}" )
 #for build tree
 #set (CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/pel/" "${PROJECT_BINARY_DIR}")
@@ -46,10 +46,12 @@ file (RELATIVE_PATH REL_INCLUDE_DIR "${PEL_CMAKE_DIR}"
 #                "${PROJECT_BINARY_DIR}/PELConfig.cmake" @ONLY)
 #              message(STATUS "build= ${PROJECT_BINARY_DIR}/PELConfig.cmake") 
 #for install tree
-set (CONF_INCLUDE_DIRS "\${PEL_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+set (CONF_INCLUDE_DIRS "${PEL_INSTALLCMAKE_DIR}/${REL_INCLUDE_DIR}")
 configure_file (PELConfig.cmake.in
                 "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake" @ONLY )
-# message(STATUS "inst= ${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake") 
+
+message(STATUS "inst= ${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake") 
+message(STATUS "conf_include= ${CONF_INCLUDE_DIRS}") 
 #for both
 configure_file (PELConfigVersion.cmake.in
                 "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake" @ONLY )
@@ -58,10 +60,10 @@ configure_file (PELConfigVersion.cmake.in
 install(FILES
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake"
         "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake"
-        DESTINATION "${PEL_CMAKE_DIR}")
+        DESTINATION "${PEL_INSTALLCMAKE_DIR}")
 #install export set
 install(EXPORT  pelTargets
-        DESTINATION "${PEL_CMAKE_DIR}")
+  DESTINATION "${PEL_INSTALLCMAKE_DIR}")
 
 
 #Add an uninstall target

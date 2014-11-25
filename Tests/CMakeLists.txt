@@ -14,6 +14,8 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 add_definitions(-std=c++11)
 
+message(STATUS "include=${PEL_INCLUDE_DIRS}")
+
 add_executable (prova prova.cpp)
 target_link_libraries (prova 
                        ${PEL_LIBRARIES}
