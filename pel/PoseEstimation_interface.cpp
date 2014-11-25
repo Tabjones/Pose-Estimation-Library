@@ -3,7 +3,7 @@
  */
 
 //Definition header
-#include "PoseEstimation_interface.h"
+#include <pel.h>
 
 float MinMaxDistance (float* a, float* b, int size)
 {

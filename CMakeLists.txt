@@ -1,30 +1,73 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 project(PEL)
-set (PEL_VERSION_MAJOR  0)
-set (PEL_VERSION_MINOR  1)
+
+set (PEL_VERSION_MAJOR  1)
+set (PEL_VERSION_MINOR  0)
+set (PEL_VERSION ${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR} )
+set (PEL_INSTALL_DIR "lib/pel-${PEL_VERSION}" CACHE PATH "Installation directory for library" )
+set (PEL_INCLUDE_DIR "include/pel-${PEL_VERSION}" CACHE PATH "Installation directory for header files" )
+set (PEL_CMAKE_DIR "lib/CMake/pel" CACHE PATH "Installation directory for CMake files")
+
+#configure version file 
 configure_file (
-  "${PROJECT_SOURCE_DIR}/cmake/version.h.in"
-  "${PROJECT_SOURCE_DIR}/include/version.h"
+  "${PROJECT_SOURCE_DIR}/version.cmake.in"
+  "${PROJECT_SOURCE_DIR}/pel/version.h"
   )
 
-find_package(PCL 1.7 REQUIRED)
-find_package(HDF5 REQUIRED)
-#find_package(FLANN)
+#make relative path absolute (needed later on...)
+foreach(p INSTALL INCLUDE CMAKE)
+  set (var PEL_${p}_DIR)
+  if (NOT IS_ABSOLUTE "${${var}}")
+    set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+  endif()
+endforeach()
 
-include_directories(${PCL_INCLUDE_DIRS})
-include_directories("${PROJECT_SOURCE_DIR}/include")
-#include_directories(${FLANN_INCLUDE_DIRS})
-include_directories(${HDF5_INCLUDE_DIR})
+include_directories(
+  "${PROJECT_SOURCE_DIR}"
+  "${PROJECT_BINARY_DIR}"
+  )
 
-link_directories(${PCL_LIBRARY_DIRS})
-link_directories(${PROJECT_BINARY_DIR})
+add_subdirectory(pel)
 
-add_definitions(${PCL_DEFINITIONS})
-add_definitions(-std=c++11)
+#==============================================
+#Add all targets to the build-tree export set
+export (TARGETS pel
+        FILE "${PROJECT_BINARY_DIR}/pelTargets.cmake"
+       )
+export (PACKAGE PEL)
 
-add_library (PEL SHARED "${PROJECT_SOURCE_DIR}/implementation/PoseEstimation_interface.cpp")
+#Create PELConfig.cmake and PELConfigVersion files
+file (RELATIVE_PATH REL_INCLUDE_DIR "${PEL_CMAKE_DIR}"
+  "${PEL_INCLUDE_DIR}" )
+#for build tree
+set (CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/pel/" "${PROJECT_BINARY_DIR}")
+configure_file (PELConfig.cmake.in
+                "${PROJECT_BINARY_DIR}/PELConfig.cmake" @ONLY)
+              message(STATUS "build= ${PROJECT_BINARY_DIR}/PELConfig.cmake") 
+#for install tree
+set (CONF_INCLUDE_DIRS "\${PEL_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+configure_file (PELConfig.cmake.in
+                "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake" @ONLY )
+              message(STATUS "inst= ${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake") 
+#for both
+configure_file (PELConfigVersion.cmake.in
+                "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake" @ONLY )
 
-add_executable (prova Tests/prova.cpp )
-#target_link_libraries (prova ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5_hdf5_LIBRARY} PoseEstimation)
-target_link_libraries (prova ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${HDF5_hdf5_LIBRARY} PEL)
+#install PELConfig set of cmake files
+install(FILES
+        "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake"
+        "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake"
+        DESTINATION "${PEL_CMAKE_DIR}")
+#install export set
+install(EXPORT  pelTargets
+        DESTINATION "${PEL_CMAKE_DIR}")
+
+
+#Add an uninstall target
+configure_file (
+    "${CMAKE_CURRENT_SOURCE_DIR}/uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
+    IMMEDIATE @ONLY
+    )
+add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake)

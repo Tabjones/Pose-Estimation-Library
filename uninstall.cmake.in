@@ -1,0 +1,62 @@
+if(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
+  message(FATAL_ERROR "Cannot find install manifest: @CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
+endif(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
+
+file(READ "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt" files)
+string(REGEX REPLACE "\n" ";" files "${files}")
+foreach(file ${files})
+  message(STATUS "Uninstalling $ENV{DESTDIR}${file}")
+  if(IS_SYMLINK "$ENV{DESTDIR}${file}" OR EXISTS "$ENV{DESTDIR}${file}")
+    exec_program(
+      "@CMAKE_COMMAND@" ARGS "-E remove \"$ENV{DESTDIR}${file}\""
+      OUTPUT_VARIABLE rm_out
+      RETURN_VALUE rm_retval
+      )
+    if(NOT "${rm_retval}" STREQUAL 0)
+      message(FATAL_ERROR "Problem when removing $ENV{DESTDIR}${file}")
+    endif(NOT "${rm_retval}" STREQUAL 0)
+  else(IS_SYMLINK "$ENV{DESTDIR}${file}" OR EXISTS "$ENV{DESTDIR}${file}")
+    message(STATUS "File $ENV{DESTDIR}${file} does not exist.")
+  endif(IS_SYMLINK "$ENV{DESTDIR}${file}" OR EXISTS "$ENV{DESTDIR}${file}")
+endforeach(file)
+
+# remove directory in CMake
+message(STATUS "Uninstalling \"@PEL_CMAKE_DIR@\"")
+if (EXISTS "@PEL_CMAKE_DIR@" )
+  exec_program("@CMAKE_COMMAND@"
+    ARGS "-E remove_directory \"@PEL_CMAKE_DIR@\""
+    OUTPUT_VARIABLE rm_out RETURN_VALUE rm_retval)
+  if (NOT "${rm_retval}" STREQUAL 0)
+    message(FATAL_ERROR "Problem when removing \"@PEL_CMAKE_DIR@\"" )
+  endif (NOT "${rm_retval}" STREQUAL 0)
+else (EXISTS "@PEL_CMAKE_DIR@" )
+  message(STATUS "Directory \"@PEL_CMAKE_DIR@\" does not exist." )
+endif (EXISTS "@PEL_CMAKE_DIR@" )
+
+# remove directory in lib
+message(STATUS "Uninstalling \"@PEL_INSTALL_DIR@\"")
+if (EXISTS "@PEL_INSTALL_DIR@" )
+  exec_program("@CMAKE_COMMAND@"
+    ARGS "-E remove_directory \"@PEL_INSTALL_DIR@\""
+    OUTPUT_VARIABLE rm_out RETURN_VALUE rm_retval)
+  if (NOT "${rm_retval}" STREQUAL 0)
+    message(FATAL_ERROR "Problem when removing \"@PEL_INSTALL_DIR@\"" )
+  endif (NOT "${rm_retval}" STREQUAL 0)
+else (EXISTS "@PEL_INSTALL_DIR@" )
+  message(STATUS "Directory \"@PEL_INSTALL_DIR@\" does not exist." )
+endif (EXISTS "@PEL_INSTALL_DIR@" )
+
+# remove directory in include
+message(STATUS "Uninstalling \"@PEL_INCLUDE_DIR@\"")
+if (EXISTS "@PEL_INCLUDE_DIR@" )
+  exec_program("@CMAKE_COMMAND@"
+    ARGS "-E remove_directory \"@PEL_INCLUDE_DIR@\""
+    OUTPUT_VARIABLE rm_out RETURN_VALUE rm_retval)
+  if (NOT "${rm_retval}" STREQUAL 0)
+    message(FATAL_ERROR "Problem when removing \"@PEL_INCLUDE_DIR@\"" )
+  endif (NOT "${rm_retval}" STREQUAL 0)
+else (EXISTS "@PEL_INCLUDE_DIR@" )
+  message(STATUS "Directory \"@PEL_INCLUDE_DIR@\" does not exist." )
+endif (EXISTS "@PEL_INCLUDE_DIR@" )
+
+
