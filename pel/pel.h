@@ -1,11 +1,11 @@
 /* This file describes the PoseEstimation interface, for relative implementation
- * look in PoseEstimation_interface.hpp
+ * look in PoseEstimation_interface.cpp
  */
 
 //Doxygen documentation
 
 /** 
- *  \todo add view of candidates, estimation, query  etc..
+ *  \todo add view of estimation(with histograms?), query (and histograms), candidates (histograms) etc..
  */
 
 /** \mainpage notitle 
@@ -871,5 +871,14 @@ class PoseEstimation {
    */
   int getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, PointCloud<VFHSignature308>::Ptr cvfh, PointCloud<VFHSignature308>::Ptr ourcvfh, PointCloud<ESFSignature640>::Ptr esf, PointCloud<Normal>::Ptr normals);
 
+  /** \brief Visualize the query into a PCL visualizer, this method blocks execution until the visualizer is closed. Query cloud is displayed after preprocessing
+   */
+  void viewQuery();
+
+  /** \brief Visualize Pose Estimation into a PCL visualizer, this method blocks execution until the visualizer is closed.
+   *
+   * Query point cloud is displayed and on top of it the aligned candidate in green color. Other informations are displayed in the visualizer window
+   */
+  void viewEstimation();
 };
 #endif

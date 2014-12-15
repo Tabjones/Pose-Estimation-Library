@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(PEL)
 
 set (PEL_VERSION_MAJOR  1)
-set (PEL_VERSION_MINOR  0)
+set (PEL_VERSION_MINOR  1)
 set (PEL_VERSION ${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR} )
 set (PEL_INSTALL_DIR "lib/pel-${PEL_VERSION}" CACHE PATH "Installation directory for library" )
 set (PEL_INCLUDE_DIR "include/pel-${PEL_VERSION}" CACHE PATH "Installation directory for header files" )

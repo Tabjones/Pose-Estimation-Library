@@ -3073,3 +3073,27 @@ int PoseEstimation::getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, Point
   return count;
 }
 
+void PoseEstimation::viewQuery()
+{
+  //TODO add histograms
+  if (!query_set_)
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tQuery is not set yet...\n",20,__func__);
+    return;
+  }
+  visualization::PCLVisualizer viewer;
+  viewer.addPointCloud(query_cloud_processed_, "query");
+  viewer.addCoordinateSystem(0.2);
+  while(!viewer.wasStopped())
+  {
+    viewer.spinOnce();
+  }
+  viewer.close();
+  return;
+}
+
+void PoseEstimation::viewEstimation()
+{
+  //TODO all, possibly visualize histograms too
+}
