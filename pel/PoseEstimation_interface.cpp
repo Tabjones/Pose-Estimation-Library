@@ -3075,7 +3075,6 @@ int PoseEstimation::getQueryFeatures(PointCloud<VFHSignature308>::Ptr vfh, Point
 
 void PoseEstimation::viewQuery()
 {
-  //TODO add histograms
   if (!query_set_)
   {
     if (params_["verbosity"]>0)
@@ -3083,11 +3082,24 @@ void PoseEstimation::viewQuery()
     return;
   }
   visualization::PCLVisualizer viewer;
+  visualization::PCLHistogramVisualizer v_vfh, v_esf, v_cvfh, v_ourcvfh;
+  if (params_["useVFH"] > 0)
+    v_vfh.addFeatureHistogram (vfh_, 308, "vfh");
+  if (params_["useESF"] > 0)
+    v_esf.addFeatureHistogram (esf_, 640, "esf");
+  if (params_["useCVFH"] > 0)
+    v_cvfh.addFeatureHistogram (cvfh_, 308, "cvfh");
+  if (params_["useOURCVFH"] > 0)
+    v_ourcvfh.addFeatureHistogram (ourcvfh_, 308, "ourcvfh");
   viewer.addPointCloud(query_cloud_processed_, "query");
   viewer.addCoordinateSystem(0.2);
   while(!viewer.wasStopped())
   {
     viewer.spinOnce();
+    v_vfh.spinOnce();
+    v_esf.spinOnce();
+    v_cvfh.spinOnce();
+    v_ourcvfh.spinOnce();
   }
   viewer.close();
   return;
@@ -3095,5 +3107,23 @@ void PoseEstimation::viewQuery()
 
 void PoseEstimation::viewEstimation()
 {
-  //TODO all, possibly visualize histograms too
+  if (!refinement_done_)
+  {
+    if (params_["verbosity"] >0)
+      print_warn("%*s]\tEstimation is not done yet...\n",20,__func__);
+    return;
+  }
+  visualization::PCLVisualizer viewer;
+  viewer.addPointCloud(query_cloud_processed_, "query");
+  viewer.addCoordinateSystem(0.2);
+  PC::Ptr pe (new PC);
+  transformPointCloud( *(pose_estimation_->cloud_), *pe, pose_estimation_->transformation_ );
+  visualization::PointCloudColorHandlerCustom<PointXYZRGBA> candidate_color_handler (pe, 0, 255, 0);
+  viewer.addPointCloud(pe, candidate_color_handler, "estimation");
+  while(!viewer.wasStopped())
+  {
+    viewer.spinOnce();
+  }
+  viewer.close();
+  return;
 }

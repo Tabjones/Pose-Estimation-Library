@@ -102,6 +102,7 @@ For example when changing preprocessing pipeline (i.e. altering search radius of
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/visualization/histogram_visualizer.h>
 #include <flann/flann.h>
 #include <flann/io/hdf5.h>
 #include <boost/algorithm/string/split.hpp>
