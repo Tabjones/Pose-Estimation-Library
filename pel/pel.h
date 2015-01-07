@@ -5,7 +5,8 @@
 //Doxygen documentation
 
 /** 
- *  \todo add view of estimation(with histograms?), query (and histograms), candidates (histograms) etc..
+ *  \todo add method for tests registration and elaboration
+ *  \todo add method to estimate from a subset of objects in db
  */
 
 /** \mainpage notitle 
@@ -881,5 +882,53 @@ class PoseEstimation {
    * Query point cloud is displayed and on top of it the aligned candidate in green color. Other informations are displayed in the visualizer window
    */
   void viewEstimation();
+
+  /** \brief Register pose estimation results into a file for testing purpose
+   *  \param[in] file path to a txt file to write into, if file already exists it will be appended.
+   *  \param[in] gt ground truth reference to check correctness, must be in form <obj>_<lat>_<long>.
+   *  \return _True_ if operation is succesful, _false_ otherwise.
+   *
+   *  Writes into a file pose estimation results for testing purpose. Given the final pose estimation, it saves the ranks of each list
+   *  on which ground truth was found. It also saves if the chosen final candidate matches the ground truth or not. For example a line could be like this:
+   *  \code
+   *  #VFH  #ESF  #CVFH #OURCVFH  #COMP   #FINAL
+   *  2     1     6      4        1       1
+   *  \code
+   *  In this example the ground truth was found on rank 2 in VFH list, rank 1 in ESF, etc...
+   *  Plus the final candidate chosen was correct (1), because it matches the ground truth name.
+   *  Final candidate can be:
+   *    + 1: If ground truth and pose estimation match completely
+   *    + 2: If ground truth and pose estimation match with a tolerance of 10 degrees in latitude and/or longitude
+   *    + 3: If ground truth and pose estimation match only in names, hence orientation is wrong, but object was correctly identified
+   *    + 4: If ground truth and pose estimation do not match, hence the estimation was wrong
+   */
+  bool saveTestResults(path file, string gt);
+  
+  /** \brief Register pose estimation results into a file for testing purpose
+   *  \param[in] file path to a txt file to write into, if file already exists it will be appended.
+   *  \return _True_ if operation is succesful, _false_ otherwise.
+   *  
+   *  Writes into a file pose estimation results for testing purpose. Given the final pose estimation, it saves the ranks of each list
+   *  on which ground truth was found, ground truth used is query name, that must follow naming convention <obj>_<lat>_<long>. It also saves if the chosen final candidate matches the ground truth or not. For example a line could be like this:
+   *  \code
+   *  #VFH  #ESF  #CVFH #OURCVFH  #COMP   #FINAL
+   *  2     1     6      4        1       1
+   *  \code
+   *  In this example the ground truth was found on rank 2 in VFH list, rank 1 in ESF, etc...
+   *  Plus the final candidate chosen was correct (1), because it matches the ground truth name.
+   *  Final candidate can be:
+   *    + 1: If ground truth and pose estimation match completely
+   *    + 2: If ground truth and pose estimation match with a tolerance of 10 degrees in latitude and/or longitude
+   *    + 3: If ground truth and pose estimation match only in names, hence orientation is wrong, but object was correctly identified
+   *    + 4: If ground truth and pose estimation do not match, hence the estimation was wrong
+   */
+  bool saveTestResults(path file);
+
+  /** \brief Elaborate test results written with saveTestResults()
+   * \param[in] file test file written by saveTestResults()
+   * \param[in] result path to a file in which write results
+   * \return _True_ if elaboration is successful, _false_ otherwise
+   */
+  bool elaborateTests(path file, path result);
 };
 #endif

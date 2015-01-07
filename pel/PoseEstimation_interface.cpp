@@ -1912,6 +1912,11 @@ bool PoseEstimation::generateLists()
     print_info("%*s]\tStarting Candidate list(s) generation...\n",20,__func__);
   StopWatch timer,t;
   timer.reset();
+  vfh_list_.clear();
+  esf_list_.clear();
+  cvfh_list_.clear();
+  ourcvfh_list_.clear();
+  composite_list_.clear();
   if (params_["useVFH"]>=1)
   {
     if (params_["verbosity"]>1)
@@ -1919,7 +1924,6 @@ bool PoseEstimation::generateLists()
     t.reset();
     try
     {
-      vfh_list_.clear();
       flann::Matrix<float> vfh_query (new float[1*308],1,308);
       for (size_t j=0; j < 308; ++j)
         vfh_query[0][j]= vfh_.points[0].histogram[j];
@@ -1956,7 +1960,6 @@ bool PoseEstimation::generateLists()
     t.reset();
     try
     {
-      esf_list_.clear();
       flann::Matrix<float> esf_query (new float[1*640],1,640);
       for (size_t j=0; j < 640; ++j)
         esf_query[0][j]= esf_.points[0].histogram[j];
@@ -1993,7 +1996,6 @@ bool PoseEstimation::generateLists()
     t.reset();
     try
     {
-      cvfh_list_.clear();
       vector<pair<float, int> > dists;
       if (database_.computeDistFromClusters_(cvfh_.makeShared(), listType::cvfh, dists) )
       {
@@ -2040,7 +2042,6 @@ bool PoseEstimation::generateLists()
     t.reset();
     try
     {
-      ourcvfh_list_.clear();
       vector<pair<float, int> > dists;
       if (database_.computeDistFromClusters_(ourcvfh_.makeShared(), listType::ourcvfh, dists) )
       {
@@ -2084,7 +2085,6 @@ bool PoseEstimation::generateLists()
   if (params_["verbosity"]>1)
     print_info("%*s]\tGenerating Composite List based on previous features... ",20,__func__);
   t.reset();
-  composite_list_.clear();
   vector<Candidate> tmp_esf, tmp_cvfh, tmp_ourcvfh, tmp_vfh;
   if(params_["useVFH"]>0)
   {
@@ -3127,3 +3127,186 @@ void PoseEstimation::viewEstimation()
   viewer.close();
   return;
 }
+
+bool PoseEstimation::saveTestResults(string file)
+{
+  if (!refinement_done_)
+  {
+    if (params_["verbosity"] >0)
+      print_warn("%*s]\tEstimation is not done yet...\n",20,__func__);
+    return false;
+  }
+  if(saveTestResults(file, pose_estimation_->name_))
+    return true;
+  else
+    return false;
+}
+
+bool PoseEstimation::saveTestResults(string file, string gt)
+{
+  if (!refinement_done_)
+  {
+    if (params_["verbosity"] >0)
+      print_warn("%*s]\tEstimation is not done yet...\n",20,__func__);
+    return false;
+  }
+  try 
+  {
+    fstream f;
+    f.open ( file.string().c_str(), fstream::out | fstream::app );
+    if (vfh_list_.empty())
+    {
+      f<< -1 <<" ";
+    }
+    else
+    {
+      for (int i=0; i<vfh_list_.size();++i)
+      {
+        if (gt.compare(vfh_list_[i].name_) ==0)
+        {  
+          f << i+1 << " ";
+          break;
+        }
+        if (i==vfh_list_.size()-1)
+          f << 0 << " ";
+      }
+    }
+    if (esf_list_.empty())
+    {
+      f<< -1 <<" ";
+    }
+    else
+    {
+      for (int i=0; i<esf_list_.size();++i)
+      {
+        if (gt.compare(esf_list_[i].name_) ==0)
+        {  
+          f << i+1 << " ";
+          break;
+        }
+        if (i==esf_list_.size()-1)
+          f << 0 << " ";
+      }
+    }
+    if (cvfh_list_.empty())
+    {
+      f<< -1 <<" ";
+    }
+    else
+    {
+      for (int i=0; i<cvfh_list_.size();++i)
+      {
+        if (gt.compare(cvfh_list_[i].name_) ==0)
+        {  
+          f << i+1 << " ";
+          break;
+        }
+        if (i==cvfh_list_.size()-1)
+          f << 0 << " ";
+      }
+    }
+    if (ourcvfh_list_.empty())
+    {
+      f<< -1 <<" ";
+    }
+    else
+    {
+      for (int i=0; i<ourcvfh_list_.size();++i)
+      {
+        if (gt.compare(ourcvfh_list_[i].name_) ==0)
+        {  
+          f << i+1 << " ";
+          break;
+        }
+        if (i==ourcvfh_list_.size()-1)
+          f << 0 << " ";
+      }
+    }
+    for (int i=0; i<composite_list_.size();++i)
+    {
+      if (gt.compare(composite_list_[i].name_) ==0)
+      {  
+        f << i+1 << " ";
+        break;
+      }
+      if (i==composite_list_.size()-1)
+        f << 0 << " ";
+    }
+    if (pose_estimation_->name_.compare(gt) == 0)
+    {
+      f<< 1 <<endl;
+    }
+    else
+    {
+      vector<string> vc, vg;
+      split (vc, pose_estimation_->name_, boost::is_any_of("_"), boost::token_compress_on);
+      split (vg, gt, boost::is_any_of("_"), boost::token_compress_on);
+      if (vc.at(0).compare(vg.at(0)) == 0)
+      {
+        int lat_c, lat_g, lon_c, lon_g;
+        lat_c = stoi (vc.at(1));
+        lon_c = stoi (vc.at(2));
+        lat_g = stoi (vg.at(1));
+        lon_g = stoi (vg.at(2));
+        if ( (lat_c >= lat_g-10) && (lat_c <= lat_g+10) && (lon_c >= lon_g-10) && (lon_c <= lon_g+10) )
+          f << 2 <<endl;
+        else
+          f << 3 <<endl;
+      }
+      else
+        f << 4 <<endl;
+    }
+    f.close();
+  }
+  catch (...)
+  {
+    print_error ("%*s]\tError writing to disk, check if %s is valid path and name convetion is respected.\n",20,__func__,file.string().c_str());
+    return false;
+  }
+  if (params_["verbosity"]>1)
+    print_info("%*s]\tSaved current pose estimation results in %s\n",20,__func__,file.string().c_str());
+  return true;
+}
+
+bool PoseEstimation::elaborateTests(path file, path result) //TODO work in progress
+{
+  if (exists(file) && is_regular_file(file))
+  {
+    int k = params_["kNeighbors"];
+    ifstream f (file.string().c_str());
+    string line;
+    vector<int> vfh_r(k,0), esf_r(k,0), cvfh_r(k,0), ourcvfh_r(k,0), comp_r(k,0), final_c(4,0);
+    if (f.is_open())
+    {
+      int tot=0;
+      while (getline (f, line))
+      {
+        try
+        {
+          vector<string> vst;
+          split (vst, line, boost::is_any_of(" "), boost::token_compress_on);
+          int vfh,esf,cvfh,ourcvfh,comp,fin_c;
+          vfh = stoi(vst.at(0));
+          esf = stoi(vst.at(1));
+          cvfh = stoi(vst.at(2));
+          ourcvfh = stoi(vst.at(3));
+          comp = stoi(vst.at(4));
+          fin_c = stoi(vst.at(5));
+          //TODO 
+        }
+        catch (...)
+        { 
+          //TODO
+        }
+      }//end of file
+    }
+    //TODO else cant open file
+  }
+  else
+  {
+    if (params_["verbosity"] >0)
+      print_warn("%*s]\tTest file %s does not exists. Nothing to elaborate...\n",20,__func__, file.string().c_str());
+    return false;
+  }
+}
+
