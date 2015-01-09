@@ -897,10 +897,10 @@ class PoseEstimation {
    *  In this example the ground truth was found on rank 2 in VFH list, rank 1 in ESF, etc...
    *  Plus the final candidate chosen was correct (1), because it matches the ground truth name.
    *  Final candidate can be:
-   *    + 1: If ground truth and pose estimation match completely
-   *    + 2: If ground truth and pose estimation match with a tolerance of 10 degrees in latitude and/or longitude
-   *    + 3: If ground truth and pose estimation match only in names, hence orientation is wrong, but object was correctly identified
-   *    + 4: If ground truth and pose estimation do not match, hence the estimation was wrong
+   *    + 0: If ground truth and pose estimation match completely (success)
+   *    + 1: If ground truth and pose estimation match with a tolerance of 10 degrees in latitude and/or longitude (direct neighbor)
+   *    + 2: If ground truth and pose estimation match only in names, hence orientation is wrong, but object was correctly identified (same object)
+   *    + 3: If ground truth and pose estimation do not match, hence the estimation was wrong (false)
    */
   bool saveTestResults(path file, string gt);
   
@@ -917,10 +917,10 @@ class PoseEstimation {
    *  In this example the ground truth was found on rank 2 in VFH list, rank 1 in ESF, etc...
    *  Plus the final candidate chosen was correct (1), because it matches the ground truth name.
    *  Final candidate can be:
-   *    + 1: If ground truth and pose estimation match completely
-   *    + 2: If ground truth and pose estimation match with a tolerance of 10 degrees in latitude and/or longitude
-   *    + 3: If ground truth and pose estimation match only in names, hence orientation is wrong, but object was correctly identified
-   *    + 4: If ground truth and pose estimation do not match, hence the estimation was wrong
+   *    + 0: If ground truth and pose estimation match completely (success)
+   *    + 1: If ground truth and pose estimation match with a tolerance of 10 degrees in latitude and/or longitude (direct neighbor)
+   *    + 2: If ground truth and pose estimation match only in names, hence orientation is wrong, but object was correctly identified (same object)
+   *    + 3: If ground truth and pose estimation do not match, hence the estimation was wrong (false)
    */
   bool saveTestResults(path file);
 
@@ -928,6 +928,8 @@ class PoseEstimation {
    * \param[in] file test file written by saveTestResults()
    * \param[in] result path to a file in which write results
    * \return _True_ if elaboration is successful, _false_ otherwise
+   *
+   * Result file will be truncated, if it already exists
    */
   bool elaborateTests(path file, path result);
 };

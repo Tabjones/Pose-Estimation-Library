@@ -3234,7 +3234,7 @@ bool PoseEstimation::saveTestResults(string file, string gt)
     }
     if (pose_estimation_->name_.compare(gt) == 0)
     {
-      f<< 1 <<endl;
+      f<< 0 <<endl;
     }
     else
     {
@@ -3249,12 +3249,12 @@ bool PoseEstimation::saveTestResults(string file, string gt)
         lat_g = stoi (vg.at(1));
         lon_g = stoi (vg.at(2));
         if ( (lat_c >= lat_g-10) && (lat_c <= lat_g+10) && (lon_c >= lon_g-10) && (lon_c <= lon_g+10) )
-          f << 2 <<endl;
+          f << 1 <<endl;
         else
-          f << 3 <<endl;
+          f << 2 <<endl;
       }
       else
-        f << 4 <<endl;
+        f << 3 <<endl;
     }
     f.close();
   }
@@ -3268,17 +3268,17 @@ bool PoseEstimation::saveTestResults(string file, string gt)
   return true;
 }
 
-bool PoseEstimation::elaborateTests(path file, path result) //TODO work in progress
+bool PoseEstimation::elaborateTests(path file, path result) 
 {
   if (exists(file) && is_regular_file(file))
   {
     int k = params_["kNeighbors"];
     ifstream f (file.string().c_str());
     string line;
-    vector<int> vfh_r(k,0), esf_r(k,0), cvfh_r(k,0), ourcvfh_r(k,0), comp_r(k,0), final_c(4,0);
+    vector<int> vfh_r(k+1,0), esf_r(k+1,0), cvfh_r(k+1,0), ourcvfh_r(k+1,0), comp_r(k+1,0), final_c(4,0);
     if (f.is_open())
     {
-      int tot=0;
+      unsigned int tot_v(0),tot_e(0),tot_c(0),tot_o(0),tot(0);
       while (getline (f, line))
       {
         try
@@ -3292,15 +3292,43 @@ bool PoseEstimation::elaborateTests(path file, path result) //TODO work in progr
           ourcvfh = stoi(vst.at(3));
           comp = stoi(vst.at(4));
           fin_c = stoi(vst.at(5));
-          //TODO 
+          if (vfh != -1)
+          {
+            ++vfh_r[vfh];
+            ++tot_v;
+          }
+          if (esf != -1)
+          {
+            ++esf_r[esf];
+            ++tot_e;
+          }
+          if (cvfh != -1)
+          {
+            ++cvfh_r[cvfh];
+            ++tot_c;
+          }
+          if (ourcvfh != -1)
+          {
+            ++ourcvfh_r[ourcvfh];
+            ++tot_o;
+          }
+          ++comp_r[comp];
+          ++final_c[fin_c];
+          ++tot;
         }
         catch (...)
         { 
-          //TODO
+          print_error ("%*s]\tError reading from test file. Try recreating it.\n",20,__func__);
+          return false; 
         }
       }//end of file
     }
-    //TODO else cant open file
+    else
+    {
+      print_error ("%*s]\tError opening test file for reading. Try recreating it.\n",20,__func__);
+      return false; 
+    }
+    f.close();
   }
   else
   {
@@ -3308,5 +3336,74 @@ bool PoseEstimation::elaborateTests(path file, path result) //TODO work in progr
       print_warn("%*s]\tTest file %s does not exists. Nothing to elaborate...\n",20,__func__, file.string().c_str());
     return false;
   }
+  if (exists(result) && is_regular_file(result))
+  {
+    if (params_["verbosity"] >0)
+      print_warn("%*s]\tResult file %s already exists. Truncating its contents...\n",20,__func__, result.string().c_str());
+  }
+  fstream res;
+  res.open ( result.string().c_str(), fstream::out | fstream::trunc );
+  if (res.is_open())
+  {
+    timestamp t(TIME_NOW);
+    res << "Tests elaborates on "<<to_simple_string(t).c_str()<<endl;
+    res <<"Total of "<< tot_v <<" VFH tests: ";
+    for (int i=0; i< vfh_r.size(); ++i)
+    {
+      if (i == 0)
+        res << vfh_r[i]/tot_v*100 <<"%% Failed\t";
+      else
+        res << vfh_r[i]/tot_v*100 <<"%% Rank "<<i<<"\t";
+    }
+    res<<endl;
+    res <<"Total of "<< tot_e <<" ESF tests: ";
+    for (int i=0; i< esf_r.size(); ++i)
+    {
+      if (i == 0)
+        res << esf_r[i] <<" failed,\t";
+      else
+        res << esf_r[i] <<" rank "<<i<<",\t";
+    }
+    res<<endl;
+    res <<"Total of "<< tot_c <<" CVFH tests: ";
+    for (int i=0; i< cvfh_r.size(); ++i)
+    {
+      if (i == 0)
+        res << cvfh_r[i]<<" failed,\t";
+      else
+        res << cvfh_r[i]<<" rank "<<i<<",\t";
+    }
+    res<<endl;
+    res <<"Total of "<< tot_o <<" OURCVFH tests: ";
+    for (int i=0; i< ourcvfh_r.size(); ++i)
+    {
+      if (i == 0)
+        res << ourcvfh_r[i]<<" failed,\t";
+      else
+        res << ourcvfh_r[i]<<" rank "<<i<<",\t";
+    }
+    res<<endl;
+    res <<"Total of "<< tot <<" Composite list tests: ";
+    for (int i=0; i< comp_r.size(); ++i)
+    {
+      if (i == 0)
+        res << comp_r[i]<<" failed,\t";
+      else
+        res << comp_r[i]<<" rank "<<i<<",\t";
+    }
+    res<<endl<<endl;
+    res<<"On a total of "<<tot<<" tests, the final candidate chosen was:"<<endl;
+    res<<"the correct pose "<<final_c[0]<<" times"<<endl;
+    res<<"a direct neighbor of the correct pose "<<final_c[1]<<" times"<<endl;
+    res<<"the same object with a wrong orientation "<<final_c[2]<<" times"<<endl;
+    res<<"another object "<<final_c[3]<<" times"<<endl;
+  }
+  else
+  {
+    print_error ("%*s]\tError opening result file for writing. Check if %s is a valid path.\n",20,__func__,result.string().c_str());
+    return false; 
+  }
+  res.close();
+  return true;
 }
 
