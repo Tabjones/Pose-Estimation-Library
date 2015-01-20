@@ -14,9 +14,9 @@ main (int argc, char *argv[])
   prova.setParam("computeViewpointFromName",1);
   prova.setParam("useSOasViewpoint",0);
   PoseDB test;
-  //test.create("../../Acquisitions_old/Round1", prova.getParams() );
+  test.create("/home/pacman/Dropbox/ObjectDB/Round1", prova.getParams() );
   //test.save("../../Database_Round1");
-  test.load("../../Database_Round1");
+  //test.load("/home/pacman/Dropbox");
   prova.estimate("object_23_50", cloud, test);
   prova.printCandidates();
   prova.printEstimation();

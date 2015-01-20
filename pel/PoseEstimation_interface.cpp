@@ -3128,7 +3128,7 @@ void PoseEstimation::viewEstimation()
   return;
 }
 
-bool PoseEstimation::saveTestResults(string file)
+bool PoseEstimation::saveTestResults(path file)
 {
   if (!refinement_done_)
   {
@@ -3142,7 +3142,7 @@ bool PoseEstimation::saveTestResults(string file)
     return false;
 }
 
-bool PoseEstimation::saveTestResults(string file, string gt)
+bool PoseEstimation::saveTestResults(path file, string gt)
 {
   if (!refinement_done_)
   {
@@ -3270,15 +3270,15 @@ bool PoseEstimation::saveTestResults(string file, string gt)
 
 bool PoseEstimation::elaborateTests(path file, path result) 
 {
+  int k = params_["kNeighbors"];
+  unsigned int tot_v(0),tot_e(0),tot_c(0),tot_o(0),tot(0);
+  vector<int> vfh_r(k+1,0), esf_r(k+1,0), cvfh_r(k+1,0), ourcvfh_r(k+1,0), comp_r(k+1,0), final_c(4,0);
   if (exists(file) && is_regular_file(file))
   {
-    int k = params_["kNeighbors"];
     ifstream f (file.string().c_str());
     string line;
-    vector<int> vfh_r(k+1,0), esf_r(k+1,0), cvfh_r(k+1,0), ourcvfh_r(k+1,0), comp_r(k+1,0), final_c(4,0);
     if (f.is_open())
     {
-      unsigned int tot_v(0),tot_e(0),tot_c(0),tot_o(0),tot(0);
       while (getline (f, line))
       {
         try
