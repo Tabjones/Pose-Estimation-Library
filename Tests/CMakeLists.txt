@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(test)
 
 find_package(PEL REQUIRED)
-find_package(PCL 1.7 REQUIRED)
+find_package(PCL 1.8 REQUIRED)
 
 include_directories(${PEL_INCLUDE_DIRS})
 include_directories(${PCL_INCLUDE_DIRS})
