@@ -16,8 +16,8 @@ add_definitions(-std=c++11)
 
 message(STATUS "include=${PEL_INCLUDE_DIRS}")
 
-add_executable (prova prova.cpp)
-target_link_libraries (prova 
+add_executable (estimator prova.cpp)
+target_link_libraries (estimator 
                        ${PEL_LIBRARIES}
                        ${PCL_LIBRARIES} 
                        )
