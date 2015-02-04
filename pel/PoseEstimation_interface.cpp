@@ -2354,6 +2354,16 @@ bool PoseEstimation::refineCandidates()
     print_error("%*s]\tList of Candidates are not yet generated, call generateLists first...\n",20,__func__);
     return false;
   }
+  CentroidPoint<PT> qct;
+  for (int i=0; i<query_cloud_processed_->points.size(); ++i)
+    qct.add(query_cloud_processed_->points[i]);
+  PT query_centroid;
+  qct.get(query_centroid);
+  Eigen::Matrix4f qct_t;
+  qct_t << 1,0,0,query_centroid.x, 
+           0,1,0,query_centroid.y, 
+           0,0,1,query_centroid.z,
+           0,0,0,1;
   if (params_["progBisection"]>0)
   {
     //ProgressiveBisection
@@ -2365,6 +2375,7 @@ bool PoseEstimation::refineCandidates()
     boost::copy(composite_list_, back_inserter(list));
     IterativeClosestPoint<PT, PT> icp;
     icp.setInputTarget(query_cloud_processed_); //query
+    icp.setUseReciprocalCorrespondences(true);
     icp.setMaximumIterations (params_["progItera"]); //iterations to perform
     icp.setTransformationEpsilon (1e-9); //not using it (difference between consecutive transformations)
     icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
@@ -2375,7 +2386,17 @@ bool PoseEstimation::refineCandidates()
         PC::Ptr aligned (new PC);
         //icp align source over target, result in aligned
         icp.setInputSource(it->cloud_); //the candidate
-        icp.align(*aligned);
+        CentroidPoint<PT> cct;
+        for (int i=0; i< it->cloud_->points.size(); ++i)
+          cct.add(it->cloud_->points[i]);
+        PT candidate_centroid;
+        cct.get(candidate_centroid);
+        Eigen::Matrix4f cct_t;
+        cct_t << 1,0,0,candidate_centroid.x, 
+                 0,1,0,candidate_centroid.y, 
+                 0,0,1,candidate_centroid.z, 
+                 0,0,0,1;
+        icp.align(*aligned, cct_t.inverse()*qct_t); //initial gross estimation is to translate both cloud to their centroids and make them coincide
         it->transformation_ = icp.getFinalTransformation();
         it->rmse_ = sqrt(icp.getFitnessScore());
         if (params_["verbosity"]>1)
@@ -2453,8 +2474,18 @@ bool PoseEstimation::refineCandidates()
       PC::Ptr aligned (new PC);
       //icp align source over target, result in aligned
       icp.setInputSource(it->cloud_); //the candidate
-      icp.align(*aligned);
-      it->transformation_ = icp.getFinalTransformation();
+      CentroidPoint<PT> cct;
+      for (int i=0; i< it->cloud_->points.size(); ++i)
+        cct.add(it->cloud_->points[i]);
+      PT candidate_centroid;
+      cct.get(candidate_centroid);
+      Eigen::Matrix4f cct_t;
+      cct_t << 1,0,0,-candidate_centroid.x,
+               0,1,0,-candidate_centroid.y,
+               0,0,1,-candidate_centroid.z,
+               0,0,0,1;
+      icp.align(*aligned, cct_t*qct_t);
+      it->transformation_ = qct_t.inverse()*icp.getFinalTransformation();
       it->rmse_ = sqrt(icp.getFitnessScore());
       if (params_["verbosity"]>1)
       {
@@ -3114,11 +3145,12 @@ void PoseEstimation::viewEstimation()
     return;
   }
   visualization::PCLVisualizer viewer;
-  viewer.addPointCloud(query_cloud_processed_, "query");
-  viewer.addCoordinateSystem(0.2);
   PC::Ptr pe (new PC);
   transformPointCloud( *(pose_estimation_->cloud_), *pe, pose_estimation_->transformation_ );
   visualization::PointCloudColorHandlerCustom<PointXYZRGBA> candidate_color_handler (pe, 0, 255, 0);
+  visualization::PointCloudColorHandlerCustom<PointXYZRGBA> query_color_handler (query_cloud_processed_, 255, 0, 0);
+  viewer.addPointCloud(query_cloud_processed_, query_color_handler, "query");
+  viewer.addCoordinateSystem(0.2);
   viewer.addPointCloud(pe, candidate_color_handler, "estimation");
   while(!viewer.wasStopped())
   {
