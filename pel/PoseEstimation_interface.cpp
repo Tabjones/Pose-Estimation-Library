@@ -66,6 +66,8 @@ bool PoseDB::isValidPath(path dbPath)
     return false;
   if ( !is_regular_file(dbPath.string()+ "/names.ourcvfh") || !(extension(dbPath.string()+ "/names.ourcvfh") == ".ourcvfh"))
     return false;
+  if ( !is_regular_file(dbPath.string()+ "/table.transform") || !(extension(dbPath.string()+ "/table.transform") == ".transform"))
+    return false;
   
   return true;
 }
@@ -109,6 +111,7 @@ PoseDB::PoseDB(const PoseDB& db)
   esf_idx_ = boost::make_shared<indexESF>(idx_esf);
   esf_idx_ -> buildIndex();
   boost::filesystem::remove(".idx__tmp");
+  T_wl_ = db.T_wl_; //TODO
 }
 PoseDB& PoseDB::operator= (const PoseDB& db)
 {
@@ -150,6 +153,7 @@ PoseDB& PoseDB::operator= (const PoseDB& db)
   this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
   this->esf_idx_ -> buildIndex();
   boost::filesystem::remove(".idx__tmp"); //delete tmp file
+  this->T_wl_ = db.T_wl_; //TODO
   return *this;
 }
 /* Class PoseDB Implementation */
@@ -320,6 +324,79 @@ bool PoseDB::load(path pathDB)
       print_error("%*s]\tError loading names.ourcvfh, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
+    try
+    {
+      ifstream file ((pathDB.string()+"/table.transform").c_str());
+      string line;
+      int tr_type (0), row(0);
+      while (getline (file, line))
+      {
+        if (line.compare(0,1,"#") == 0)
+        {
+          //do nothing, comment line...
+          continue;
+        }
+        else
+        {
+          boost::trim (line); //remove white spaces from start and end
+          if (line.compare("T60:") == 0)
+          {
+            tr_type = 1;
+            row = 0;
+            continue;
+          }
+          else if (line.compare("T40:") == 0) //TODO
+          {
+            tr_type = 2;
+            row = 0;
+            continue;
+          }
+          else if (line.compare("T20:") == 0) //TODO
+          {
+            tr_type = 3;
+            row = 0;
+            continue;
+          }
+          std::vector<std::string> vst;
+          if (tr_type != 0)
+          {
+            boost::split (vst, line, boost::is_any_of(" "), boost::token_compress_on); 
+            if (vst.size() == 4)
+            {
+              if (tr_type == 1)
+              {
+                T_wl_ (row,0) = std::stof(vst[0]);
+                T_wl_ (row,1) = std::stof(vst[1]);
+                T_wl_ (row,2) = std::stof(vst[2]);
+                T_wl_ (row,3) = std::stof(vst[3]);
+                ++row;
+              }
+              if (tr_type == 2)
+              {
+                T_wl_ (row,0) = std::stof(vst[0]);
+                T_wl_ (row,1) = std::stof(vst[1]);
+                T_wl_ (row,2) = std::stof(vst[2]);
+                T_wl_ (row,3) = std::stof(vst[3]);
+                ++row;
+              }
+              if (tr_type == 3)
+              {
+                T_wl_ (row,0) = std::stof(vst[0]);
+                T_wl_ (row,1) = std::stof(vst[1]);
+                T_wl_ (row,2) = std::stof(vst[2]);
+                T_wl_ (row,3) = std::stof(vst[3]);
+                ++row;
+              }
+            }
+          }
+        }
+      }//eof
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError loading table.transform, file is likely corrupted, try recreating database\n",20,__func__);
+      return false;
+    }
   }
   else
   {
@@ -453,6 +530,7 @@ void PoseDB::clear()
   esf_idx_.reset();
   clouds_.clear();
   dbPath_="UNSET";
+  T_wl_.setIdentity(); //TODO
 }
 /////////////////////////////////////////
 bool PoseDB::save(path pathDB)  
@@ -475,7 +553,7 @@ bool PoseDB::save(path pathDB)
     return false;
   }
   PCDWriter writer;
-  ofstream names, c_cvfh, c_ourcvfh, info;
+  ofstream names, c_cvfh, c_ourcvfh, info, table;
   names.open((pathDB.string()+ "/names.list").c_str());
   c_cvfh.open((pathDB.string()+ "/names.cvfh").c_str());
   c_ourcvfh.open((pathDB.string()+ "/names.ourcvfh").c_str());
@@ -497,6 +575,8 @@ bool PoseDB::save(path pathDB)
   names.close();
   c_cvfh.close();
   c_ourcvfh.close();
+  table.open((pathDB.string()+ "/table.transform").c_str()); //TODO
+
   flann::save_to_file (*vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
   flann::save_to_file (*esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
   flann::save_to_file (*cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
@@ -1056,7 +1136,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds)
 {
   parameters par;
   //setting default parameters for db creation, only relevant ones are created
-  par["vgridLeafSize"]=0.003f;
+  par["vgridLeafSize"]=0.005f;
   par["upsampling"]=par["filtering"]=0;
   par["downsampling"]=1;
   par["mlsPolyOrder"]=2;
@@ -1065,7 +1145,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds)
   par["mlsSearchRadius"]=0.03f;
   par["filterMeanK"]=50;
   par["filterStdDevMulThresh"]=3;
-  par["neRadiusSearch"]=0.015;
+  par["neRadiusSearch"]=0.02;
   par["useSOasViewpoint"]=1;
   par["computeViewpointFromName"]=0;
   par["cvfhEPSAngThresh"]=7.5;
@@ -1216,22 +1296,22 @@ PoseEstimation::PoseEstimation ()
   params_["verbosity"]=1;
   params_["useVFH"]=params_["useESF"]=params_["useCVFH"]=params_["useOURCVFH"]=1;
   params_["progBisection"]=params_["downsampling"]=1;
-  params_["vgridLeafSize"]=0.003f;
+  params_["vgridLeafSize"]=0.005f;
   params_["upsampling"]=params_["filtering"]=0;
   params_["kNeighbors"]=20;
   params_["maxIterations"]=200;
-  params_["progItera"]=5;
+  params_["progItera"]=10;
   params_["progFraction"]=0.5f;
   params_["rmseThreshold"]=0.003f;
   params_["mlsPolyOrder"]=2;
   params_["mlsPointDensity"]=250;
   params_["mlsPolyFit"]=1;
-  params_["mlsSearchRadius"]=0.03f;
+  params_["mlsSearchRadius"]=0.05f;
   params_["filterMeanK"]=50;
   params_["filterStdDevMulThresh"]=3;
-  params_["neRadiusSearch"]=0.015;
-  params_["useSOasViewpoint"]=0;
-  params_["computeViewpointFromName"]=1;
+  params_["neRadiusSearch"]=0.02;
+  params_["useSOasViewpoint"]=1;
+  params_["computeViewpointFromName"]=0;
   params_["cvfhEPSAngThresh"]=7.5;
   params_["cvfhCurvThresh"]=0.025;
   params_["cvfhClustTol"]=0.01;

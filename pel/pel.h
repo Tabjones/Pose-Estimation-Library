@@ -208,6 +208,7 @@ class PoseDB{
   vector<PC> clouds_;
   boost::shared_ptr<indexVFH> vfh_idx_;
   boost::shared_ptr<indexESF> esf_idx_;
+  Eigen::Matrix4f T_wl_; //TODO now its only the 60 one
 
   /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
    * \param[in] query Pointer to the query histogram(s)
