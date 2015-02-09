@@ -824,6 +824,18 @@ class PoseEstimation {
    * \return _True_ if est correctly points to final pose estimation, _false_ otherwise
    */
   bool getEstimation(boost::shared_ptr<Candidate> est);
+  
+  /** \brief Get a copy of final poseEstimation transformation
+   * \param[out] t A matrix that will contain the final transformation
+   * \return _True_ if t is correctly initialized, _false_ otherwise
+   */
+  bool getEstimationTransformation(Eigen::Matrix4f& t);
+  
+  /** \brief Get a copy of table transformation of database
+   * \param[out] t A matrix that will contain the transformation
+   * \return _True_ if t is correctly initialized, _false_ otherwise
+   */
+  bool getTableTransformation(Eigen::Matrix4f& t);
 
   /** \brief Reset the viewpoint for current query, so that it can be computed again
    */
