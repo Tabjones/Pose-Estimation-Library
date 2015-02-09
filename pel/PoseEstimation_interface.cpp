@@ -576,7 +576,9 @@ bool PoseDB::save(path pathDB)
   c_cvfh.close();
   c_ourcvfh.close();
   table.open((pathDB.string()+ "/table.transform").c_str()); //TODO
-
+  table << "T60:"<< endl;
+  table << T_wl_ << endl;
+  table.close();
   flann::save_to_file (*vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
   flann::save_to_file (*esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
   flann::save_to_file (*cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
@@ -670,13 +672,13 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       if (params->at("vgridLeafSize") < 0)
       {
         print_warn("%*s]\tParameter vgridLeafSize for database creation has negative value, reverting it to default...\n",20,__func__);
-        params->at("vgridLeafSize")=0.003;
+        params->at("vgridLeafSize")=0.005;
       }
     }
     else 
     {
       print_warn("%*s]\tParameter vgridLeafSize for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
-      params->emplace ("vgridLeafSize", 0.003);
+      params->emplace ("vgridLeafSize", 0.005);
     }
   }
   if (params->at("upsampling")>0)
@@ -699,13 +701,13 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       if (params->at("mlsPointDensity") < 0)
       {
         print_warn("%*s]\tParameter mlsPointDensity for database creation has negative value, reverting it to default...\n",20,__func__);
-        params->at("mlsPointDensity")=250;
+        params->at("mlsPointDensity")=200;
       }
     }
     else 
     {
       print_warn("%*s]\tParameter mlsPointDensity for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
-      params->emplace ("mlsPointDensity",250);
+      params->emplace ("mlsPointDensity",200);
     }
     if (params->count("mlsPolyFit"))
     {
@@ -725,13 +727,13 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       if (params->at("mlsSearchRadius") < 0)
       {
         print_warn("%*s]\tParameter mlsSearchRadius for database creation has negative value, reverting it to default...\n",20,__func__);
-        params->at("mlsSearchRadius")=0.03;
+        params->at("mlsSearchRadius")=0.05;
       }
     }
     else 
     {
       print_warn("%*s]\tParameter mlsSearchRadius for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
-      params->emplace ("mlsSearchRadius", 0.03);
+      params->emplace ("mlsSearchRadius", 0.05);
     }
   }
   if (params->count("neRadiusSearch"))
@@ -739,13 +741,13 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     if (params->at("neRadiusSearch") < 0)
     {
       print_warn("%*s]\tParameter neRadiusSearch for database creation has negative value, reverting it to default...\n",20,__func__);
-      params->at("neRadiusSearch")=0.015;
+      params->at("neRadiusSearch")=0.02;
     }
   }
   else 
   {
     print_warn("%*s]\tParameter neRadiusSearch for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
-    params->emplace ("neRadiusSearch", 0.015);
+    params->emplace ("neRadiusSearch", 0.02);
   }
   if (params->count("useSOasViewpoint"))
   {
@@ -1123,6 +1125,80 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     indexESF esf_idx (*esf_, flann::KDTreeIndexParams(4));
     esf_idx_ = boost::make_shared<indexESF>(esf_idx);
     esf_idx_->buildIndex();
+    //read table transform TODO
+    try
+    {
+      ifstream file ((pathClouds.string()+"/table.transform").c_str());
+      string line;
+      int tr_type (0), row(0);
+      while (getline (file, line))
+      {
+        if (line.compare(0,1,"#") == 0)
+        {
+          //do nothing, comment line...
+          continue;
+        }
+        else
+        {
+          boost::trim (line); //remove white spaces from start and end
+          if (line.compare("T60:") == 0)
+          {
+            tr_type = 1;
+            row = 0;
+            continue;
+          }
+          else if (line.compare("T40:") == 0) //TODO
+          {
+            tr_type = 2;
+            row = 0;
+            continue;
+          }
+          else if (line.compare("T20:") == 0) //TODO
+          {
+            tr_type = 3;
+            row = 0;
+            continue;
+          }
+          std::vector<std::string> vst;
+          if (tr_type != 0)
+          {
+            boost::split (vst, line, boost::is_any_of(" "), boost::token_compress_on); 
+            if (vst.size() == 4)
+            {
+              if (tr_type == 1)
+              {
+                T_wl_ (row,0) = std::stof(vst[0]);
+                T_wl_ (row,1) = std::stof(vst[1]);
+                T_wl_ (row,2) = std::stof(vst[2]);
+                T_wl_ (row,3) = std::stof(vst[3]);
+                ++row;
+              }
+              if (tr_type == 2)
+              {
+                T_wl_ (row,0) = std::stof(vst[0]);
+                T_wl_ (row,1) = std::stof(vst[1]);
+                T_wl_ (row,2) = std::stof(vst[2]);
+                T_wl_ (row,3) = std::stof(vst[3]);
+                ++row;
+              }
+              if (tr_type == 3)
+              {
+                T_wl_ (row,0) = std::stof(vst[0]);
+                T_wl_ (row,1) = std::stof(vst[1]);
+                T_wl_ (row,2) = std::stof(vst[2]);
+                T_wl_ (row,3) = std::stof(vst[3]);
+                ++row;
+              }
+            }
+          }
+        }
+      }//eof
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError loading table.transform...\n",20,__func__);
+      return false;
+    }
     print_info("%*s]\tDone creating database, total of %d poses stored in memory\n",20,__func__,names_.size());
     return true;
   }
@@ -1140,9 +1216,9 @@ bool PoseDB::create(boost::filesystem::path pathClouds)
   par["upsampling"]=par["filtering"]=0;
   par["downsampling"]=1;
   par["mlsPolyOrder"]=2;
-  par["mlsPointDensity"]=250;
+  par["mlsPointDensity"]=200;
   par["mlsPolyFit"]=1;
-  par["mlsSearchRadius"]=0.03f;
+  par["mlsSearchRadius"]=0.05f;
   par["filterMeanK"]=50;
   par["filterStdDevMulThresh"]=3;
   par["neRadiusSearch"]=0.02;
@@ -1304,7 +1380,7 @@ PoseEstimation::PoseEstimation ()
   params_["progFraction"]=0.5f;
   params_["rmseThreshold"]=0.003f;
   params_["mlsPolyOrder"]=2;
-  params_["mlsPointDensity"]=250;
+  params_["mlsPointDensity"]=200;
   params_["mlsPolyFit"]=1;
   params_["mlsSearchRadius"]=0.05f;
   params_["filterMeanK"]=50;
@@ -2439,11 +2515,6 @@ bool PoseEstimation::refineCandidates()
     qct.add(query_cloud_processed_->points[i]);
   PT query_centroid;
   qct.get(query_centroid);
-  Eigen::Matrix4f qct_t;
-  qct_t << 1,0,0,query_centroid.x, 
-           0,1,0,query_centroid.y, 
-           0,0,1,query_centroid.z,
-           0,0,0,1;
   if (params_["progBisection"]>0)
   {
     //ProgressiveBisection
@@ -2455,10 +2526,11 @@ bool PoseEstimation::refineCandidates()
     boost::copy(composite_list_, back_inserter(list));
     IterativeClosestPoint<PT, PT> icp;
     icp.setInputTarget(query_cloud_processed_); //query
-    icp.setUseReciprocalCorrespondences(true);
-    icp.setMaximumIterations (params_["progItera"]); //iterations to perform
-    icp.setTransformationEpsilon (1e-9); //not using it (difference between consecutive transformations)
+    icp.setUseReciprocalCorrespondences(false);
+    icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
+    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
+    int steps (0);
     while (list.size() > 1)
     {
       for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
@@ -2466,19 +2538,25 @@ bool PoseEstimation::refineCandidates()
         PC::Ptr aligned (new PC);
         //icp align source over target, result in aligned
         icp.setInputSource(it->cloud_); //the candidate
-        CentroidPoint<PT> cct;
-        for (int i=0; i< it->cloud_->points.size(); ++i)
-          cct.add(it->cloud_->points[i]);
-        PT candidate_centroid;
-        cct.get(candidate_centroid);
-        Eigen::Matrix4f cct_t;
-        cct_t << 1,0,0,candidate_centroid.x, 
-                 0,1,0,candidate_centroid.y, 
-                 0,0,1,candidate_centroid.z, 
-                 0,0,0,1;
-        icp.align(*aligned, cct_t.inverse()*qct_t); //initial gross estimation is to translate both cloud to their centroids and make them coincide
+        Eigen::Matrix4f guess;
+        if (steps >0)
+          guess = it->transformation_;
+        else
+        {
+          CentroidPoint<PT> cct;
+          for (int i=0; i< it->cloud_->points.size(); ++i)
+            cct.add(it->cloud_->points[i]);
+          PT candidate_centroid;
+          cct.get(candidate_centroid);
+          guess << 1,0,0, (query_centroid.x - candidate_centroid.x), 
+                0,1,0, (query_centroid.y - candidate_centroid.y), 
+                0,0,1, (query_centroid.z - candidate_centroid.z), 
+                0,0,0,1;
+        }
+        icp.align(*aligned, guess); //initial gross estimation is to translate candidate centroid over query centroid, or the transform at previous step
         it->transformation_ = icp.getFinalTransformation();
         it->rmse_ = sqrt(icp.getFitnessScore());
+        ++steps;
         if (params_["verbosity"]>1)
         {
           print_info("%*s]\tCandidate: ",20,__func__);
@@ -2500,6 +2578,7 @@ bool PoseEstimation::refineCandidates()
         //convergence 
         pose_estimation_.reset();
         pose_estimation_ = boost::make_shared<Candidate>(list[0]);
+        //TODO apply table transform, also to last candidate
         refinement_done_=true;
         if (params_["verbosity"]>1)
         {
@@ -2546,8 +2625,9 @@ bool PoseEstimation::refineCandidates()
     timer.reset();
     IterativeClosestPoint<PT, PT> icp;
     icp.setInputTarget(query_cloud_processed_); //query
+    icp.setUseReciprocalCorrespondences(false);
     icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
-    icp.setTransformationEpsilon (1e-9); //not using it (difference between consecutive transformations)
+    icp.setTransformationEpsilon (1e-5); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2)); 
     for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
     {
@@ -2559,13 +2639,13 @@ bool PoseEstimation::refineCandidates()
         cct.add(it->cloud_->points[i]);
       PT candidate_centroid;
       cct.get(candidate_centroid);
-      Eigen::Matrix4f cct_t;
-      cct_t << 1,0,0,-candidate_centroid.x,
-               0,1,0,-candidate_centroid.y,
-               0,0,1,-candidate_centroid.z,
+      Eigen::Matrix4f guess;
+      guess << 1,0,0, (query_centroid.x - candidate_centroid.x),
+               0,1,0, (query_centroid.y - candidate_centroid.y),
+               0,0,1, (query_centroid.z - candidate_centroid.z),
                0,0,0,1;
-      icp.align(*aligned, cct_t*qct_t);
-      it->transformation_ = qct_t.inverse()*icp.getFinalTransformation();
+      icp.align(*aligned, guess);
+      it->transformation_ = icp.getFinalTransformation();
       it->rmse_ = sqrt(icp.getFitnessScore());
       if (params_["verbosity"]>1)
       {
@@ -2579,6 +2659,7 @@ bool PoseEstimation::refineCandidates()
         //convergence
         pose_estimation_.reset();
         pose_estimation_ = boost::make_shared<Candidate>(*it);
+        //TODO apply table transform
         refinement_done_=true;
         if (params_["verbosity"]>1)
         {
