@@ -2889,6 +2889,30 @@ bool PoseEstimation::getEstimation(boost::shared_ptr<Candidate> est)
   return true;
 }
 
+bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4f& t)
+{
+  if (! refinement_done_ )
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*]\tRefinement has not yet been done, Pose Estimation is not complete, returning false\n",20,__func__);
+    return false;
+  }
+  t = pose_estimation_->transformation_;
+  return true;
+}
+
+bool PoseEstimation::getTableTransformation(Eigen::Matrix4f& t)
+{
+  if (! db_set_ )
+  {
+    if (params_["verbosity"]>0)
+      print_warn("%*]\tDatabase has not yet been set, returning false\n",20,__func__);
+    return false;
+  }
+  t = this->database_.T_wl_;
+  return true;
+}
+
 bool PoseEstimation::saveCandidates(boost::filesystem::path file)
 {
   if (!candidates_found_)
