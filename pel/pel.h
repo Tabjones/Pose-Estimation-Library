@@ -208,7 +208,7 @@ class PoseDB{
   vector<PC> clouds_;
   boost::shared_ptr<indexVFH> vfh_idx_;
   boost::shared_ptr<indexESF> esf_idx_;
-  Eigen::Matrix4f T_wl_; //TODO now its only the 60 one
+  Eigen::Matrix4d T_wl_; //TODO now its only the 60 one
 
   /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
    * \param[in] query Pointer to the query histogram(s)
@@ -319,7 +319,7 @@ class Candidate{
   float distance_;
   float normalized_distance_;
   float rmse_;
-  Eigen::Matrix4f transformation_;
+  Eigen::Matrix4d transformation_;
 
   public:
     /** \brief Default empty Constructor
@@ -385,7 +385,7 @@ class Candidate{
      * The transformation is expressed in the Candidate Reference System and it only has a meaning after the refinement
      * process has been performed by PoseEstimation
      */
-    void getTransformation (Eigen::Matrix4f& t) const;
+    void getTransformation (Eigen::Matrix4d& t) const;
 
     /** \brief Get the point cloud that represent the Candidate
      * \param[out] cloud Copy of the point cloud of the candidate
@@ -460,9 +460,6 @@ class PoseEstimation {
   
   ///The cloud pointer that represent the query to estimate as supplied before any computation
   PC::Ptr query_cloud_;
-  
-  ///Cloud pointer to query pre-processed cloud (if preprocessing is made, otherwise it's the same as query_cloud
-  PC::Ptr query_cloud_processed_;
   
   ///List of candidates to the query calculated from VFH
   vector<Candidate> vfh_list_;
@@ -829,13 +826,13 @@ class PoseEstimation {
    * \param[out] t A matrix that will contain the final transformation
    * \return _True_ if t is correctly initialized, _false_ otherwise
    */
-  bool getEstimationTransformation(Eigen::Matrix4f& t);
+  bool getEstimationTransformation(Eigen::Matrix4d& t);
   
   /** \brief Get a copy of table transformation of database
    * \param[out] t A matrix that will contain the transformation
    * \return _True_ if t is correctly initialized, _false_ otherwise
    */
-  bool getTableTransformation(Eigen::Matrix4f& t);
+  bool getTableTransformation(Eigen::Matrix4d& t);
 
   /** \brief Reset the viewpoint for current query, so that it can be computed again
    */
@@ -866,13 +863,12 @@ class PoseEstimation {
 
   /** \brief Get name and  pointers holding point clouds of query object (before and after eventual preprocessing)
    * \param[out] name String containing query name
-   * \param[out] clp Shared Pointer to a copy of query point cloud before preprocessing
-   * \param[out] clp_pre Shared Pointer to a copy of query point cloud after preprocessing
+   * \param[out] clp Shared Pointer to a copy of query point cloud after eventual preprocessing
    * \return _True_ if operation was successful, _false_ otherwise 
    *
    * If no preprocessing was done (i.e. downsampling, upsampling and filtering parameters are all zero), clp and clp_pre point the same cloud
    */
-  bool getQuery (string& name, PC::Ptr clp, PC::Ptr clp_pre);
+  bool getQuery (string& name, PC::Ptr clp);
 
   /** \brief Get the estimated features (including normals) from the query
    * \param[out] vfh Point cloud pointer that will hold the VFH feature

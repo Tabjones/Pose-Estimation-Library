@@ -365,26 +365,26 @@ bool PoseDB::load(path pathDB)
             {
               if (tr_type == 1)
               {
-                T_wl_ (row,0) = std::stof(vst[0]);
-                T_wl_ (row,1) = std::stof(vst[1]);
-                T_wl_ (row,2) = std::stof(vst[2]);
-                T_wl_ (row,3) = std::stof(vst[3]);
+                T_wl_ (row,0) = std::stod(vst[0]);
+                T_wl_ (row,1) = std::stod(vst[1]);
+                T_wl_ (row,2) = std::stod(vst[2]);
+                T_wl_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 2)
               {
-                T_wl_ (row,0) = std::stof(vst[0]);
-                T_wl_ (row,1) = std::stof(vst[1]);
-                T_wl_ (row,2) = std::stof(vst[2]);
-                T_wl_ (row,3) = std::stof(vst[3]);
+                T_wl_ (row,0) = std::stod(vst[0]);
+                T_wl_ (row,1) = std::stod(vst[1]);
+                T_wl_ (row,2) = std::stod(vst[2]);
+                T_wl_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 3)
               {
-                T_wl_ (row,0) = std::stof(vst[0]);
-                T_wl_ (row,1) = std::stof(vst[1]);
-                T_wl_ (row,2) = std::stof(vst[2]);
-                T_wl_ (row,3) = std::stof(vst[3]);
+                T_wl_ (row,0) = std::stod(vst[0]);
+                T_wl_ (row,1) = std::stod(vst[1]);
+                T_wl_ (row,2) = std::stod(vst[2]);
+                T_wl_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
             }
@@ -1167,26 +1167,26 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
             {
               if (tr_type == 1)
               {
-                T_wl_ (row,0) = std::stof(vst[0]);
-                T_wl_ (row,1) = std::stof(vst[1]);
-                T_wl_ (row,2) = std::stof(vst[2]);
-                T_wl_ (row,3) = std::stof(vst[3]);
+                T_wl_ (row,0) = std::stod(vst[0]);
+                T_wl_ (row,1) = std::stod(vst[1]);
+                T_wl_ (row,2) = std::stod(vst[2]);
+                T_wl_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 2)
               {
-                T_wl_ (row,0) = std::stof(vst[0]);
-                T_wl_ (row,1) = std::stof(vst[1]);
-                T_wl_ (row,2) = std::stof(vst[2]);
-                T_wl_ (row,3) = std::stof(vst[3]);
+                T_wl_ (row,0) = std::stod(vst[0]);
+                T_wl_ (row,1) = std::stod(vst[1]);
+                T_wl_ (row,2) = std::stod(vst[2]);
+                T_wl_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 3)
               {
-                T_wl_ (row,0) = std::stof(vst[0]);
-                T_wl_ (row,1) = std::stof(vst[1]);
-                T_wl_ (row,2) = std::stof(vst[2]);
-                T_wl_ (row,3) = std::stof(vst[3]);
+                T_wl_ (row,0) = std::stod(vst[0]);
+                T_wl_ (row,1) = std::stod(vst[1]);
+                T_wl_ (row,2) = std::stod(vst[2]);
+                T_wl_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
             }
@@ -1339,7 +1339,7 @@ float Candidate::getRMSE () const
     print_warn("%*s]\tCandidate has not been refined (yet), thus it has no RMSE, returning -1 ...\n",20,__func__);
   return (rmse_); 
 }
-void Candidate::getTransformation (Eigen::Matrix4f& t) const
+void Candidate::getTransformation (Eigen::Matrix4d& t) const
 {
   if (transformation_.isIdentity())
     print_warn("%*s]\tCandidate has Identity transformation, it probably hasn't been refined...\n",20,__func__);
@@ -1356,11 +1356,6 @@ void Candidate::getCloud(PC& cloud) const
 
 void Candidate::getName(string& name) const
 {
-  if (name_.compare("UNSET") == 0)
-  {
-    print_warn("%*s]\tCandidate has no name, not copying anything\n",20,__func__);
-    return;
-  }
   name = name_;
 }
 
@@ -1369,6 +1364,8 @@ PoseEstimation::PoseEstimation ()
 {
   vp_supplied_ = vp_set_ = query_set_ = candidates_found_ = refinement_done_ = false;
   feature_count_ = 4;
+  PC a;
+  query_cloud_=a.makeShared();
   params_["verbosity"]=1;
   params_["useVFH"]=params_["useESF"]=params_["useCVFH"]=params_["useOURCVFH"]=1;
   params_["progBisection"]=params_["downsampling"]=1;
@@ -1568,10 +1565,7 @@ void PoseEstimation::filtering_()
   fil.setStddevMulThresh (params_["filterStdDevMulThresh"]);
   fil.setInputCloud(query_cloud_);
   fil.filter(*filtered);
-  if (query_cloud_processed_)
-    copyPointCloud(*filtered, *query_cloud_processed_);
-  else
-    query_cloud_processed_ = filtered;
+  copyPointCloud(*filtered, *query_cloud_);
   if (params_["verbosity"]>1)
   {
     print_info("%*s]\tTotal time elapsed during filter: ",20,__func__);
@@ -1596,10 +1590,7 @@ void PoseEstimation::upsampling_()
   PC::Ptr upsampled (new PC);
   search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
   MovingLeastSquares<PT, PT> mls;
-  if (query_cloud_processed_)
-    mls.setInputCloud(query_cloud_processed_);
-  else
-    mls.setInputCloud(query_cloud_);
+  mls.setInputCloud(query_cloud_);
   mls.setSearchMethod(tree);
   mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
   mls.setComputeNormals (false);
@@ -1608,10 +1599,7 @@ void PoseEstimation::upsampling_()
   mls.setSearchRadius(params_["mlsSearchRadius"]);
   mls.setPointDensity(params_["mlsPointDensity"]);
   mls.process(*upsampled);
-  if (query_cloud_processed_)
-    copyPointCloud(*upsampled, *query_cloud_processed_);
-  else
-    query_cloud_processed_ = upsampled;
+  copyPointCloud(*upsampled, *query_cloud_);
   if (params_["verbosity"]>1)
   {
     print_info("%*s]\tTotal time elapsed during upsampling: ",20,__func__);
@@ -1631,17 +1619,11 @@ void PoseEstimation::downsampling_()
   }
   PC::Ptr downsampled (new PC);
   VoxelGrid<PT> vg;
-  if (query_cloud_processed_)
-    vg.setInputCloud(query_cloud_processed_);
-  else
-    vg.setInputCloud(query_cloud_);
+  vg.setInputCloud(query_cloud_);
   vg.setLeafSize (params_["vgridLeafSize"], params_["vgridLeafSize"], params_["vgridLeafSize"]);
   vg.setDownsampleAllData (true);
   vg.filter(*downsampled);
-  if (query_cloud_processed_)
-    copyPointCloud(*downsampled, *query_cloud_processed_);
-  else
-    query_cloud_processed_ = downsampled;
+  copyPointCloud(*downsampled, *query_cloud_);
   if (params_["verbosity"]>1)
   {
     print_info("%*s]\tTotal time elapsed during downsampling: ",20,__func__);
@@ -1672,7 +1654,7 @@ bool PoseEstimation::computeNormals_()
   ne.setSearchMethod(tree);
   ne.setRadiusSearch(params_["neRadiusSearch"]);
   ne.setNumberOfThreads(0); //use pcl autoallocation
-  ne.setInputCloud(query_cloud_processed_);
+  ne.setInputCloud(query_cloud_);
   if (vp_supplied_)
   {
     vp_set_ = true;
@@ -1765,7 +1747,7 @@ void PoseEstimation::computeVFH_()
     VFHEstimation<PT, Normal, VFHSignature308> vfhE;
     search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
     vfhE.setSearchMethod(tree);
-    vfhE.setInputCloud (query_cloud_processed_);
+    vfhE.setInputCloud (query_cloud_);
     vfhE.setViewPoint (vpx_, vpy_, vpz_);
     vfhE.setInputNormals (normals_.makeShared());
     vfhE.compute (vfh_);
@@ -1789,7 +1771,7 @@ void PoseEstimation::computeESF_()
   ESFEstimation<PT, ESFSignature640> esfE;
   search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
   esfE.setSearchMethod(tree);
-  esfE.setInputCloud (query_cloud_processed_);
+  esfE.setInputCloud (query_cloud_);
   esfE.compute (esf_);
   if (params_["verbosity"]>1)
   {
@@ -1822,7 +1804,7 @@ void PoseEstimation::computeCVFH_()
     CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
     search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
     cvfhE.setSearchMethod(tree);
-    cvfhE.setInputCloud (query_cloud_processed_);
+    cvfhE.setInputCloud (query_cloud_);
     cvfhE.setViewPoint (vpx_, vpy_, vpz_);
     cvfhE.setInputNormals (normals_.makeShared());
     cvfhE.setEPSAngleThreshold(params_["cvfhEPSAngThresh"]*D2R); //angle needs to be supplied in radians
@@ -1868,7 +1850,7 @@ void PoseEstimation::computeOURCVFH_()
     OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
     search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ>);
     PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
-    copyPointCloud(*query_cloud_processed_, *cloud);
+    copyPointCloud(*query_cloud_, *cloud);
     ourcvfhE.setSearchMethod(tree);
     ourcvfhE.setInputCloud (cloud);
     ourcvfhE.setViewPoint (vpx_, vpy_, vpz_);
@@ -1901,6 +1883,11 @@ bool PoseEstimation::initQuery_()
     print_error("%*s]\tCannot initialize query, zero features chosen to estimate\n",20,__func__);
     return false;
   }
+  if (query_cloud_->points.size() <= 0)
+  {
+    print_error("%*s]\tCannot initialize query, point cloud with zero points given",20,__func__);
+    return false;
+  }
   //Check if a filter is needed
   if (params_["filtering"] >= 1)
     filtering_();
@@ -1910,9 +1897,6 @@ bool PoseEstimation::initQuery_()
   //Check if downsampling is needed
   if (params_["downsampling"] >= 1)
     downsampling_();
-  if (! query_cloud_processed_ )
-    query_cloud_processed_ = query_cloud_;
-
   vfh_.clear();
   esf_.clear();
   cvfh_.clear();
@@ -1942,7 +1926,7 @@ bool PoseEstimation::initQuery_()
     print_info("%*s]\t",20,__func__);
     print_value("%s", query_name_.c_str());
     print_info(" with ");
-    print_value("%d", query_cloud_processed_->points.size());
+    print_value("%d", query_cloud_->points.size());
     print_info(" points\n");
     print_info("%*s]\tTotal time elapsed to initialize a query: ",20,__func__);
     print_value("%g", timer.getTime());
@@ -1954,22 +1938,18 @@ bool PoseEstimation::initQuery_()
 /////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setQuery(string str, PC& cl)
 {
+  query_set_ = false;
   query_name_ = str;
-  if (query_cloud_)
-    copyPointCloud(cl, *query_cloud_);
-  else
-    query_cloud_ = cl.makeShared();
+  copyPointCloud(cl, *query_cloud_);
   if (initQuery_())
     query_set_ = true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setQuery(string str, PC::Ptr clp)
 {
+  query_set_ = false;
   query_name_ = str;
-  if (query_cloud_)
-    copyPointCloud(*clp, *query_cloud_);
-  else
-    query_cloud_ = clp;
+  copyPointCloud(*clp, *query_cloud_);
   if (initQuery_())
     query_set_ = true;
 }
@@ -2511,8 +2491,8 @@ bool PoseEstimation::refineCandidates()
     return false;
   }
   CentroidPoint<PT> qct;
-  for (int i=0; i<query_cloud_processed_->points.size(); ++i)
-    qct.add(query_cloud_processed_->points[i]);
+  for (int i=0; i<query_cloud_->points.size(); ++i)
+    qct.add(query_cloud_->points[i]);
   PT query_centroid;
   qct.get(query_centroid);
   if (params_["progBisection"]>0)
@@ -2524,12 +2504,12 @@ bool PoseEstimation::refineCandidates()
     timer.reset();
     vector<Candidate> list; //make a temporary list to manipulate
     boost::copy(composite_list_, back_inserter(list));
-    IterativeClosestPoint<PT, PT> icp;
-    icp.setInputTarget(query_cloud_processed_); //query
+    IterativeClosestPoint<PT, PT, double> icp;
+    icp.setInputTarget(query_cloud_); //query
     icp.setUseReciprocalCorrespondences(false);
     icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
-    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
-    icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
+    icp.setTransformationEpsilon (1e-5); //difference between consecutive transformations
+    icp.setEuclideanFitnessEpsilon (1e-5); //not using it (sum of euclidean distances between points)
     int steps (0);
     while (list.size() > 1)
     {
@@ -2538,7 +2518,7 @@ bool PoseEstimation::refineCandidates()
         PC::Ptr aligned (new PC);
         //icp align source over target, result in aligned
         icp.setInputSource(it->cloud_); //the candidate
-        Eigen::Matrix4f guess;
+        Eigen::Matrix4d guess;
         if (steps >0)
           guess = it->transformation_;
         else
@@ -2623,8 +2603,8 @@ bool PoseEstimation::refineCandidates()
       print_info("%*s]\tStarting Brute Force...\n",20,__func__);
     StopWatch timer;
     timer.reset();
-    IterativeClosestPoint<PT, PT> icp;
-    icp.setInputTarget(query_cloud_processed_); //query
+    IterativeClosestPoint<PT, PT, double> icp;
+    icp.setInputTarget(query_cloud_); //query
     icp.setUseReciprocalCorrespondences(false);
     icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
     icp.setTransformationEpsilon (1e-5); //difference between consecutive transformations
@@ -2639,7 +2619,7 @@ bool PoseEstimation::refineCandidates()
         cct.add(it->cloud_->points[i]);
       PT candidate_centroid;
       cct.get(candidate_centroid);
-      Eigen::Matrix4f guess;
+      Eigen::Matrix4d guess;
       guess << 1,0,0, (query_centroid.x - candidate_centroid.x),
                0,1,0, (query_centroid.y - candidate_centroid.y),
                0,0,1, (query_centroid.z - candidate_centroid.z),
@@ -2962,15 +2942,20 @@ bool PoseEstimation::getEstimation(boost::shared_ptr<Candidate> est)
       print_warn("%*]\tRefinement has not yet been done, Pose Estimation is not complete, returning false\n",20,__func__);
     return false;
   }
-  if (est)
-    est.reset();
-  Candidate c;
-  c = *pose_estimation_;
-  est = boost::make_shared<Candidate> (c);
+  if (!est)
+  {
+    Candidate c;
+    c = *pose_estimation_;
+    est = boost::make_shared<Candidate> (c);
+  }
+  else
+  {
+    *est = *pose_estimation_;
+  }
   return true;
 }
 
-bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4f& t)
+bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4d& t)
 {
   if (! refinement_done_ )
   {
@@ -2982,7 +2967,7 @@ bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4f& t)
   return true;
 }
 
-bool PoseEstimation::getTableTransformation(Eigen::Matrix4f& t)
+bool PoseEstimation::getTableTransformation(Eigen::Matrix4d& t)
 {
   if (! db_set_ )
   {
@@ -3132,7 +3117,7 @@ void PoseEstimation::printQuery()
   print_info(" with a total of ");
   print_value("%d\n", query_cloud_->points.size());
   print_info("Was preprocessed and now has ");
-  print_value("%d",query_cloud_processed_->points.size());
+  print_value("%d",query_cloud_->points.size());
   print_info(" points\n");
   if (vfh_.points.size() != 0)
   {
@@ -3156,7 +3141,7 @@ void PoseEstimation::printQuery()
   }
 }
 
-bool PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)
+bool PoseEstimation::getQuery(string& name, PC::Ptr clp)
 {
   if (!query_set_)
   {
@@ -3173,14 +3158,6 @@ bool PoseEstimation::getQuery(string& name, PC::Ptr clp, PC::Ptr clp_pre)
     copyPointCloud(*query_cloud_, cl);
     clp = cl.makeShared();
   } 
-  if (clp_pre)
-    copyPointCloud(*query_cloud_processed_, *clp_pre);
-  else
-  {
-    PC cl;
-    copyPointCloud(*query_cloud_processed_, cl);
-    clp_pre = cl.makeShared();
-  }
   return true;
 }
 
@@ -3307,7 +3284,7 @@ void PoseEstimation::viewQuery()
     v_cvfh.addFeatureHistogram (cvfh_, 308, "cvfh");
   if (params_["useOURCVFH"] > 0)
     v_ourcvfh.addFeatureHistogram (ourcvfh_, 308, "ourcvfh");
-  viewer.addPointCloud(query_cloud_processed_, "query");
+  viewer.addPointCloud(query_cloud_, "query");
   viewer.addCoordinateSystem(0.2);
   while(!viewer.wasStopped())
   {
@@ -3333,8 +3310,8 @@ void PoseEstimation::viewEstimation()
   PC::Ptr pe (new PC);
   transformPointCloud( *(pose_estimation_->cloud_), *pe, pose_estimation_->transformation_ );
   visualization::PointCloudColorHandlerCustom<PointXYZRGBA> candidate_color_handler (pe, 0, 255, 0);
-  visualization::PointCloudColorHandlerCustom<PointXYZRGBA> query_color_handler (query_cloud_processed_, 255, 0, 0);
-  viewer.addPointCloud(query_cloud_processed_, query_color_handler, "query");
+  visualization::PointCloudColorHandlerCustom<PointXYZRGBA> query_color_handler (query_cloud_, 255, 0, 0);
+  viewer.addPointCloud(query_cloud_, query_color_handler, "query");
   viewer.addCoordinateSystem(0.2);
   viewer.addPointCloud(pe, candidate_color_handler, "estimation");
   while(!viewer.wasStopped())
