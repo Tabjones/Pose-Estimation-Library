@@ -111,7 +111,9 @@ PoseDB::PoseDB(const PoseDB& db)
   esf_idx_ = boost::make_shared<indexESF>(idx_esf);
   esf_idx_ -> buildIndex();
   boost::filesystem::remove(".idx__tmp");
-  T_wl_ = db.T_wl_; //TODO
+  T_70_ = db.T_70_; 
+  T_50_ = db.T_50_; 
+  T_30_ = db.T_30_; 
 }
 PoseDB& PoseDB::operator= (const PoseDB& db)
 {
@@ -153,7 +155,9 @@ PoseDB& PoseDB::operator= (const PoseDB& db)
   this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
   this->esf_idx_ -> buildIndex();
   boost::filesystem::remove(".idx__tmp"); //delete tmp file
-  this->T_wl_ = db.T_wl_; //TODO
+  this->T_70_ = db.T_70_;
+  this->T_50_ = db.T_50_;
+  this->T_30_ = db.T_30_;
   return *this;
 }
 /* Class PoseDB Implementation */
@@ -339,19 +343,19 @@ bool PoseDB::load(path pathDB)
         else
         {
           boost::trim (line); //remove white spaces from start and end
-          if (line.compare("T60:") == 0)
+          if (line.compare("T70:") == 0)
           {
             tr_type = 1;
             row = 0;
             continue;
           }
-          else if (line.compare("T40:") == 0) //TODO
+          else if (line.compare("T50:") == 0) 
           {
             tr_type = 2;
             row = 0;
             continue;
           }
-          else if (line.compare("T20:") == 0) //TODO
+          else if (line.compare("T30:") == 0) 
           {
             tr_type = 3;
             row = 0;
@@ -365,26 +369,26 @@ bool PoseDB::load(path pathDB)
             {
               if (tr_type == 1)
               {
-                T_wl_ (row,0) = std::stod(vst[0]);
-                T_wl_ (row,1) = std::stod(vst[1]);
-                T_wl_ (row,2) = std::stod(vst[2]);
-                T_wl_ (row,3) = std::stod(vst[3]);
+                T_70_ (row,0) = std::stod(vst[0]);
+                T_70_ (row,1) = std::stod(vst[1]);
+                T_70_ (row,2) = std::stod(vst[2]);
+                T_70_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 2)
               {
-                T_wl_ (row,0) = std::stod(vst[0]);
-                T_wl_ (row,1) = std::stod(vst[1]);
-                T_wl_ (row,2) = std::stod(vst[2]);
-                T_wl_ (row,3) = std::stod(vst[3]);
+                T_50_ (row,0) = std::stod(vst[0]);
+                T_50_ (row,1) = std::stod(vst[1]);
+                T_50_ (row,2) = std::stod(vst[2]);
+                T_50_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 3)
               {
-                T_wl_ (row,0) = std::stod(vst[0]);
-                T_wl_ (row,1) = std::stod(vst[1]);
-                T_wl_ (row,2) = std::stod(vst[2]);
-                T_wl_ (row,3) = std::stod(vst[3]);
+                T_30_ (row,0) = std::stod(vst[0]);
+                T_30_ (row,1) = std::stod(vst[1]);
+                T_30_ (row,2) = std::stod(vst[2]);
+                T_30_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
             }
@@ -530,7 +534,9 @@ void PoseDB::clear()
   esf_idx_.reset();
   clouds_.clear();
   dbPath_="UNSET";
-  T_wl_.setIdentity(); //TODO
+  T_70_.setIdentity(); 
+  T_50_.setIdentity(); 
+  T_30_.setIdentity(); 
 }
 /////////////////////////////////////////
 bool PoseDB::save(path pathDB)  
@@ -575,9 +581,13 @@ bool PoseDB::save(path pathDB)
   names.close();
   c_cvfh.close();
   c_ourcvfh.close();
-  table.open((pathDB.string()+ "/table.transform").c_str()); //TODO
-  table << "T60:"<< endl;
-  table << T_wl_ << endl;
+  table.open((pathDB.string()+ "/table.transform").c_str()); 
+  table << "T70:"<< endl;
+  table << T_70_ << endl;
+  table << "T50:"<< endl;
+  table << T_50_ << endl;
+  table << "T30:"<< endl;
+  table << T_30_ << endl;
   table.close();
   flann::save_to_file (*vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
   flann::save_to_file (*esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
@@ -1125,7 +1135,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     indexESF esf_idx (*esf_, flann::KDTreeIndexParams(4));
     esf_idx_ = boost::make_shared<indexESF>(esf_idx);
     esf_idx_->buildIndex();
-    //read table transform TODO
+    //read table transform 
     try
     {
       ifstream file ((pathClouds.string()+"/table.transform").c_str());
@@ -1141,19 +1151,19 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         else
         {
           boost::trim (line); //remove white spaces from start and end
-          if (line.compare("T60:") == 0)
+          if (line.compare("T70:") == 0)
           {
             tr_type = 1;
             row = 0;
             continue;
           }
-          else if (line.compare("T40:") == 0) //TODO
+          else if (line.compare("T50:") == 0) 
           {
             tr_type = 2;
             row = 0;
             continue;
           }
-          else if (line.compare("T20:") == 0) //TODO
+          else if (line.compare("T30:") == 0) 
           {
             tr_type = 3;
             row = 0;
@@ -1167,26 +1177,26 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
             {
               if (tr_type == 1)
               {
-                T_wl_ (row,0) = std::stod(vst[0]);
-                T_wl_ (row,1) = std::stod(vst[1]);
-                T_wl_ (row,2) = std::stod(vst[2]);
-                T_wl_ (row,3) = std::stod(vst[3]);
+                T_70_ (row,0) = std::stod(vst[0]);
+                T_70_ (row,1) = std::stod(vst[1]);
+                T_70_ (row,2) = std::stod(vst[2]);
+                T_70_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 2)
               {
-                T_wl_ (row,0) = std::stod(vst[0]);
-                T_wl_ (row,1) = std::stod(vst[1]);
-                T_wl_ (row,2) = std::stod(vst[2]);
-                T_wl_ (row,3) = std::stod(vst[3]);
+                T_50_ (row,0) = std::stod(vst[0]);
+                T_50_ (row,1) = std::stod(vst[1]);
+                T_50_ (row,2) = std::stod(vst[2]);
+                T_50_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
               if (tr_type == 3)
               {
-                T_wl_ (row,0) = std::stod(vst[0]);
-                T_wl_ (row,1) = std::stod(vst[1]);
-                T_wl_ (row,2) = std::stod(vst[2]);
-                T_wl_ (row,3) = std::stod(vst[3]);
+                T_30_ (row,0) = std::stod(vst[0]);
+                T_30_ (row,1) = std::stod(vst[1]);
+                T_30_ (row,2) = std::stod(vst[2]);
+                T_30_ (row,3) = std::stod(vst[3]);
                 ++row;
               }
             }
@@ -2558,7 +2568,6 @@ bool PoseEstimation::refineCandidates()
         //convergence 
         pose_estimation_.reset();
         pose_estimation_ = boost::make_shared<Candidate>(list[0]);
-        //TODO apply table transform, also to last candidate
         refinement_done_=true;
         if (params_["verbosity"]>1)
         {
@@ -2639,7 +2648,6 @@ bool PoseEstimation::refineCandidates()
         //convergence
         pose_estimation_.reset();
         pose_estimation_ = boost::make_shared<Candidate>(*it);
-        //TODO apply table transform
         refinement_done_=true;
         if (params_["verbosity"]>1)
         {
@@ -2967,7 +2975,7 @@ bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4d& t)
   return true;
 }
 
-bool PoseEstimation::getTableTransformation(Eigen::Matrix4d& t)
+bool PoseEstimation::getTableTransformation(Eigen::Matrix4d& t, int lat)
 {
   if (! db_set_ )
   {
@@ -2975,7 +2983,19 @@ bool PoseEstimation::getTableTransformation(Eigen::Matrix4d& t)
       print_warn("%*]\tDatabase has not yet been set, returning false\n",20,__func__);
     return false;
   }
-  t = this->database_.T_wl_;
+  if (lat == 70)
+    t = this->database_.T_70_;
+  else if (lat == 50)
+    t = this->database_.T_50_;
+  else if (lat == 30)
+    t = this->database_.T_30_;
+  else
+  {
+    t.setIdentity();
+    if (params_["verbosity"]>0)
+      print_warn("%*]\tProvided latitude does not exist in database, can not get a transformation, returning false\n",20,__func__);
+    return false;
+  }
   return true;
 }
 

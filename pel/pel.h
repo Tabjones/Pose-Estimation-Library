@@ -208,7 +208,7 @@ class PoseDB{
   vector<PC> clouds_;
   boost::shared_ptr<indexVFH> vfh_idx_;
   boost::shared_ptr<indexESF> esf_idx_;
-  Eigen::Matrix4d T_wl_; //TODO now its only the 60 one
+  Eigen::Matrix4d T_70_, T_50_, T_30_; 
 
   /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
    * \param[in] query Pointer to the query histogram(s)
@@ -830,9 +830,10 @@ class PoseEstimation {
   
   /** \brief Get a copy of table transformation of database
    * \param[out] t A matrix that will contain the transformation
+   * \param[in] lat the corresponding latitude, which defines the transformation seeked
    * \return _True_ if t is correctly initialized, _false_ otherwise
    */
-  bool getTableTransformation(Eigen::Matrix4d& t);
+  bool getTableTransformation(Eigen::Matrix4d& t, int lat);
 
   /** \brief Reset the viewpoint for current query, so that it can be computed again
    */

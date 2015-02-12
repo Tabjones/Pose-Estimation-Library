@@ -22,3 +22,8 @@ target_link_libraries (estimator
                        ${PCL_LIBRARIES} 
                        )
 
+add_executable (db_creator prova2.cpp)
+target_link_libraries (db_creator 
+                       ${PEL_LIBRARIES}
+                       ${PCL_LIBRARIES} 
+                       )
