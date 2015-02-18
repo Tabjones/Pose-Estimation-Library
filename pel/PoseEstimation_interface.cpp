@@ -66,7 +66,7 @@ bool PoseDB::isValidPath(path dbPath)
     return false;
   if ( !is_regular_file(dbPath.string()+ "/names.ourcvfh") || !(extension(dbPath.string()+ "/names.ourcvfh") == ".ourcvfh"))
     return false;
-  if ( !is_regular_file(dbPath.string()+ "/table.transform") || !(extension(dbPath.string()+ "/table.transform") == ".transform"))
+  if ( !is_regular_file(dbPath.string()+ "/transforms.h5") || !(extension(dbPath.string()+ "/transforms.h5") == ".h5"))
     return false;
   
   return true;
@@ -330,75 +330,24 @@ bool PoseDB::load(path pathDB)
     }
     try
     {
-      ifstream file ((pathDB.string()+"/table.transform").c_str());
-      string line;
-      int tr_type (0), row(0);
-      while (getline (file, line))
+      flann::Matrix<double> transf;
+      flann::load_from_file (transf, pathDB.string() + "/transforms.h5", "Table Transformations");
+      for (int i=0; i<transf.rows; ++i)
       {
-        if (line.compare(0,1,"#") == 0)
+        for (int j=0; j<transf.cols; ++j)
         {
-          //do nothing, comment line...
-          continue;
+          if (i>=0 && i<4)
+            T_70_(i,j) = transf[i][j];
+          if (i>=4 && i<8)
+            T_50_(i-4,j) = transf[i][j];
+          if (i>=8 && i<12)
+            T_30_(i-8,j) = transf[i][j];
         }
-        else
-        {
-          boost::trim (line); //remove white spaces from start and end
-          if (line.compare("T70:") == 0)
-          {
-            tr_type = 1;
-            row = 0;
-            continue;
-          }
-          else if (line.compare("T50:") == 0) 
-          {
-            tr_type = 2;
-            row = 0;
-            continue;
-          }
-          else if (line.compare("T30:") == 0) 
-          {
-            tr_type = 3;
-            row = 0;
-            continue;
-          }
-          std::vector<std::string> vst;
-          if (tr_type != 0)
-          {
-            boost::split (vst, line, boost::is_any_of(" "), boost::token_compress_on); 
-            if (vst.size() == 4)
-            {
-              if (tr_type == 1)
-              {
-                T_70_ (row,0) = std::stod(vst[0]);
-                T_70_ (row,1) = std::stod(vst[1]);
-                T_70_ (row,2) = std::stod(vst[2]);
-                T_70_ (row,3) = std::stod(vst[3]);
-                ++row;
-              }
-              if (tr_type == 2)
-              {
-                T_50_ (row,0) = std::stod(vst[0]);
-                T_50_ (row,1) = std::stod(vst[1]);
-                T_50_ (row,2) = std::stod(vst[2]);
-                T_50_ (row,3) = std::stod(vst[3]);
-                ++row;
-              }
-              if (tr_type == 3)
-              {
-                T_30_ (row,0) = std::stod(vst[0]);
-                T_30_ (row,1) = std::stod(vst[1]);
-                T_30_ (row,2) = std::stod(vst[2]);
-                T_30_ (row,3) = std::stod(vst[3]);
-                ++row;
-              }
-            }
-          }
-        }
-      }//eof
+      }
     }
     catch (...)
     {
-      print_error("%*s]\tError loading table.transform, file is likely corrupted, try recreating database\n",20,__func__);
+      print_error("%*s]\tError loading transforms.h5, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
   }
@@ -559,7 +508,7 @@ bool PoseDB::save(path pathDB)
     return false;
   }
   PCDWriter writer;
-  ofstream names, c_cvfh, c_ourcvfh, info, table;
+  ofstream names, c_cvfh, c_ourcvfh, info;
   names.open((pathDB.string()+ "/names.list").c_str());
   c_cvfh.open((pathDB.string()+ "/names.cvfh").c_str());
   c_ourcvfh.open((pathDB.string()+ "/names.ourcvfh").c_str());
@@ -581,14 +530,20 @@ bool PoseDB::save(path pathDB)
   names.close();
   c_cvfh.close();
   c_ourcvfh.close();
-  table.open((pathDB.string()+ "/table.transform").c_str()); 
-  table << "T70:"<< endl;
-  table << T_70_ << endl;
-  table << "T50:"<< endl;
-  table << T_50_ << endl;
-  table << "T30:"<< endl;
-  table << T_30_ << endl;
-  table.close();
+  flann::Matrix<double> Transforms (new double[12*4],12,4);
+  for (int i=0; i<Transforms.rows; ++i)
+  {
+    for (int j=0; j<Transforms.cols; ++j)
+    {
+      if (i>=0 && i<4)
+        Transforms[i][j] = T_70_(i,j);
+      if (i>=4 && i<8)
+        Transforms[i][j] = T_50_(i-4,j);
+      if (i>=8 && i<12)
+        Transforms[i][j] = T_30_(i-8,j);
+    }
+  }
+  flann::save_to_file (Transforms, pathDB.string() + "/transforms.h5", "Table Transformations");
   flann::save_to_file (*vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
   flann::save_to_file (*esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
   flann::save_to_file (*cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
@@ -932,6 +887,29 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
   if (exists(pathClouds) && is_directory(pathClouds))
   {
     this->clear();
+    //read table transform 
+    try
+    {
+      flann::Matrix<double> transf;
+      flann::load_from_file (transf, pathClouds.string() + "/transforms.h5", "Table Transformations");
+      for (int i=0; i<transf.rows; ++i)
+      {
+        for (int j=0; j<transf.cols; ++j)
+        {
+          if (i>=0 && i<4)
+            T_70_(i,j) = transf[i][j];
+          if (i>=4 && i<8)
+            T_50_(i-4,j) = transf[i][j];
+          if (i>=8 && i<12)
+            T_30_(i-8,j) = transf[i][j];
+        }
+      }
+    }
+    catch (...)
+    {
+      print_error("%*s]\tError loading transforms.h5 ...\n",20,__func__);
+      return false;
+    }
     vector<path> pvec;
     copy(directory_iterator(pathClouds), directory_iterator(), back_inserter(pvec));
     sort(pvec.begin(), pvec.end());
@@ -939,13 +917,14 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     PointCloud<VFHSignature308>::Ptr tmp_cvfh (new PointCloud<VFHSignature308>);
     PointCloud<VFHSignature308>::Ptr tmp_ourcvfh (new PointCloud<VFHSignature308>);
     PointCloud<ESFSignature640>::Ptr tmp_esf (new PointCloud<ESFSignature640>);
-    PC::Ptr input (new PC); 
+    PC::Ptr local_input (new PC); 
+    PC::Ptr input (new PC);
     int i(0);
     for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
     {
       if (is_regular_file (*it) && it->extension() == ".pcd")
       {
-        if (pcl::io::loadPCDFile(it->string().c_str(), *input)!=0 ) //loadPCDFile returns 0 if success
+        if (pcl::io::loadPCDFile(it->string().c_str(), *local_input)!=0 ) //loadPCDFile returns 0 if success
         {
           print_warn("%*s]\tError Loading Cloud %s, skipping...\n",20,__func__,it->string().c_str());
           continue;
@@ -956,24 +935,49 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         print_warn("%*s]\tLoaded File (%s) is not a pcd, skipping...\n",20,__func__,it->string().c_str());
         continue;
       }
-      vector<string> vst;
+      vector<string> vst, vs;
       split (vst, it->string(), boost::is_any_of("../\\"), boost::token_compress_on);
       names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
+      string cloudname = vst.at(vst.size()-2);
+      split (vs, cloudname, boost::is_any_of("_"), boost::token_compress_on);
+      Eigen::Matrix4d T_kl0, T_l0li;
+      int lat = stoi(vs.at(1)); //latitude integer
+      double lon = stod(vs.at(2))*D2R; //longitude in radians
+      if (lat==30)
+        T_kl0 = T_30_;
+      else if (lat==50)
+        T_kl0 = T_50_;
+      else if (lat==70)
+        T_kl0 = T_70_;
+      else
+      {
+        T_kl0.setIdentity();
+        if (params->at("verbosity")>0)
+          print_warn("%*s]\tPointCloud %s has no T_kl0 transformation, setting it as identity, check if clouds are created and named correctly...\n",20,__func__,cloudname.c_str());
+      }
+      Eigen::AngleAxisd rot(lon, Eigen::Vector3d::UnitZ() );
+      Eigen::Matrix4d T_rot;
+      T_rot <<  rot.matrix()(0,0), rot.matrix()(0,1), rot.matrix()(0,2), 0,
+            rot.matrix()(1,0), rot.matrix()(1,1), rot.matrix()(1,2), 0,
+            rot.matrix()(2,0), rot.matrix()(2,1), rot.matrix()(2,2), 0,
+            0,                 0,                 0,                 1;
+      T_l0li = T_rot.inverse();
+      Eigen::Matrix4d T_kli = T_kl0*T_l0li;
       PC::Ptr output (new PC);
       if (params->at("filtering") >0)
       {
         StatisticalOutlierRemoval<PT> filter;
         filter.setMeanK ( params->at("filterMeanK") );
         filter.setStddevMulThresh ( params->at("filterStdDevMulThresh") );
-        filter.setInputCloud(input);
+        filter.setInputCloud(local_input);
         filter.filter(*output); //Process Filtering
-        copyPointCloud(*output, *input);
+        copyPointCloud(*output, *local_input);
       }
       if (params->at("upsampling") >0)
       {
         MovingLeastSquares<PT, PT> mls;
         search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
-        mls.setInputCloud (input);
+        mls.setInputCloud (local_input);
         mls.setSearchMethod (tree);
         mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
         mls.setComputeNormals (false);
@@ -982,18 +986,20 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         mls.setSearchRadius ( params->at("mlsSearchRadius") );
         mls.setPointDensity( params->at("mlsPointDensity") );
         mls.process (*output); //Process Upsampling
-        copyPointCloud(*output, *input);
+        copyPointCloud(*output, *local_input);
       }
       if ((*params)["downsampling"]>0)
       {
         VoxelGrid <PT> vgrid;
-        vgrid.setInputCloud (input);
+        vgrid.setInputCloud (local_input);
         vgrid.setLeafSize ( params->at("vgridLeafSize"), params->at("vgridLeafSize"), params->at("vgridLeafSize")); //Downsample to 3mm
         vgrid.setDownsampleAllData (true);
         vgrid.filter (*output); //Process Downsampling
-        copyPointCloud(*output, *input);
+        copyPointCloud(*output, *local_input);
       }
-      clouds_.push_back(*input);
+      clouds_.push_back(*local_input);
+      //now transform in Kinect frame for features computation
+      transformPointCloud(*local_input, *input, T_kli);
       NormalEstimationOMP<PT, Normal> ne;
       search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
       PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
@@ -1029,9 +1035,9 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       else if (params->at("useSOasViewpoint")>0)
       {
         //Use Viewpoint stored in sensor_origin_ of cloud
-        vpx = clouds_[i].sensor_origin_[0];
-        vpy = clouds_[i].sensor_origin_[1];
-        vpz = clouds_[i].sensor_origin_[2];
+        vpx = input->sensor_origin_[0];
+        vpy = input->sensor_origin_[1];
+        vpz = input->sensor_origin_[2];
       }
       else
       {
@@ -1135,80 +1141,6 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     indexESF esf_idx (*esf_, flann::KDTreeIndexParams(4));
     esf_idx_ = boost::make_shared<indexESF>(esf_idx);
     esf_idx_->buildIndex();
-    //read table transform 
-    try
-    {
-      ifstream file ((pathClouds.string()+"/table.transform").c_str());
-      string line;
-      int tr_type (0), row(0);
-      while (getline (file, line))
-      {
-        if (line.compare(0,1,"#") == 0)
-        {
-          //do nothing, comment line...
-          continue;
-        }
-        else
-        {
-          boost::trim (line); //remove white spaces from start and end
-          if (line.compare("T70:") == 0)
-          {
-            tr_type = 1;
-            row = 0;
-            continue;
-          }
-          else if (line.compare("T50:") == 0) 
-          {
-            tr_type = 2;
-            row = 0;
-            continue;
-          }
-          else if (line.compare("T30:") == 0) 
-          {
-            tr_type = 3;
-            row = 0;
-            continue;
-          }
-          std::vector<std::string> vst;
-          if (tr_type != 0)
-          {
-            boost::split (vst, line, boost::is_any_of(" "), boost::token_compress_on); 
-            if (vst.size() == 4)
-            {
-              if (tr_type == 1)
-              {
-                T_70_ (row,0) = std::stod(vst[0]);
-                T_70_ (row,1) = std::stod(vst[1]);
-                T_70_ (row,2) = std::stod(vst[2]);
-                T_70_ (row,3) = std::stod(vst[3]);
-                ++row;
-              }
-              if (tr_type == 2)
-              {
-                T_50_ (row,0) = std::stod(vst[0]);
-                T_50_ (row,1) = std::stod(vst[1]);
-                T_50_ (row,2) = std::stod(vst[2]);
-                T_50_ (row,3) = std::stod(vst[3]);
-                ++row;
-              }
-              if (tr_type == 3)
-              {
-                T_30_ (row,0) = std::stod(vst[0]);
-                T_30_ (row,1) = std::stod(vst[1]);
-                T_30_ (row,2) = std::stod(vst[2]);
-                T_30_ (row,3) = std::stod(vst[3]);
-                ++row;
-              }
-            }
-          }
-        }
-      }//eof
-    }
-    catch (...)
-    {
-      print_error("%*s]\tError loading table.transform...\n",20,__func__);
-      return false;
-    }
     print_info("%*s]\tDone creating database, total of %d poses stored in memory\n",20,__func__,names_.size());
     return true;
   }
@@ -2518,8 +2450,8 @@ bool PoseEstimation::refineCandidates()
     icp.setInputTarget(query_cloud_); //query
     icp.setUseReciprocalCorrespondences(false);
     icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
-    icp.setTransformationEpsilon (1e-5); //difference between consecutive transformations
-    icp.setEuclideanFitnessEpsilon (1e-5); //not using it (sum of euclidean distances between points)
+    icp.setTransformationEpsilon (1e-4); //difference between consecutive transformations
+    icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
     int steps (0);
     while (list.size() > 1)
     {
@@ -2533,17 +2465,45 @@ bool PoseEstimation::refineCandidates()
           guess = it->transformation_;
         else
         {
+          Eigen::Matrix4d T_kl0, T_l0li, T_cen;
+          vector<string> vst;
+          split (vst, it->name_, boost::is_any_of("_"), boost::token_compress_on);
+          int lat = stoi(vst.at(1)); //latitude integer
+          double lon = stod(vst.at(2))*D2R; //longitude in radians
+          if (lat==30)
+            T_kl0 = database_.T_30_;
+          else if (lat==50)
+            T_kl0 = database_.T_50_;
+          else if (lat==70)
+            T_kl0 = database_.T_70_;
+          else
+          {
+            T_kl0.setIdentity();
+            if (params_["verbosity"]>0)
+              print_warn("%*s]\tCandidate has no T_kl0 transformation, setting it as identity, check database correctness...\n",20,__func__);
+          }
+          Eigen::AngleAxisd rot(lon, Eigen::Vector3d::UnitZ() );
+          Eigen::Matrix4d T_rot;
+          T_rot <<  rot.matrix()(0,0), rot.matrix()(0,1), rot.matrix()(0,2), 0,
+                rot.matrix()(1,0), rot.matrix()(1,1), rot.matrix()(1,2), 0,
+                rot.matrix()(2,0), rot.matrix()(2,1), rot.matrix()(2,2), 0,
+                0,                 0,                 0,                 1;
+          T_l0li = T_rot.inverse();
           CentroidPoint<PT> cct;
-          for (int i=0; i< it->cloud_->points.size(); ++i)
-            cct.add(it->cloud_->points[i]);
+          PC::Ptr cloud_in_k (new PC);
+          Eigen::Matrix4d T = T_kl0*T_l0li;
+          transformPointCloud(*(it->cloud_), *cloud_in_k, T);
+          for (int i=0; i< cloud_in_k->points.size(); ++i)
+            cct.add(cloud_in_k->points[i]);
           PT candidate_centroid;
           cct.get(candidate_centroid);
-          guess << 1,0,0, (query_centroid.x - candidate_centroid.x), 
-                0,1,0, (query_centroid.y - candidate_centroid.y), 
-                0,0,1, (query_centroid.z - candidate_centroid.z), 
-                0,0,0,1;
+          T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
+                   0,1,0, (query_centroid.y - candidate_centroid.y), 
+                   0,0,1, (query_centroid.z - candidate_centroid.z), 
+                   0,0,0, 1;
+          guess = T_cen*T_kl0*T_l0li;
         }
-        icp.align(*aligned, guess); //initial gross estimation is to translate candidate centroid over query centroid, or the transform at previous step
+        icp.align(*aligned, guess); //initial gross estimation 
         it->transformation_ = icp.getFinalTransformation();
         it->rmse_ = sqrt(icp.getFitnessScore());
         ++steps;
@@ -2623,16 +2583,44 @@ bool PoseEstimation::refineCandidates()
       PC::Ptr aligned (new PC);
       //icp align source over target, result in aligned
       icp.setInputSource(it->cloud_); //the candidate
+      Eigen::Matrix4d T_kl0, T_l0li, T_cen;
+      vector<string> vst;
+      split (vst, it->name_, boost::is_any_of("_"), boost::token_compress_on);
+      int lat = stoi(vst.at(1)); //latitude integer
+      double lon = stod(vst.at(2))*D2R; //longitude in radians
+      if (lat==30)
+        T_kl0 = database_.T_30_;
+      else if (lat==50)
+        T_kl0 = database_.T_50_;
+      else if (lat==70)
+        T_kl0 = database_.T_70_;
+      else
+      {
+        T_kl0.setIdentity();
+        if (params_["verbosity"]>0)
+          print_warn("%*s]\tCandidate has no T_kl0 transformation, setting it as identity, check database correctness...\n",20,__func__);
+      }
+      Eigen::AngleAxisd rot(lon, Eigen::Vector3d::UnitZ() );
+      Eigen::Matrix4d T_rot;
+      T_rot <<  rot.matrix()(0,0), rot.matrix()(0,1), rot.matrix()(0,2), 0,
+                rot.matrix()(1,0), rot.matrix()(1,1), rot.matrix()(1,2), 0,
+                rot.matrix()(2,0), rot.matrix()(2,1), rot.matrix()(2,2), 0,
+                0,                 0,                 0,                 1;
+      T_l0li = T_rot.inverse();
       CentroidPoint<PT> cct;
-      for (int i=0; i< it->cloud_->points.size(); ++i)
-        cct.add(it->cloud_->points[i]);
+      PC::Ptr cloud_in_k (new PC);
+      Eigen::Matrix4d T = T_kl0*T_l0li;
+      transformPointCloud(*(it->cloud_), *cloud_in_k, T);
+      for (int i=0; i< cloud_in_k->points.size(); ++i)
+        cct.add(cloud_in_k->points[i]);
       PT candidate_centroid;
       cct.get(candidate_centroid);
+      T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
+               0,1,0, (query_centroid.y - candidate_centroid.y), 
+               0,0,1, (query_centroid.z - candidate_centroid.z), 
+               0,0,0, 1;
       Eigen::Matrix4d guess;
-      guess << 1,0,0, (query_centroid.x - candidate_centroid.x),
-               0,1,0, (query_centroid.y - candidate_centroid.y),
-               0,0,1, (query_centroid.z - candidate_centroid.z),
-               0,0,0,1;
+      guess = T_cen*T_kl0*T_l0li;
       icp.align(*aligned, guess);
       it->transformation_ = icp.getFinalTransformation();
       it->rmse_ = sqrt(icp.getFitnessScore());
