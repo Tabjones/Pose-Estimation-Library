@@ -6,14 +6,14 @@ Library for pose estimation, code api is available [here.](http://federicocp.bit
 Set Up
 ------------
 ### Quick setup
-       git clone https://Tabjones@bitbucket.org/Tabjones/poseestimation.git
-       cd poseestimation
+       git clone https://Tabjones@bitbucket.org/Tabjones/pel.git
+       cd pel
        mkdir build && cd build
        cmake ..
        make
        sudo make install
 ### Dependencies
-+ pcl > 1.7
++ pcl >= 1.8
 + boost
 + hdf5 (libhdf5-dev on ubuntu)
 + GCC  >4.7 (or equivalent compiler that supports -std=c++11)
@@ -31,6 +31,3 @@ Also CMakeLists.txt must contain the following lines:
       target_link_libraries (your_program ${PEL_LIBRARIES} )
 
 An example program is available into /Tests folder.
-
-
-
