@@ -5,8 +5,8 @@
 //Doxygen documentation
 
 /** 
- *  \todo add method for tests registration and elaboration
  *  \todo add method to estimate from a subset of objects in db
+ *  \todo organize params in yaml ?
  */
 
 /** \mainpage notitle 
@@ -56,6 +56,7 @@ For example when changing preprocessing pipeline (i.e. altering search radius of
 | mlsSearchRadius  | 0.05 | Set search radius of MLS to the value specified, a value of 1 means one meter. Relevant if upsampling=1 |
 | filterMeanK | 50 | How many neighboring points to consider in the statistical distribution calculated by the filter, relevant if filtering=1 |
 | filterStdDevMulThresh | 3 | Multiplication factor to apply to Standard Deviation of the statistical distribution during filtering process (higher value, means less aggressive filter). Relevant only if filtering=1 |
+| icpReciprocal | 1 | Tell ICP to use reciprocal correspondences between source (candidate) and target (query), during candidates refinement procedure |
 | progItera   | 5 | ICP iterations to perform for all candidates on each step of Progressive Bisection Candidate Refinement, lowering this value may speed up the process at the cost of a less accurate estimation. Relevant only if progBisection=1 |
 | progFraction | 0.5 | Size of candidate list gets multiplied by this value on each step of Progressive Bisection Refinement, the default is to split the list in half (0.5). Relevant only if progBisection=1 |
 | vgridLeafSize | 0.005 | Set the leaf size of VoxelGrid downsampling to the value specified, 1 means one meter. Only relevant if downsampling=1 |
@@ -257,11 +258,11 @@ class PoseDB{
      * This method uses the provided set of parameters to create the database, erasing any previously loaded databases.
      * Please note that:
 - Constructing a database from scratch can take several minutes at least.
-- In order to use this method, PCD files MUST be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
+- In order to use this method, PCD files must be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
 - PCD files must represent previously segmented objects, no elements of the scene should be present.
-- PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
+- PCD files must have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
 
-Failure to respect the above cases can lead to unexpected wrong results.
+Failure to respect the above can lead to unexpected wrong results.
      */
     bool create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
     
@@ -272,9 +273,11 @@ Failure to respect the above cases can lead to unexpected wrong results.
      * This method creates a set of default parameters and creates the database from it, erasing any previously loaded databases. 
      * Please note that:
 - Constructing a database from scratch can take several minutes at least.
-- In order to use this method, PCD files must follow a naming convention, that is objName_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
-- PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
-- PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
+- In order to use this method, PCD files must be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
+- PCD files must represent previously segmented objects, no elements of the scene should be present.
+- PCD files must have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
+
+Failure to respect the above can lead to unexpected wrong results.
      */
     bool create(boost::filesystem::path pathClouds);
       

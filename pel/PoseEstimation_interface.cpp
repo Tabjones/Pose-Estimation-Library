@@ -1232,6 +1232,7 @@ PoseEstimation::PoseEstimation ()
   params_["kNeighbors"]=20;
   params_["maxIterations"]=200;
   params_["progItera"]=10;
+  params_["icpReciprocal"]=1;
   params_["progFraction"]=0.5f;
   params_["rmseThreshold"]=0.003f;
   params_["mlsPolyOrder"]=2;
@@ -2281,7 +2282,7 @@ bool PoseEstimation::refineCandidates()
     boost::copy(composite_list_, back_inserter(list));
     IterativeClosestPoint<PT, PT, float> icp;
     icp.setInputTarget(query_cloud_); //query
-    icp.setUseReciprocalCorrespondences(false);
+    icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
     icp.setTransformationEpsilon (1e-4); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
@@ -2404,7 +2405,7 @@ bool PoseEstimation::refineCandidates()
     timer.reset();
     IterativeClosestPoint<PT, PT, float> icp;
     icp.setInputTarget(query_cloud_); //query
-    icp.setUseReciprocalCorrespondences(false);
+    icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
     icp.setTransformationEpsilon (1e-5); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2)); 
