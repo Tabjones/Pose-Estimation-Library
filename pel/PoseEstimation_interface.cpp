@@ -2292,8 +2292,12 @@ bool PoseEstimation::refineCandidates()
       for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
       {
         PC::Ptr aligned (new PC);
+        PC::Ptr candidate (new PC);
+        copyPointCloud(*(it->cloud_), *candidate);
+        candidate->sensor_origin_.setZero();
+        candidate->sensor_orientation_.setIdentity();
         //icp align source over target, result in aligned
-        icp.setInputSource(it->cloud_); //the candidate
+        icp.setInputSource(candidate); //the candidate
         Eigen::Matrix4f guess;
         if (steps >0)
           guess = it->transformation_;
@@ -2304,16 +2308,15 @@ bool PoseEstimation::refineCandidates()
           PT candidate_centroid;
           if (this->database_.isLocal())
           { //database is in local frame
-            Eigen::Matrix3f R;
+            Eigen::Matrix3f R (it->cloud_->sensor_orientation_);
             Eigen::Vector4f t;
             t = it->cloud_->sensor_origin_;
-            R = it->cloud_->sensor_orientation_;
             T_kli << R(0,0), R(0,1), R(0,2), t(0),
                      R(1,0), R(1,1), R(1,2), t(1),
                      R(2,0), R(2,1), R(2,2), t(2),
                      0,      0,      0,      1;
             PC::Ptr cloud_in_k (new PC);
-            transformPointCloud(*(it->cloud_), *cloud_in_k, T_kli);
+            transformPointCloud(*candidate, *cloud_in_k, T_kli);
             for (int i=0; i< cloud_in_k->points.size(); ++i)
               cct.add(cloud_in_k->points[i]);
             cct.get(candidate_centroid);
@@ -2338,7 +2341,6 @@ bool PoseEstimation::refineCandidates()
         icp.align(*aligned, guess); //initial gross estimation 
         it->transformation_ = icp.getFinalTransformation();
         it->rmse_ = sqrt(icp.getFitnessScore());
-        ++steps;
         if (params_["verbosity"]>1)
         {
           print_info("%*s]\tCandidate: ",20,__func__);
@@ -2347,6 +2349,7 @@ bool PoseEstimation::refineCandidates()
           print_value("%g\n",it->rmse_);
         }
       }
+      ++steps;
       //now resort list
       sort(list.begin(), list.end(),
           [](Candidate const &a, Candidate const &b)
@@ -2412,17 +2415,20 @@ bool PoseEstimation::refineCandidates()
     for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
     {
       PC::Ptr aligned (new PC);
+      PC::Ptr candidate (new PC);
+      copyPointCloud(*(it->cloud_), *candidate);
       //icp align source over target, result in aligned
-      icp.setInputSource(it->cloud_); //the candidate
+      candidate->sensor_origin_.setZero();
+      candidate->sensor_orientation_.setIdentity();
+      icp.setInputSource(candidate); //the candidate
       Eigen::Matrix4f T_kli, T_cen, guess;
       CentroidPoint<PT> cct;
       PT candidate_centroid;
       if (this->database_.isLocal())
       { //database is in local frame
-        Eigen::Matrix3f R;
+        Eigen::Matrix3f R( it->cloud_->sensor_orientation_ );
         Eigen::Vector4f t;
         t = it->cloud_->sensor_origin_;
-        R = it->cloud_->sensor_orientation_;
         T_kli << R(0,0), R(0,1), R(0,2), t(0),
                  R(1,0), R(1,1), R(1,2), t(1),
                  R(2,0), R(2,1), R(2,2), t(2),
@@ -3121,6 +3127,8 @@ void PoseEstimation::viewEstimation()
   visualization::PCLVisualizer viewer;
   PC::Ptr pe (new PC);
   transformPointCloud( *(pose_estimation_->cloud_), *pe, pose_estimation_->transformation_ );
+  pe->sensor_origin_.setZero();
+  pe->sensor_orientation_.setIdentity();
   visualization::PointCloudColorHandlerCustom<PointXYZRGBA> candidate_color_handler (pe, 0, 255, 0);
   visualization::PointCloudColorHandlerCustom<PointXYZRGBA> query_color_handler (query_cloud_, 255, 0, 0);
   viewer.addPointCloud(query_cloud_, query_color_handler, "query");
