@@ -2284,7 +2284,7 @@ bool PoseEstimation::refineCandidates()
     icp.setInputTarget(query_cloud_); //query
     icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
-    icp.setTransformationEpsilon (1e-4); //difference between consecutive transformations
+    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
     int steps (0);
     while (list.size() > 1)
@@ -2410,7 +2410,7 @@ bool PoseEstimation::refineCandidates()
     icp.setInputTarget(query_cloud_); //query
     icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
-    icp.setTransformationEpsilon (1e-5); //difference between consecutive transformations
+    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2)); 
     for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
     {
