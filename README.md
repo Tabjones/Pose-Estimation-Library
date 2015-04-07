@@ -13,7 +13,7 @@ Set Up
        make
        sudo make install
 ### Dependencies
-+ pcl >= 1.8
++ pcl >= 1.7.2
 + boost
 + hdf5 (libhdf5-dev on ubuntu)
 + GCC  >4.7 (or equivalent compiler that supports -std=c++11)
