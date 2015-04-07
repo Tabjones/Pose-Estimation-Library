@@ -890,9 +890,9 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         continue;
       }
       vector<string> vst;
+      PC::Ptr output (new PC);
       split (vst, it->string(), boost::is_any_of("../\\"), boost::token_compress_on);
       names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
-      PC::Ptr output (new PC);
       if (params->at("filtering") >0)
       {
         StatisticalOutlierRemoval<PT> filter;
@@ -954,6 +954,13 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
             print_warn("%*s]\tLoaded PCD file %s, has local object reference frame, while others found before were expressed in sensor reference frame. Make sure you are loading the correct files!!",20,__func__,vst.at(vst.size()-2).c_str());
         }
       }
+      if (this->clouds_in_local_)
+      {
+        input->sensor_origin_.setZero();
+        input->sensor_orientation_.setIdentity();
+        transformPointCloud(*input, *output, s_orig, s_orie); //TODO
+        copyPointCloud(*output, *input);
+      }
       //Normals computation
       NormalEstimationOMP<PT, Normal> ne;
       search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
@@ -969,7 +976,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       PointCloud<VFHSignature308> out;
       vfhE.setSearchMethod(tree);
       vfhE.setInputCloud (input);
-      vfhE.setViewPoint (s_orig(0), s_orig(1), s_orig(2));
+      vfhE.setViewPoint (0,0,0);
       vfhE.setInputNormals (normals);
       vfhE.compute (out);
       tmp_vfh->push_back(out.points[0]);
@@ -984,7 +991,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
       cvfhE.setSearchMethod(tree);
       cvfhE.setInputCloud (input);
-      cvfhE.setViewPoint (s_orig(0), s_orig(1), s_orig(2));
+      cvfhE.setViewPoint (0, 0, 0);
       cvfhE.setInputNormals (normals);
       cvfhE.setEPSAngleThreshold(params->at("cvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
       cvfhE.setCurvatureThreshold(params->at("cvfhCurvThresh"));
@@ -1006,7 +1013,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       copyPointCloud(*input, *input2);
       ourcvfhE.setSearchMethod(tree2);
       ourcvfhE.setInputCloud (input2);
-      ourcvfhE.setViewPoint (s_orig(0), s_orig(1), s_orig(2));
+      ourcvfhE.setViewPoint (0,0,0);
       ourcvfhE.setInputNormals (normals);
       ourcvfhE.setEPSAngleThreshold(params->at("ourcvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
       ourcvfhE.setCurvatureThreshold(params->at("ourcvfhCurvThresh"));
@@ -1660,6 +1667,7 @@ bool PoseEstimation::initQuery_()
   {
     if (params_["verbosity"]>1)
       print_info("%*s]\tInitializing query expressed in local object reference frame.\n",20,__func__);
+      print_warn("%*s]\tQuery in local reference frame is not supported yet, you will most likely get wrong results.\n",20,__func__);
     this->local_query_ = true;
   }
   //Check if a filter is needed
