@@ -1,5 +1,5 @@
 #find dependencies and set up include directories
-find_package(PCL 1.7 REQUIRED)
+find_package(PCL 1.7.2 REQUIRED)
 find_package(HDF5 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 include_directories(${HDF5_INCLUDE_DIR})

@@ -66,8 +66,6 @@ bool PoseDB::isValidPath(path dbPath)
     return false;
   if ( !is_regular_file(dbPath.string()+ "/names.ourcvfh") || !(extension(dbPath.string()+ "/names.ourcvfh") == ".ourcvfh"))
     return false;
-  if ( !is_regular_file(dbPath.string()+ "/transforms.h5") || !(extension(dbPath.string()+ "/transforms.h5") == ".h5"))
-    return false;
   
   return true;
 }
@@ -111,9 +109,7 @@ PoseDB::PoseDB(const PoseDB& db)
   esf_idx_ = boost::make_shared<indexESF>(idx_esf);
   esf_idx_ -> buildIndex();
   boost::filesystem::remove(".idx__tmp");
-  T_70_ = db.T_70_; 
-  T_50_ = db.T_50_; 
-  T_30_ = db.T_30_; 
+  clouds_in_local_ = db.clouds_in_local_;
 }
 PoseDB& PoseDB::operator= (const PoseDB& db)
 {
@@ -155,9 +151,7 @@ PoseDB& PoseDB::operator= (const PoseDB& db)
   this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
   this->esf_idx_ -> buildIndex();
   boost::filesystem::remove(".idx__tmp"); //delete tmp file
-  this->T_70_ = db.T_70_;
-  this->T_50_ = db.T_50_;
-  this->T_30_ = db.T_30_;
+  this->clouds_in_local_ = db.clouds_in_local_;
   return *this;
 }
 /* Class PoseDB Implementation */
@@ -183,16 +177,53 @@ bool PoseDB::load(path pathDB)
       {  
         if (pcl::io::loadPCDFile (it->string(),clouds_[i])!=0)
         {
-          print_warn("%*s]\tError loading PCD file: %s, skipping...\n",20,__func__,it->string().c_str());
+          print_warn("%*s]\tError loading PCD file number %d, name %s, skipping...\n",20,__func__,i+1,it->string().c_str());
           continue;
+        }
+        Eigen::Vector3f s_orig (clouds_[i].sensor_origin_(0), clouds_[i].sensor_origin_(1), clouds_[i].sensor_origin_(2) ) ;
+        Eigen::Quaternionf s_orie = clouds_[i].sensor_orientation_;
+        if (clouds_[i].points.size() <= 0)
+          print_warn("%*s]\tLoaded PCD file number %d, name %s has ZERO points!! Are you loading the correct files?\n",20,__func__,i+1,it->string().c_str());
+        if (i==0)
+        {
+          if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
+          {
+            print_info("%*s]\tFound that clouds are expressed in sensor reference frame.\n",20,__func__);
+            this->clouds_in_local_ = false;
+          }
+          else
+          {
+            print_info("%*s]\tFound that clouds are expressed in local object reference frame.\n",20,__func__);
+            this->clouds_in_local_ = true;
+          }
+        }
+        else
+        {
+          if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
+          {
+            if (this->clouds_in_local_ == true)
+            {
+              print_warn("%*s]\tLoaded PCD file number %d, has sensor reference frame, while others found before were expressed in local object reference frame. Make sure you are loading the correct files!!",20,__func__,i+1);
+              continue;
+            }
+          }
+          else
+          {
+            if (this->clouds_in_local_ == false)
+            {
+              print_warn("%*s]\tLoaded PCD file number %d, has local object reference frame, while others found before were expressed in sensor reference frame. Make sure you are loading the correct files!!",20,__func__,i+1);
+              continue;
+            }
+          }
         }
       }
       else
       {
-        print_warn("%*s]\t% is not a PCD file, skipping...\n",20,__func__,it->string().c_str());
+        print_warn("%*s]\t%s is not a PCD file, skipping...\n",20,__func__,it->string().c_str());
         continue;
       }
     }
+    
     try
     {
       histograms m;
@@ -328,28 +359,6 @@ bool PoseDB::load(path pathDB)
       print_error("%*s]\tError loading names.ourcvfh, file is likely corrupted, try recreating database\n",20,__func__);
       return false;
     }
-    try
-    {
-      flann::Matrix<double> transf;
-      flann::load_from_file (transf, pathDB.string() + "/transforms.h5", "Table Transformations");
-      for (int i=0; i<transf.rows; ++i)
-      {
-        for (int j=0; j<transf.cols; ++j)
-        {
-          if (i>=0 && i<4)
-            T_70_(i,j) = transf[i][j];
-          if (i>=4 && i<8)
-            T_50_(i-4,j) = transf[i][j];
-          if (i>=8 && i<12)
-            T_30_(i-8,j) = transf[i][j];
-        }
-      }
-    }
-    catch (...)
-    {
-      print_error("%*s]\tError loading transforms.h5, file is likely corrupted, try recreating database\n",20,__func__);
-      return false;
-    }
   }
   else
   {
@@ -483,9 +492,7 @@ void PoseDB::clear()
   esf_idx_.reset();
   clouds_.clear();
   dbPath_="UNSET";
-  T_70_.setIdentity(); 
-  T_50_.setIdentity(); 
-  T_30_.setIdentity(); 
+  clouds_in_local_=true;
 }
 /////////////////////////////////////////
 bool PoseDB::save(path pathDB)  
@@ -495,17 +502,24 @@ bool PoseDB::save(path pathDB)
     print_warn("%*s]\tCurrent database is invalid or empty, not saving it...\n",20,__func__);
     return false;
   }
-  if ( !exists (pathDB) )
+  if ( (!exists (pathDB) && !is_directory(pathDB)) || (exists (pathDB) && is_regular_file (pathDB)) )
   {
     create_directory(pathDB);
     create_directory(pathDB.string() + "/Clouds/");
     print_info("%*s]\tCreated directory to contain database in %s\n",20,__func__,pathDB.string().c_str());
     dbPath_ = pathDB;
   }
-  else
+  else 
   {
-    print_warn("%*s]\t%s already exists, not saving a database there, aborting...\n",20,__func__,pathDB.string().c_str());
-    return false;
+    if (isValidPath(pathDB))
+    {
+      print_error("%*s]\t%s already exists and contains a valid database, overwriting is not implemented, aborting...\n",20,__func__,pathDB.string().c_str());
+      return false;
+    }
+    else
+    {
+      print_warn("%*s]\t%s already exists, but does not look like it contains a valid database, proceeding to write in there...\n",20,__func__,pathDB.string().c_str());
+    }
   }
   PCDWriter writer;
   ofstream names, c_cvfh, c_ourcvfh, info;
@@ -530,20 +544,6 @@ bool PoseDB::save(path pathDB)
   names.close();
   c_cvfh.close();
   c_ourcvfh.close();
-  flann::Matrix<double> Transforms (new double[12*4],12,4);
-  for (int i=0; i<Transforms.rows; ++i)
-  {
-    for (int j=0; j<Transforms.cols; ++j)
-    {
-      if (i>=0 && i<4)
-        Transforms[i][j] = T_70_(i,j);
-      if (i>=4 && i<8)
-        Transforms[i][j] = T_50_(i-4,j);
-      if (i>=8 && i<12)
-        Transforms[i][j] = T_30_(i-8,j);
-    }
-  }
-  flann::save_to_file (Transforms, pathDB.string() + "/transforms.h5", "Table Transformations");
   flann::save_to_file (*vfh_, pathDB.string() + "/vfh.h5", "VFH Histograms");
   flann::save_to_file (*esf_, pathDB.string() + "/esf.h5", "ESF Histograms");
   flann::save_to_file (*cvfh_, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
@@ -553,7 +553,11 @@ bool PoseDB::save(path pathDB)
   info.open( (pathDB.string() + "/created.info").c_str() );
   timestamp t(TIME_NOW);
   info << "Database created on "<<to_simple_string(t).c_str()<<endl;
-  info << "Contains "<<names_.size()<<" poses"<<endl;
+  info << "Contains "<<names_.size()<<" poses in ";
+  if (clouds_in_local_)
+    info << "local object reference frame"<<endl;
+  else
+    info << "sensor reference frame"<<endl;
   info << "Saved on path "<<pathDB.string().c_str()<<" by PoseDB::save"<<endl;
   print_info("%*s]\tDone saving database, %d poses written to disk\n",20,__func__,names_.size());
   return true;
@@ -714,32 +718,6 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     print_warn("%*s]\tParameter neRadiusSearch for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("neRadiusSearch", 0.02);
   }
-  if (params->count("useSOasViewpoint"))
-  {
-    if (params->at("useSOasViewpoint") < 0)
-    {
-      print_warn("%*s]\tParameter useSOasViewpoint for database creation has negative value, reverting it to default...\n",20,__func__);
-      params->at("useSOasViewpoint")=1;
-    }
-  }
-  else 
-  {
-    print_warn("%*s]\tParameter useSOasViewpoint for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
-    params->emplace ("useSOasViewpoint", 1);
-  }
-  if (params->count("computeViewpointFromName"))
-  {
-    if (params->at("computeViewpointFromName") < 0)
-    {
-      print_warn("%*s]\tParameter computeViewpointFromName for database creation has negative value, reverting it to default...\n",20,__func__);
-      params->at("computeViewpointFromName")=0;
-    }
-  }
-  else 
-  {
-    print_warn("%*s]\tParameter computeViewpointFromName for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
-    params->emplace ("computeViewpointFromName", 0);
-  }
   if (params->count("cvfhEPSAngThresh"))
   {
     if (params->at("cvfhEPSAngThresh") < 0)
@@ -887,29 +865,6 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
   if (exists(pathClouds) && is_directory(pathClouds))
   {
     this->clear();
-    //read table transform 
-    try
-    {
-      flann::Matrix<double> transf;
-      flann::load_from_file (transf, pathClouds.string() + "/transforms.h5", "Table Transformations");
-      for (int i=0; i<transf.rows; ++i)
-      {
-        for (int j=0; j<transf.cols; ++j)
-        {
-          if (i>=0 && i<4)
-            T_70_(i,j) = transf[i][j];
-          if (i>=4 && i<8)
-            T_50_(i-4,j) = transf[i][j];
-          if (i>=8 && i<12)
-            T_30_(i-8,j) = transf[i][j];
-        }
-      }
-    }
-    catch (...)
-    {
-      print_error("%*s]\tError loading transforms.h5 ...\n",20,__func__);
-      return false;
-    }
     vector<path> pvec;
     copy(directory_iterator(pathClouds), directory_iterator(), back_inserter(pvec));
     sort(pvec.begin(), pvec.end());
@@ -917,14 +872,13 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     PointCloud<VFHSignature308>::Ptr tmp_cvfh (new PointCloud<VFHSignature308>);
     PointCloud<VFHSignature308>::Ptr tmp_ourcvfh (new PointCloud<VFHSignature308>);
     PointCloud<ESFSignature640>::Ptr tmp_esf (new PointCloud<ESFSignature640>);
-    PC::Ptr local_input (new PC); 
     PC::Ptr input (new PC);
     int i(0);
     for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
     {
       if (is_regular_file (*it) && it->extension() == ".pcd")
       {
-        if (pcl::io::loadPCDFile(it->string().c_str(), *local_input)!=0 ) //loadPCDFile returns 0 if success
+        if (pcl::io::loadPCDFile(it->string().c_str(), *input)!=0 ) //loadPCDFile returns 0 if success
         {
           print_warn("%*s]\tError Loading Cloud %s, skipping...\n",20,__func__,it->string().c_str());
           continue;
@@ -935,49 +889,24 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         print_warn("%*s]\tLoaded File (%s) is not a pcd, skipping...\n",20,__func__,it->string().c_str());
         continue;
       }
-      vector<string> vst, vs;
+      vector<string> vst;
+      PC::Ptr output (new PC);
       split (vst, it->string(), boost::is_any_of("../\\"), boost::token_compress_on);
       names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
-      string cloudname = vst.at(vst.size()-2);
-      split (vs, cloudname, boost::is_any_of("_"), boost::token_compress_on);
-      Eigen::Matrix4d T_kl0, T_l0li;
-      int lat = stoi(vs.at(1)); //latitude integer
-      double lon = stod(vs.at(2))*D2R; //longitude in radians
-      if (lat==30)
-        T_kl0 = T_30_;
-      else if (lat==50)
-        T_kl0 = T_50_;
-      else if (lat==70)
-        T_kl0 = T_70_;
-      else
-      {
-        T_kl0.setIdentity();
-        if (params->at("verbosity")>0)
-          print_warn("%*s]\tPointCloud %s has no T_kl0 transformation, setting it as identity, check if clouds are created and named correctly...\n",20,__func__,cloudname.c_str());
-      }
-      Eigen::AngleAxisd rot(lon, Eigen::Vector3d::UnitZ() );
-      Eigen::Matrix4d T_rot;
-      T_rot <<  rot.matrix()(0,0), rot.matrix()(0,1), rot.matrix()(0,2), 0,
-            rot.matrix()(1,0), rot.matrix()(1,1), rot.matrix()(1,2), 0,
-            rot.matrix()(2,0), rot.matrix()(2,1), rot.matrix()(2,2), 0,
-            0,                 0,                 0,                 1;
-      T_l0li = T_rot.inverse();
-      Eigen::Matrix4d T_kli = T_kl0*T_l0li;
-      PC::Ptr output (new PC);
       if (params->at("filtering") >0)
       {
         StatisticalOutlierRemoval<PT> filter;
         filter.setMeanK ( params->at("filterMeanK") );
         filter.setStddevMulThresh ( params->at("filterStdDevMulThresh") );
-        filter.setInputCloud(local_input);
+        filter.setInputCloud(input);
         filter.filter(*output); //Process Filtering
-        copyPointCloud(*output, *local_input);
+        copyPointCloud(*output, *input);
       }
       if (params->at("upsampling") >0)
       {
         MovingLeastSquares<PT, PT> mls;
         search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
-        mls.setInputCloud (local_input);
+        mls.setInputCloud (input);
         mls.setSearchMethod (tree);
         mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
         mls.setComputeNormals (false);
@@ -986,20 +915,53 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         mls.setSearchRadius ( params->at("mlsSearchRadius") );
         mls.setPointDensity( params->at("mlsPointDensity") );
         mls.process (*output); //Process Upsampling
-        copyPointCloud(*output, *local_input);
+        copyPointCloud(*output, *input);
       }
-      if ((*params)["downsampling"]>0)
+      if (params->at("downsampling") >0)
       {
         VoxelGrid <PT> vgrid;
-        vgrid.setInputCloud (local_input);
-        vgrid.setLeafSize ( params->at("vgridLeafSize"), params->at("vgridLeafSize"), params->at("vgridLeafSize")); //Downsample to 3mm
+        vgrid.setInputCloud (input);
+        vgrid.setLeafSize ( params->at("vgridLeafSize"), params->at("vgridLeafSize"), params->at("vgridLeafSize")); 
         vgrid.setDownsampleAllData (true);
         vgrid.filter (*output); //Process Downsampling
-        copyPointCloud(*output, *local_input);
+        copyPointCloud(*output, *input);
       }
-      clouds_.push_back(*local_input);
-      //now transform in Kinect frame for features computation
-      transformPointCloud(*local_input, *input, T_kli);
+      clouds_.push_back(*input); //store processed cloud
+      Eigen::Vector3f s_orig (input->sensor_origin_(0), input->sensor_origin_(1), input->sensor_origin_(2) );
+      Eigen::Quaternionf s_orie = input->sensor_orientation_;
+      if (it == pvec.begin())
+      {
+        //check if clouds are in local or sensor ref frame
+        if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
+        {
+          this->clouds_in_local_ = false;
+        }
+        else
+        {
+          this->clouds_in_local_ = true;
+        }
+      }
+      else
+      {
+        if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
+        {
+          if (this->clouds_in_local_ == true)
+            print_warn("%*s]\tLoaded PCD file %s, has sensor reference frame, while others found before were expressed in local object reference frame. Make sure you are loading the correct files!!",20,__func__,vst.at(vst.size()-2).c_str());
+        }
+        else
+        {
+          if (this->clouds_in_local_ == false)
+            print_warn("%*s]\tLoaded PCD file %s, has local object reference frame, while others found before were expressed in sensor reference frame. Make sure you are loading the correct files!!",20,__func__,vst.at(vst.size()-2).c_str());
+        }
+      }
+      if (this->clouds_in_local_)
+      {
+        input->sensor_origin_.setZero();
+        input->sensor_orientation_.setIdentity();
+        transformPointCloud(*input, *output, s_orig, s_orie); //TODO
+        copyPointCloud(*output, *input);
+      }
+      //Normals computation
       NormalEstimationOMP<PT, Normal> ne;
       search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
       PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
@@ -1007,51 +969,14 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       ne.setRadiusSearch(params->at("neRadiusSearch"));
       ne.setNumberOfThreads(0); //use pcl autoallocation
       ne.setInputCloud(input);
-      float vpx(0),vpy(0),vpz(1);
-      if (params->at("computeViewpointFromName")>0)
-      {
-      //Try to compute viewpoint from cloud name
-        try
-        {
-          //assume correct naming convection (name_lat_long)
-          //If something goes wrong an exception is catched
-          vector<string> vst;
-          split(vst, names_[i], boost::is_any_of("_"), boost::token_compress_on);
-          int lat,lon;
-          lat = stoi(vst.at(1));
-          lon = stoi(vst.at(2));
-          //assume radius of one meter and reference frame in object center
-          vpx = cos(lat*D2R)*sin(lon*D2R);
-          vpy = sin(lat*D2R);
-          vpz = cos(lat*D2R)*cos(lon*D2R);
-        }
-        catch (...)
-        {
-          //something went wrong
-          print_error("%*s]\tCannot compute Viewpoint from cloud name... Check naming convention and object reference frame! Aborting...\n",20,__func__);
-          return false;
-        }
-      }
-      else if (params->at("useSOasViewpoint")>0)
-      {
-        //Use Viewpoint stored in sensor_origin_ of cloud
-        vpx = input->sensor_origin_[0];
-        vpy = input->sensor_origin_[1];
-        vpz = input->sensor_origin_[2];
-      }
-      else
-      {
-        print_error("%*s]\tCannot obtain a viewpoint 'computeViewpointFromName' and 'useSOasViewpoint' are both zero, set one of them to continue...\n",20,__func__);
-        return false;
-      }
-      ne.setViewPoint(vpx,vpy,vpz);
+      ne.useSensorOriginAsViewPoint(); //use sensor origin stored inside point cloud as viewpoint, assume user has correctly set it
       ne.compute(*normals);
       //VFH
       VFHEstimation<PT, Normal, VFHSignature308> vfhE;
       PointCloud<VFHSignature308> out;
       vfhE.setSearchMethod(tree);
       vfhE.setInputCloud (input);
-      vfhE.setViewPoint (vpx, vpy, vpz);
+      vfhE.setViewPoint (0,0,0);
       vfhE.setInputNormals (normals);
       vfhE.compute (out);
       tmp_vfh->push_back(out.points[0]);
@@ -1066,7 +991,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
       cvfhE.setSearchMethod(tree);
       cvfhE.setInputCloud (input);
-      cvfhE.setViewPoint (vpx, vpy, vpz);
+      cvfhE.setViewPoint (0, 0, 0);
       cvfhE.setInputNormals (normals);
       cvfhE.setEPSAngleThreshold(params->at("cvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
       cvfhE.setCurvatureThreshold(params->at("cvfhCurvThresh"));
@@ -1088,7 +1013,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       copyPointCloud(*input, *input2);
       ourcvfhE.setSearchMethod(tree2);
       ourcvfhE.setInputCloud (input2);
-      ourcvfhE.setViewPoint (vpx, vpy, vpz);
+      ourcvfhE.setViewPoint (0,0,0);
       ourcvfhE.setInputNormals (normals);
       ourcvfhE.setEPSAngleThreshold(params->at("ourcvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
       ourcvfhE.setCurvatureThreshold(params->at("ourcvfhCurvThresh"));
@@ -1109,7 +1034,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     cout<<endl;
     if (tmp_vfh->points.size() == 0) //no clouds loaded
     {
-      print_warn("%*s]\tNo clouds loaded, exiting...\n",20,__func__);
+      print_error("%*s]\tNo Histograms created, something went wrong, exiting...\n",20,__func__);
       return false;
     }
     //generate FLANN matrix
@@ -1164,8 +1089,6 @@ bool PoseDB::create(boost::filesystem::path pathClouds)
   par["filterMeanK"]=50;
   par["filterStdDevMulThresh"]=3;
   par["neRadiusSearch"]=0.02;
-  par["useSOasViewpoint"]=1;
-  par["computeViewpointFromName"]=0;
   par["cvfhEPSAngThresh"]=7.5;
   par["cvfhCurvThresh"]=0.025;
   par["cvfhClustTol"]=0.01;
@@ -1281,7 +1204,7 @@ float Candidate::getRMSE () const
     print_warn("%*s]\tCandidate has not been refined (yet), thus it has no RMSE, returning -1 ...\n",20,__func__);
   return (rmse_); 
 }
-void Candidate::getTransformation (Eigen::Matrix4d& t) const
+void Candidate::getTransformation (Eigen::Matrix4f& t) const
 {
   if (transformation_.isIdentity())
     print_warn("%*s]\tCandidate has Identity transformation, it probably hasn't been refined...\n",20,__func__);
@@ -1304,7 +1227,7 @@ void Candidate::getName(string& name) const
 /* Class PoseEstimation Implementation */
 PoseEstimation::PoseEstimation ()
 {
-  vp_supplied_ = vp_set_ = query_set_ = candidates_found_ = refinement_done_ = false;
+  query_set_ = candidates_found_ = refinement_done_ = false;
   feature_count_ = 4;
   PC a;
   query_cloud_=a.makeShared();
@@ -1316,6 +1239,7 @@ PoseEstimation::PoseEstimation ()
   params_["kNeighbors"]=20;
   params_["maxIterations"]=200;
   params_["progItera"]=10;
+  params_["icpReciprocal"]=1;
   params_["progFraction"]=0.5f;
   params_["rmseThreshold"]=0.003f;
   params_["mlsPolyOrder"]=2;
@@ -1325,8 +1249,6 @@ PoseEstimation::PoseEstimation ()
   params_["filterMeanK"]=50;
   params_["filterStdDevMulThresh"]=3;
   params_["neRadiusSearch"]=0.02;
-  params_["useSOasViewpoint"]=1;
-  params_["computeViewpointFromName"]=0;
   params_["cvfhEPSAngThresh"]=7.5;
   params_["cvfhCurvThresh"]=0.025;
   params_["cvfhClustTol"]=0.01;
@@ -1573,14 +1495,6 @@ void PoseEstimation::downsampling_()
     print_info(" ms\n");
   }
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setQueryViewpoint(float x, float y, float z)
-{
-  vpx_ = x;
-  vpy_ = y;
-  vpz_ = z;
-  vp_supplied_ = true;
-}
 /////////////////////////////////////////////////////////////////////////////////////////////////
 bool PoseEstimation::computeNormals_()
 {
@@ -1597,69 +1511,7 @@ bool PoseEstimation::computeNormals_()
   ne.setRadiusSearch(params_["neRadiusSearch"]);
   ne.setNumberOfThreads(0); //use pcl autoallocation
   ne.setInputCloud(query_cloud_);
-  if (vp_supplied_)
-  {
-    vp_set_ = true;
-    //A Viewpoint was already supplied by setQueryViewpoint, so we use it
-    ne.setViewPoint (vpx_, vpy_, vpz_);
-    if (params_["verbosity"] >1)
-      print_info("%*s]\tUsing supplied viewpoint: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
-  }
-  else if (params_["computeViewpointFromName"])
-  {
-    //Try to compute viewpoint from query name
-    try
-    {
-      //assume correct naming convection (name_lat_long)
-      //If something goes wrong an exception is catched
-      vector<string> vst;
-      split(vst, query_name_, boost::is_any_of("_"), boost::token_compress_on);
-      int lat,lon;
-      lat = stoi(vst.at(1));
-      lon = stoi(vst.at(2));
-      //assume radius of one meter and reference frame in object center
-      vpx_ = cos(lat*D2R)*sin(lon*D2R);
-      vpy_ = sin(lat*D2R);
-      vpz_ = cos(lat*D2R)*cos(lon*D2R);
-      if (params_["verbosity"]>1)
-        print_info("%*s]\tUsing calculated viewpoint: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
-      ne.setViewPoint(vpx_, vpy_, vpz_);
-      vp_set_ = true;
-    }
-    catch (...)
-    {
-      //something went wrong
-      print_error("%*s]\tCannot compute Viewpoint from query name... Check naming convention and object reference frame!\n",20,__func__);
-      return false;
-    }
-  }
-  else if (params_["useSOasViewpoint"])
-  {
-    //Use Viewpoint stored in sensor_origin_ of query cloud
-    //However we want to save it in class designated spots so it can be used again by 
-    //other features
-    try
-    {
-    vpx_ = query_cloud_->sensor_origin_[0];
-    vpy_ = query_cloud_->sensor_origin_[1];
-    vpz_ = query_cloud_->sensor_origin_[2];
-    ne.setViewPoint (vpx_, vpy_, vpz_);
-    vp_set_ = true;
-    if (params_["verbosity"]>1)
-      print_info("%*s]\tUsing viewpoint from sensor_origin_: %g, %g, %g\n",20,__func__, vpx_, vpy_, vpz_);
-    }
-    catch (...)
-    { 
-      print_error("%*s]\tError setting viewpoint from sensor origin\n",20,__func__);
-      return false;
-    }
-  }
-  else
-  {
-    print_error("%*s]\tNo methods to calculate viewpoint and it was not supplied. Cannot continue!!\n",20,__func__);
-    print_error("%*s]\tEither use setQueryViewpoint or set 'useSOasViewpoint'/'computeViewpointFromName'\n",20,__func__);
-    return false;
-  }
+  ne.useSensorOriginAsViewPoint();
   ne.compute(normals_);
   if (params_["verbosity"]>1)
   {
@@ -1672,33 +1524,24 @@ bool PoseEstimation::computeNormals_()
 //////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::computeVFH_()
 {
-  if(!vp_set_)
+  StopWatch timer;
+  if (params_["verbosity"]>1)
   {
-    //Should never happen, viewpoint was set by normal estimation
-    print_error("%*s]\tCannot estimate VFH of query, viewpoint was not set...\n",20,__func__);
-    return;
+    print_info("%*s]\tEstimating VFH feature of query...\n",20,__func__);
+    timer.reset();
   }
-  else
+  VFHEstimation<PT, Normal, VFHSignature308> vfhE;
+  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+  vfhE.setSearchMethod(tree);
+  vfhE.setInputCloud (query_cloud_);
+  vfhE.setViewPoint (query_cloud_->sensor_origin_(0), query_cloud_->sensor_origin_(1), query_cloud_->sensor_origin_(2));
+  vfhE.setInputNormals (normals_.makeShared());
+  vfhE.compute (vfh_);
+  if (params_["verbosity"]>1)
   {
-    StopWatch timer;
-    if (params_["verbosity"]>1)
-    {
-      print_info("%*s]\tEstimating VFH feature of query...\n",20,__func__);
-      timer.reset();
-    }
-    VFHEstimation<PT, Normal, VFHSignature308> vfhE;
-    search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
-    vfhE.setSearchMethod(tree);
-    vfhE.setInputCloud (query_cloud_);
-    vfhE.setViewPoint (vpx_, vpy_, vpz_);
-    vfhE.setInputNormals (normals_.makeShared());
-    vfhE.compute (vfh_);
-    if (params_["verbosity"]>1)
-    {
-      print_info("%*s]\tTotal time elapsed during VFH estimation: ",20,__func__);
-      print_value("%g", timer.getTime());
-      print_info(" ms\n");
-    }
+    print_info("%*s]\tTotal time elapsed during VFH estimation: ",20,__func__);
+    print_value("%g", timer.getTime());
+    print_info(" ms\n");
   }
 }
 ////////////////////////////////////////////////////////////////////////////////////
@@ -1725,93 +1568,75 @@ void PoseEstimation::computeESF_()
 //////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::computeCVFH_()
 {
-  if(!vp_set_)
+  StopWatch timer;
+  if (params_["verbosity"]>1)
   {
-    //Should never happen, viewpoint was set by normal estimation
-    print_error("%*s]\tCannot estimate CVFH of query, viewpoint was not set...\n",20,__func__);
-    return;
+    print_info("%*s]\tEstimating CVFH feature of query...\n",20,__func__);
+    print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["cvfhEPSAngThresh"]); 
+    print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["cvfhCurvThresh"]); 
+    print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["cvfhClustTol"]); 
+    print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["cvfhMinPoints"]); 
+    timer.reset();
   }
-  else
+  CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
+  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+  cvfhE.setSearchMethod(tree);
+  cvfhE.setInputCloud (query_cloud_);
+  cvfhE.setViewPoint (query_cloud_->sensor_origin_(0), query_cloud_->sensor_origin_(1), query_cloud_->sensor_origin_(2));
+  cvfhE.setInputNormals (normals_.makeShared());
+  cvfhE.setEPSAngleThreshold(params_["cvfhEPSAngThresh"]*D2R); //angle needs to be supplied in radians
+  cvfhE.setCurvatureThreshold(params_["cvfhCurvThresh"]);
+  cvfhE.setClusterTolerance(params_["cvfhClustTol"]);
+  cvfhE.setMinPoints(params_["cvfhMinPoints"]);
+  cvfhE.setNormalizeBins(false);
+  cvfhE.compute (cvfh_);
+  if (params_["verbosity"]>1)
   {
-    StopWatch timer;
-    if (params_["verbosity"]>1)
-    {
-      print_info("%*s]\tEstimating CVFH feature of query...\n",20,__func__);
-      print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["cvfhEPSAngThresh"]); 
-      print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["cvfhCurvThresh"]); 
-      print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["cvfhClustTol"]); 
-      print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["cvfhMinPoints"]); 
-      timer.reset();
-    }
-    CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
-    search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
-    cvfhE.setSearchMethod(tree);
-    cvfhE.setInputCloud (query_cloud_);
-    cvfhE.setViewPoint (vpx_, vpy_, vpz_);
-    cvfhE.setInputNormals (normals_.makeShared());
-    cvfhE.setEPSAngleThreshold(params_["cvfhEPSAngThresh"]*D2R); //angle needs to be supplied in radians
-    cvfhE.setCurvatureThreshold(params_["cvfhCurvThresh"]);
-    cvfhE.setClusterTolerance(params_["cvfhClustTol"]);
-    cvfhE.setMinPoints(params_["cvfhMinPoints"]);
-    cvfhE.setNormalizeBins(false);
-    cvfhE.compute (cvfh_);
-    if (params_["verbosity"]>1)
-    {
-      print_info("%*s]\tTotal of %d clusters were found on query\n",20,__func__, cvfh_.points.size());
-      print_info("%*s]\tTotal time elapsed during CVFH estimation: ",20,__func__);
-      print_value("%g", timer.getTime());
-      print_info(" ms\n");
-    }
+    print_info("%*s]\tTotal of %d clusters were found on query\n",20,__func__, cvfh_.points.size());
+    print_info("%*s]\tTotal time elapsed during CVFH estimation: ",20,__func__);
+    print_value("%g", timer.getTime());
+    print_info(" ms\n");
   }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::computeOURCVFH_()
 {
-  if(!vp_set_)
+  StopWatch timer;
+  if (params_["verbosity"]>1)
   {
-    //Should never happen, viewpoint was set by normal estimation
-    print_error("%*s]\tCannot estimate OURCVFH of query, viewpoint was not set...\n",20,__func__);
-    return;
+    print_info("%*s]\tEstimating OURCVFH feature of query...\n",20,__func__);
+    print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["ourcvfhEPSAngThresh"]); 
+    print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["ourcvfhCurvThresh"]); 
+    print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["ourcvfhClustTol"]); 
+    print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["ourcvfhMinPoints"]); 
+    print_info("%*s]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",20,__func__,params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
+    print_info("%*s]\tUsing Refinement Factor of %g for clusters\n",20,__func__,params_["ourcvfhRefineClusters"]); 
+    timer.reset();
   }
-  else
+  //For some reason OURCVFHEstimation is not templated to treat PointXYZRGBA point types...
+  //Using PointXYZ...
+  OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
+  search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ>);
+  PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
+  copyPointCloud(*query_cloud_, *cloud);
+  ourcvfhE.setSearchMethod(tree);
+  ourcvfhE.setInputCloud (cloud);
+  ourcvfhE.setViewPoint (cloud->sensor_origin_(0), cloud->sensor_origin_(1), cloud->sensor_origin_(2));
+  ourcvfhE.setInputNormals (normals_.makeShared());
+  ourcvfhE.setEPSAngleThreshold(params_["ourcvfhEPSAngThresh"]*D2R); //angle needs to be supplied in radians
+  ourcvfhE.setCurvatureThreshold(params_["ourcvfhCurvThresh"]);
+  ourcvfhE.setClusterTolerance(params_["ourcvfhClustTol"]);
+  ourcvfhE.setMinPoints(params_["ourcvfhMinPoints"]);
+  ourcvfhE.setAxisRatio(params_["ourcvfhAxisRatio"]);
+  ourcvfhE.setMinAxisValue(params_["ourcvfhMinAxisValue"]);
+  ourcvfhE.setRefineClusters(params_["ourcvfhRefineClusters"]);
+  ourcvfhE.compute (ourcvfh_);
+  if (params_["verbosity"]>1)
   {
-    StopWatch timer;
-    if (params_["verbosity"]>1)
-    {
-      print_info("%*s]\tEstimating OURCVFH feature of query...\n",20,__func__);
-      print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["ourcvfhEPSAngThresh"]); 
-      print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["ourcvfhCurvThresh"]); 
-      print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["ourcvfhClustTol"]); 
-      print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["ourcvfhMinPoints"]); 
-      print_info("%*s]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",20,__func__,params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
-      print_info("%*s]\tUsing Refinement Factor of %g for clusters\n",20,__func__,params_["ourcvfhRefineClusters"]); 
-      timer.reset();
-    }
-    //For some reason OURCVFHEstimation is not templated to treat PointXYZRGBA point types...
-    //Using PointXYZ...
-    OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
-    search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ>);
-    PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
-    copyPointCloud(*query_cloud_, *cloud);
-    ourcvfhE.setSearchMethod(tree);
-    ourcvfhE.setInputCloud (cloud);
-    ourcvfhE.setViewPoint (vpx_, vpy_, vpz_);
-    ourcvfhE.setInputNormals (normals_.makeShared());
-    ourcvfhE.setEPSAngleThreshold(params_["ourcvfhEPSAngThresh"]*D2R); //angle needs to be supplied in radians
-    ourcvfhE.setCurvatureThreshold(params_["ourcvfhCurvThresh"]);
-    ourcvfhE.setClusterTolerance(params_["ourcvfhClustTol"]);
-    ourcvfhE.setMinPoints(params_["ourcvfhMinPoints"]);
-    ourcvfhE.setAxisRatio(params_["ourcvfhAxisRatio"]);
-    ourcvfhE.setMinAxisValue(params_["ourcvfhMinAxisValue"]);
-    ourcvfhE.setRefineClusters(params_["ourcvfhRefineClusters"]);
-    ourcvfhE.compute (ourcvfh_);
-    if (params_["verbosity"]>1)
-    {
-      print_info("%*s]\tTotal of %d clusters were found on query\n",20,__func__, ourcvfh_.points.size());
-      print_info("%*s]\tTotal time elapsed during OURCVFH estimation: ",20,__func__);
-      print_value("%g", timer.getTime());
-      print_info(" ms\n");
-    }
+    print_info("%*s]\tTotal of %d clusters were found on query\n",20,__func__, ourcvfh_.points.size());
+    print_info("%*s]\tTotal time elapsed during OURCVFH estimation: ",20,__func__);
+    print_value("%g", timer.getTime());
+    print_info(" ms\n");
   }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1829,6 +1654,21 @@ bool PoseEstimation::initQuery_()
   {
     print_error("%*s]\tCannot initialize query, point cloud with zero points given",20,__func__);
     return false;
+  }
+  Eigen::Vector3f s_orig ( query_cloud_->sensor_origin_(0),  query_cloud_->sensor_origin_(1),  query_cloud_->sensor_origin_(2) ); 
+  Eigen::Quaternionf s_orie = query_cloud_->sensor_orientation_;
+  if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
+  {
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tInitializing query expressed in sensor reference frame.\n",20,__func__);
+    this->local_query_ = false;
+  }
+  else
+  {
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tInitializing query expressed in local object reference frame.\n",20,__func__);
+      print_warn("%*s]\tQuery in local reference frame is not supported yet, you will most likely get wrong results.\n",20,__func__);
+    this->local_query_ = true;
   }
   //Check if a filter is needed
   if (params_["filtering"] >= 1)
@@ -1874,7 +1714,6 @@ bool PoseEstimation::initQuery_()
     print_value("%g", timer.getTime());
     print_info(" ms\n");
   }
-  vp_set_ = false; //Reset it to calculate it again for a new query
   return true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1903,6 +1742,7 @@ void PoseEstimation::printParams()
   for (auto &x : params_)
     cout<< x.first.c_str() <<"="<< x.second<<endl;
 }
+/////////////////////////////////////////////////////////////////////////////////////////
 void PoseEstimation::setDatabase(PoseDB& database)
 {
   if (database.isEmpty())
@@ -2432,6 +2272,8 @@ bool PoseEstimation::refineCandidates()
     print_error("%*s]\tList of Candidates are not yet generated, call generateLists first...\n",20,__func__);
     return false;
   }
+  if (local_query_)
+    print_error("%*s]\tQuery in local reference system in not implemented yet, set another query or transform it, exiting...\n",20,__func__); //TODO implement this
   CentroidPoint<PT> qct;
   for (int i=0; i<query_cloud_->points.size(); ++i)
     qct.add(query_cloud_->points[i]);
@@ -2446,11 +2288,11 @@ bool PoseEstimation::refineCandidates()
     timer.reset();
     vector<Candidate> list; //make a temporary list to manipulate
     boost::copy(composite_list_, back_inserter(list));
-    IterativeClosestPoint<PT, PT, double> icp;
+    IterativeClosestPoint<PT, PT, float> icp;
     icp.setInputTarget(query_cloud_); //query
-    icp.setUseReciprocalCorrespondences(false);
+    icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
-    icp.setTransformationEpsilon (1e-4); //difference between consecutive transformations
+    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
     int steps (0);
     while (list.size() > 1)
@@ -2458,55 +2300,55 @@ bool PoseEstimation::refineCandidates()
       for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
       {
         PC::Ptr aligned (new PC);
+        PC::Ptr candidate (new PC);
+        copyPointCloud(*(it->cloud_), *candidate);
+        candidate->sensor_origin_.setZero();
+        candidate->sensor_orientation_.setIdentity();
         //icp align source over target, result in aligned
-        icp.setInputSource(it->cloud_); //the candidate
-        Eigen::Matrix4d guess;
+        icp.setInputSource(candidate); //the candidate
+        Eigen::Matrix4f guess;
         if (steps >0)
           guess = it->transformation_;
         else
         {
-          Eigen::Matrix4d T_kl0, T_l0li, T_cen;
-          vector<string> vst;
-          split (vst, it->name_, boost::is_any_of("_"), boost::token_compress_on);
-          int lat = stoi(vst.at(1)); //latitude integer
-          double lon = stod(vst.at(2))*D2R; //longitude in radians
-          if (lat==30)
-            T_kl0 = database_.T_30_;
-          else if (lat==50)
-            T_kl0 = database_.T_50_;
-          else if (lat==70)
-            T_kl0 = database_.T_70_;
-          else
-          {
-            T_kl0.setIdentity();
-            if (params_["verbosity"]>0)
-              print_warn("%*s]\tCandidate has no T_kl0 transformation, setting it as identity, check database correctness...\n",20,__func__);
-          }
-          Eigen::AngleAxisd rot(lon, Eigen::Vector3d::UnitZ() );
-          Eigen::Matrix4d T_rot;
-          T_rot <<  rot.matrix()(0,0), rot.matrix()(0,1), rot.matrix()(0,2), 0,
-                rot.matrix()(1,0), rot.matrix()(1,1), rot.matrix()(1,2), 0,
-                rot.matrix()(2,0), rot.matrix()(2,1), rot.matrix()(2,2), 0,
-                0,                 0,                 0,                 1;
-          T_l0li = T_rot.inverse();
+          Eigen::Matrix4f T_kli, T_cen;
           CentroidPoint<PT> cct;
-          PC::Ptr cloud_in_k (new PC);
-          Eigen::Matrix4d T = T_kl0*T_l0li;
-          transformPointCloud(*(it->cloud_), *cloud_in_k, T);
-          for (int i=0; i< cloud_in_k->points.size(); ++i)
-            cct.add(cloud_in_k->points[i]);
           PT candidate_centroid;
-          cct.get(candidate_centroid);
-          T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
-                   0,1,0, (query_centroid.y - candidate_centroid.y), 
-                   0,0,1, (query_centroid.z - candidate_centroid.z), 
-                   0,0,0, 1;
-          guess = T_cen*T_kl0*T_l0li;
+          if (this->database_.isLocal())
+          { //database is in local frame
+            Eigen::Matrix3f R (it->cloud_->sensor_orientation_);
+            Eigen::Vector4f t;
+            t = it->cloud_->sensor_origin_;
+            T_kli << R(0,0), R(0,1), R(0,2), t(0),
+                     R(1,0), R(1,1), R(1,2), t(1),
+                     R(2,0), R(2,1), R(2,2), t(2),
+                     0,      0,      0,      1;
+            PC::Ptr cloud_in_k (new PC);
+            transformPointCloud(*candidate, *cloud_in_k, T_kli);
+            for (int i=0; i< cloud_in_k->points.size(); ++i)
+              cct.add(cloud_in_k->points[i]);
+            cct.get(candidate_centroid);
+            T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
+                     0,1,0, (query_centroid.y - candidate_centroid.y), 
+                     0,0,1, (query_centroid.z - candidate_centroid.z), 
+                     0,0,0, 1;
+            guess = T_cen*T_kli;
+          }
+          else
+          { //database is in sensor frame, just get centroid
+            for (int i=0; i< it->cloud_->points.size(); ++i)
+              cct.add(it->cloud_->points[i]);
+            cct.get(candidate_centroid);
+            T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
+                     0,1,0, (query_centroid.y - candidate_centroid.y), 
+                     0,0,1, (query_centroid.z - candidate_centroid.z), 
+                     0,0,0, 1;
+            guess = T_cen;
+          }
         }
         icp.align(*aligned, guess); //initial gross estimation 
         it->transformation_ = icp.getFinalTransformation();
         it->rmse_ = sqrt(icp.getFitnessScore());
-        ++steps;
         if (params_["verbosity"]>1)
         {
           print_info("%*s]\tCandidate: ",20,__func__);
@@ -2515,14 +2357,14 @@ bool PoseEstimation::refineCandidates()
           print_value("%g\n",it->rmse_);
         }
       }
+      ++steps;
       //now resort list
       sort(list.begin(), list.end(),
           [](Candidate const &a, Candidate const &b)
           {
           return (a.rmse_ < b.rmse_ );
           });
-      //check if candidate falled under rmse threshold, no need to check them all since list is now sorted with
-      //minimum rmse on top
+      //check if candidate falled under rmse threshold, no need to check them all since list is now sorted with min rmse on top
       if (list[0].rmse_ < params_["rmseThreshold"] )
       {
         //convergence 
@@ -2572,55 +2414,55 @@ bool PoseEstimation::refineCandidates()
       print_info("%*s]\tStarting Brute Force...\n",20,__func__);
     StopWatch timer;
     timer.reset();
-    IterativeClosestPoint<PT, PT, double> icp;
+    IterativeClosestPoint<PT, PT, float> icp;
     icp.setInputTarget(query_cloud_); //query
-    icp.setUseReciprocalCorrespondences(false);
+    icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
-    icp.setTransformationEpsilon (1e-5); //difference between consecutive transformations
+    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
     icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2)); 
     for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
     {
       PC::Ptr aligned (new PC);
+      PC::Ptr candidate (new PC);
+      copyPointCloud(*(it->cloud_), *candidate);
       //icp align source over target, result in aligned
-      icp.setInputSource(it->cloud_); //the candidate
-      Eigen::Matrix4d T_kl0, T_l0li, T_cen;
-      vector<string> vst;
-      split (vst, it->name_, boost::is_any_of("_"), boost::token_compress_on);
-      int lat = stoi(vst.at(1)); //latitude integer
-      double lon = stod(vst.at(2))*D2R; //longitude in radians
-      if (lat==30)
-        T_kl0 = database_.T_30_;
-      else if (lat==50)
-        T_kl0 = database_.T_50_;
-      else if (lat==70)
-        T_kl0 = database_.T_70_;
-      else
-      {
-        T_kl0.setIdentity();
-        if (params_["verbosity"]>0)
-          print_warn("%*s]\tCandidate has no T_kl0 transformation, setting it as identity, check database correctness...\n",20,__func__);
-      }
-      Eigen::AngleAxisd rot(lon, Eigen::Vector3d::UnitZ() );
-      Eigen::Matrix4d T_rot;
-      T_rot <<  rot.matrix()(0,0), rot.matrix()(0,1), rot.matrix()(0,2), 0,
-                rot.matrix()(1,0), rot.matrix()(1,1), rot.matrix()(1,2), 0,
-                rot.matrix()(2,0), rot.matrix()(2,1), rot.matrix()(2,2), 0,
-                0,                 0,                 0,                 1;
-      T_l0li = T_rot.inverse();
+      candidate->sensor_origin_.setZero();
+      candidate->sensor_orientation_.setIdentity();
+      icp.setInputSource(candidate); //the candidate
+      Eigen::Matrix4f T_kli, T_cen, guess;
       CentroidPoint<PT> cct;
-      PC::Ptr cloud_in_k (new PC);
-      Eigen::Matrix4d T = T_kl0*T_l0li;
-      transformPointCloud(*(it->cloud_), *cloud_in_k, T);
-      for (int i=0; i< cloud_in_k->points.size(); ++i)
-        cct.add(cloud_in_k->points[i]);
       PT candidate_centroid;
-      cct.get(candidate_centroid);
-      T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
-               0,1,0, (query_centroid.y - candidate_centroid.y), 
-               0,0,1, (query_centroid.z - candidate_centroid.z), 
-               0,0,0, 1;
-      Eigen::Matrix4d guess;
-      guess = T_cen*T_kl0*T_l0li;
+      if (this->database_.isLocal())
+      { //database is in local frame
+        Eigen::Matrix3f R( it->cloud_->sensor_orientation_ );
+        Eigen::Vector4f t;
+        t = it->cloud_->sensor_origin_;
+        T_kli << R(0,0), R(0,1), R(0,2), t(0),
+                 R(1,0), R(1,1), R(1,2), t(1),
+                 R(2,0), R(2,1), R(2,2), t(2),
+                 0,      0,      0,      1;
+        PC::Ptr cloud_in_k (new PC);
+        transformPointCloud(*(it->cloud_), *cloud_in_k, T_kli);
+        for (int i=0; i< cloud_in_k->points.size(); ++i)
+          cct.add(cloud_in_k->points[i]);
+        cct.get(candidate_centroid);
+        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
+                 0,1,0, (query_centroid.y - candidate_centroid.y), 
+                 0,0,1, (query_centroid.z - candidate_centroid.z), 
+                 0,0,0, 1;
+        guess = T_cen*T_kli;
+      }
+      else
+      { //database is in sensor frame, just get centroid
+        for (int i=0; i< it->cloud_->points.size(); ++i)
+          cct.add(it->cloud_->points[i]);
+        cct.get(candidate_centroid);
+        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
+                 0,1,0, (query_centroid.y - candidate_centroid.y), 
+                 0,0,1, (query_centroid.z - candidate_centroid.z), 
+                 0,0,0, 1;
+        guess = T_cen;
+      }
       icp.align(*aligned, guess);
       it->transformation_ = icp.getFinalTransformation();
       it->rmse_ = sqrt(icp.getFitnessScore());
@@ -2951,7 +2793,7 @@ bool PoseEstimation::getEstimation(boost::shared_ptr<Candidate> est)
   return true;
 }
 
-bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4d& t)
+bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4f& t)
 {
   if (! refinement_done_ )
   {
@@ -2960,30 +2802,6 @@ bool PoseEstimation::getEstimationTransformation(Eigen::Matrix4d& t)
     return false;
   }
   t = pose_estimation_->transformation_;
-  return true;
-}
-
-bool PoseEstimation::getTableTransformation(Eigen::Matrix4d& t, int lat)
-{
-  if (! db_set_ )
-  {
-    if (params_["verbosity"]>0)
-      print_warn("%*]\tDatabase has not yet been set, returning false\n",20,__func__);
-    return false;
-  }
-  if (lat == 70)
-    t = this->database_.T_70_;
-  else if (lat == 50)
-    t = this->database_.T_50_;
-  else if (lat == 30)
-    t = this->database_.T_30_;
-  else
-  {
-    t.setIdentity();
-    if (params_["verbosity"]>0)
-      print_warn("%*]\tProvided latitude does not exist in database, can not get a transformation, returning false\n",20,__func__);
-    return false;
-  }
   return true;
 }
 
@@ -3317,6 +3135,8 @@ void PoseEstimation::viewEstimation()
   visualization::PCLVisualizer viewer;
   PC::Ptr pe (new PC);
   transformPointCloud( *(pose_estimation_->cloud_), *pe, pose_estimation_->transformation_ );
+  pe->sensor_origin_.setZero();
+  pe->sensor_orientation_.setIdentity();
   visualization::PointCloudColorHandlerCustom<PointXYZRGBA> candidate_color_handler (pe, 0, 255, 0);
   visualization::PointCloudColorHandlerCustom<PointXYZRGBA> query_color_handler (query_cloud_, 255, 0, 0);
   viewer.addPointCloud(query_cloud_, query_color_handler, "query");

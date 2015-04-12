@@ -5,8 +5,8 @@
 //Doxygen documentation
 
 /** 
- *  \todo add method for tests registration and elaboration
  *  \todo add method to estimate from a subset of objects in db
+ *  \todo organize params in yaml ?
  */
 
 /** \mainpage notitle 
@@ -56,12 +56,11 @@ For example when changing preprocessing pipeline (i.e. altering search radius of
 | mlsSearchRadius  | 0.05 | Set search radius of MLS to the value specified, a value of 1 means one meter. Relevant if upsampling=1 |
 | filterMeanK | 50 | How many neighboring points to consider in the statistical distribution calculated by the filter, relevant if filtering=1 |
 | filterStdDevMulThresh | 3 | Multiplication factor to apply to Standard Deviation of the statistical distribution during filtering process (higher value, means less aggressive filter). Relevant only if filtering=1 |
+| icpReciprocal | 1 | Tell ICP to use reciprocal correspondences between source (candidate) and target (query), during candidates refinement procedure |
 | progItera   | 5 | ICP iterations to perform for all candidates on each step of Progressive Bisection Candidate Refinement, lowering this value may speed up the process at the cost of a less accurate estimation. Relevant only if progBisection=1 |
 | progFraction | 0.5 | Size of candidate list gets multiplied by this value on each step of Progressive Bisection Refinement, the default is to split the list in half (0.5). Relevant only if progBisection=1 |
 | vgridLeafSize | 0.005 | Set the leaf size of VoxelGrid downsampling to the value specified, 1 means one meter. Only relevant if downsampling=1 |
 | neRadiusSearch | 0.02 | Set radius that defines the neighborhood of each point during Normal Estimation, value of 1 means one meter. If normals are not used, i.e. only ESF is computed this parameter is ignored |
-| useSOasViewpoint | 1 | Tell PoseEstimation to use the sensor_origin_ member of query point cloud as the viewpoint for every operation (1), where a viewpoint is need, i.e in normals estimation or in VFH descriptor. If set to '0' a viewpoint should be set manually with method setQueryViewpoint() or calculated from name (see computeViewpointFromName). If the above fails features will refuse to compute. If set to '1' and sensor_origin_ is not representing a correct viewpoint, unexpected results may happen, such as normals not correctly oriented, probably resulting in a wrong pose estimation |
-| computeViewpointFromName | 0 | If set to '1' PoseEstimation will try to calculate the viewpoint from the query name, however to use this feature, query names should follow a naming convenction, that is name_latitude_longitude (i.e Funnel_30_60). Note also that setting this parameter to 1 will override 'useSOasViewpoint' parameter, regardless of its value. If set to 0 and also 'useSOasViewpoint' is set to 0 a view point must be supplied with setQueryViewpoint(), or feature will refuse to compute |
 | cvfhEPSAngThresh |7.5 deg | Set maximum allowable deviation of the normals, in the region segmentation step of CVFH computation. The value recommended from relative paper is 7.5 degrees, it should be supplied in degrees and class will convert  it in radians. Relevant only if useCVFH=1 |
 | cvfhCurvThresh  | 0.025 | Set maximum allowable disparity of curvatures during region segmentation step of CVFH estimation. The value recommended from relative paper is 0.025. Relevant only if useCVFH=1 |
 | cvfhClustTol  | 0.01 | Euclidean clustering tolerance, during CVFH segmentation. Points distant more than this value from each other, will likely be grouped in different clusters. A value of 1 means one meter. Relevant only if useCVFH=1 |
@@ -208,7 +207,7 @@ class PoseDB{
   vector<PC> clouds_;
   boost::shared_ptr<indexVFH> vfh_idx_;
   boost::shared_ptr<indexESF> esf_idx_;
-  Eigen::Matrix4d T_70_, T_50_, T_30_; 
+  bool clouds_in_local_;
 
   /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
    * \param[in] query Pointer to the query histogram(s)
@@ -221,7 +220,7 @@ class PoseDB{
   public:
     /** \brief Default empty Constructor
      */
-    PoseDB(){}
+    PoseDB(){this->clouds_in_local_ = true;}
     
     /** \brief Constructor which loads a database from disk
      * \param[in] pathDB Path to the directory containing the database of poses
@@ -232,6 +231,11 @@ class PoseDB{
      * \param[in] db Object to copy from
      */
     PoseDB(const PoseDB& db);
+
+    /** \brief Check if database contains cloud in local reference system
+     * \return _True_ if clouds are expressed in local reference system, _False_ if they are expressed in sensor reference system, i.e. their sensor_origin_ and sensor_orientation_ are left as default (zero, identity).
+     */
+    bool isLocal(){return clouds_in_local_;}
 
     /** \brief Load a database from disk, knowing its location
      * \param[in] pathDB Path to the directory containing the database of poses
@@ -254,9 +258,11 @@ class PoseDB{
      * This method uses the provided set of parameters to create the database, erasing any previously loaded databases.
      * Please note that:
 - Constructing a database from scratch can take several minutes at least.
-- In order to use this method, PCD files must follow a naming convention, that is objName_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
-- PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
-- PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
+- In order to use this method, PCD files must be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
+- PCD files must represent previously segmented objects, no elements of the scene should be present.
+- PCD files must have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
+
+Failure to respect the above can lead to unexpected wrong results.
      */
     bool create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
     
@@ -267,9 +273,11 @@ class PoseDB{
      * This method creates a set of default parameters and creates the database from it, erasing any previously loaded databases. 
      * Please note that:
 - Constructing a database from scratch can take several minutes at least.
-- In order to use this method, PCD files must follow a naming convention, that is objName_latitude_longitude.pcd  (i.e. funnel_20_30.pcd). Not using this naming convention may result in corrupted or unusable database.
-- PCD files must represent previously segmented objects and must be expressed in a local reference system, i.e. a system centered at the object base. This system must be consistent with all the PCDs provided.
-- PCDs should have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ member for optimal results, although this is not mandatory
+- In order to use this method, PCD files must be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
+- PCD files must represent previously segmented objects, no elements of the scene should be present.
+- PCD files must have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
+
+Failure to respect the above can lead to unexpected wrong results.
      */
     bool create(boost::filesystem::path pathClouds);
       
@@ -319,7 +327,7 @@ class Candidate{
   float distance_;
   float normalized_distance_;
   float rmse_;
-  Eigen::Matrix4d transformation_;
+  Eigen::Matrix4f transformation_;
 
   public:
     /** \brief Default empty Constructor
@@ -385,7 +393,7 @@ class Candidate{
      * The transformation is expressed in the Candidate Reference System and it only has a meaning after the refinement
      * process has been performed by PoseEstimation
      */
-    void getTransformation (Eigen::Matrix4d& t) const;
+    void getTransformation (Eigen::Matrix4f& t) const;
 
     /** \brief Get the point cloud that represent the Candidate
      * \param[out] cloud Copy of the point cloud of the candidate
@@ -472,17 +480,6 @@ class PoseEstimation {
   ///List of candidates to the query composed from the other features
   vector<Candidate> composite_list_;
   
-  ///Viewpoint coordinate x, used in computations like VFH and Normal estimation
-  float vpx_;
-  ///Viewpoint coordinate y, used in computations like VFH and Normal estimation
-  float vpy_;
-  ///Viewpoint coordinate z, used in computations like VFH and Normal estimation
-  float vpz_;
-  
-  ///Internal parameter to check if viewpoint has been supplied from setQueryViewpoint.
-  bool vp_supplied_;
-  ///Internal to see if viewpoint was calculated
-  bool vp_set_;
   ///Internal parameter to check if the query was succesfully set and its features estimated
   bool query_set_;
   ///Internal parameter to check if list(s) of candidates are successfully generated
@@ -491,6 +488,8 @@ class PoseEstimation {
   bool refinement_done_;
   ///Internal parameter to check if a database was loaded in memory and it's now ready to be used
   bool db_set_;
+  ///Internal parameter to check if query was supplied in a local refernce system
+  bool local_query_;
   
   ///Container that hold the query VFH feature
   PointCloud<VFHSignature308> vfh_;
@@ -626,23 +625,6 @@ class PoseEstimation {
    */
   PoseEstimation(boost::filesystem::path config_file) : PoseEstimation() {this->initParams(config_file);}
 
-  /**\brief Explicitly set the query viewpoint for future query computations
-   *\param[in] x Coordinate x of the viewpoint
-   *\param[in] y Coordinate y of the viewpoint
-   *\param[in] z Coordinate z ot the viewpoint
-   *
-   * __This method overrides any viewpoint parameters set__ , thus Pose Estimation
-   * will ignore "useSOasViewpoint" and "computeViewpointFromName" parameters regardless of their value, 
-   * and will use only the viewpoint set this way for the computations where a viewpoint is needed 
-   * (normals, VFH, CVFH ...) until a new viewpoint is supplied again with this method.
-   * If you want to reset the viewpoint supplied this way and go back using the above parameters, use resetViewpoint() method.
-   * This method should be used only if the the viewpoint cannot be obtained from sensor_origin of query cloud
-   * or if it cannot be computed from query name (i.e. the above cited parameters failed to set it correctly)
-   * The recommended and preferred way is to use the sensor_origin field, so prepare your query cloud accordingly
-   * and use the "useSOasViewpoint" parameter instead of this method
-   */
-  void setQueryViewpoint(float x, float y, float z);
-  
   /**\brief Set the Pose Estimation query (the object to be identified)
   * \param[in] str The name the query should assume
   * \param[in] cl  Point cloud containing only the object to be estimated (i.e. already segmented)
@@ -826,19 +808,8 @@ class PoseEstimation {
    * \param[out] t A matrix that will contain the final transformation
    * \return _True_ if t is correctly initialized, _false_ otherwise
    */
-  bool getEstimationTransformation(Eigen::Matrix4d& t);
+  bool getEstimationTransformation(Eigen::Matrix4f& t);
   
-  /** \brief Get a copy of table transformation of database
-   * \param[out] t A matrix that will contain the transformation
-   * \param[in] lat the corresponding latitude, which defines the transformation seeked
-   * \return _True_ if t is correctly initialized, _false_ otherwise
-   */
-  bool getTableTransformation(Eigen::Matrix4d& t, int lat);
-
-  /** \brief Reset the viewpoint for current query, so that it can be computed again
-   */
-  void resetViewpoint(){ vp_supplied_ = false; }
-
   /** \brief Get a vector containing a list of Candidates to the Query
    * \param[out] list Vector containing a copy of Candidates list, ordered by rank
    * \param[in] type listType enumerate to select which list is to be copied among those created
