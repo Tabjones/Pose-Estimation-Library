@@ -27,6 +27,11 @@ float MinMaxDistance (float* a, float* b, int size)
   return (1 - (num/den));
 }
 
+void printVersion()
+{
+  print_highlight("Pose Estimation Library (PEL)\t version %d.%d\n", PEL_VER_MAJ, PEL_VER_MIN);
+}
+
 
 /*PoseDB implementation */
 bool PoseDB::isEmpty()

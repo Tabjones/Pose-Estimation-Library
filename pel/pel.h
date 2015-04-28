@@ -139,10 +139,7 @@ using namespace flann;
 float MinMaxDistance (float* a, float* b, int size);
 /** \brief Display current Pose Estimation Library version
  */
-void printVersion()
-{
-  print_highlight("Pose Estimation Library (PEL)\t version %d.%d\n", PEL_VER_MAJ, PEL_VER_MIN);
-}
+void printVersion();
 /** @}*/
 
 /** \addtogroup Definitions
