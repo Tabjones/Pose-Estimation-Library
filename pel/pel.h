@@ -4,23 +4,23 @@
 
 //Doxygen documentation
 
-/** 
+/**
  *  \todo add method to estimate from a subset of objects in db
  *  \todo organize params in yaml ?
  */
 
-/** \mainpage notitle 
+/** \mainpage notitle
 Pose Estimation interface Documentation and usage
 -------------------------------------------------
 This documentation describes the use of Pose Estimation interface, that implements a method to achieve pose estimation of a query object, represented by a point cloud.
 The method makes use of several global and semi-global features and combines their results together in effort to achieve a sort of consensus. The best candidates selected
-from consensus are then refined with ICP in order to get the final estimation. For more information on the matter please look into the author's master thesis available online 
+from consensus are then refined with ICP in order to get the final estimation. For more information on the matter please look into the author's master thesis available online
 <a href="http://etd.adm.unipi.it/theses/available/etd-09022014-142255/">here.</a>
 
 Full source code of the project is available on <a href="https://bitbucket.org/Tabjones/poseestimation">bitbucket.</a>
 */
 /** \page param Parameters usage and description
- * 
+ *
  * This page contains a list of configuration parameters that can be set to customize the behaviour of pose estimation.
  * All parameters are configured in a key = value fashion, to set them see PoseEstimation class methods.
  * For example to set a single parameter use setParam(), to set a large number of parameters either call setParam() several times, or write them in a configuration file and load them with initParams().
@@ -38,13 +38,13 @@ Full source code of the project is available on <a href="https://bitbucket.org/T
 | downsampling |  1       | Tell PoseEstimation to downsample the query with Voxel Grid (1), or don't (0). Other parameters control the voxel grid intensity|
 | upsampling  | 0         | Tell PoseEstimation to upsample the query with MLS random uniform density, before the eventual downsampling (1), or don't upsample it (0). Other parameters control MLS procedure|
 | filtering   | 0         | Tell PoseEstimation to filter the query with Statistical Outliers Filter, before the eventual upsampling and downsampling (1), or don't filter it (0). Other parameters control the filter behaviour|
-| progBisection | 1       | Tell PoseEstimation to use Progressive Bisection (1), or Brute Force (0), during candidates refinement| 
+| progBisection | 1       | Tell PoseEstimation to use Progressive Bisection (1), or Brute Force (0), during candidates refinement|
 | kNeighbors | 20         | How many neighbors to retrieve during matching phase, this value determines the length of each candidate list|
 | rmseThreshold | 0.003   | RMSE Threshold during Candidate Refinement, when a candidate rmse falls below this threshold, the refinement procedure terminates. If progBisection=1 this can be set to zero to always choose the surviving candidate at the end of progressive bisection |
 | verbosity | 1           | Controls the verbosity of PoseEstimation: (0) Silent behaviour, only errors are printed, (1) Normal behaviour, errors and warnings are printed, (2) Verbose behaviour, all kind of messages are printed (can be very spammy, useful in debug or testing) |
 | maxIterations | 200     | Maximum iterations of ICP (termination condition) for each candidate during Brute Force candidate refinement. This parameter is relevant only if progBisection=0 |
 
-Advanced Parameters 
+Advanced Parameters
 -----------------------------------------------------------------------------
 These are advanced parameters, that can significantly alter the behaviour of pose estimation, change them if you know what you are doing.
 For example when changing preprocessing pipeline (i.e. altering search radius of MLS, or voxel grid leaf size) make sure that the query and the poses in database have undergone the same exact process, or you may not find consistent matches.
@@ -127,7 +127,7 @@ using namespace flann;
 /**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
  * \param[in] a The first histogram
  * \param[in] b The second histogram
- * \param[in] size Size of vectors 
+ * \param[in] size Size of vectors
  * \returns The computed dstance _D_
  *
  * The distance _D_ is defined by the following metric:
@@ -143,12 +143,12 @@ void printVersion();
 /** @}*/
 
 /** \addtogroup Definitions
- * 
+ *
  * Easier code writing
  * @{ */
 
 /**Degrees to radians conversion*/
-#define D2R 0.017453293 
+#define D2R 0.017453293
 
 /**Current local time, seconds precision*/
 #define TIME_NOW boost::posix_time::second_clock::local_time()
@@ -160,9 +160,9 @@ typedef flann::Index<flann::L2<float> > indexESF;
 /** FLANN matrix used to store database histograms*/
 typedef flann::Matrix<float> histograms;
 /** Chosen Point Type to store clouds, change this  if you want to change PointType globally*/
-typedef PointXYZRGBA PT;
+typedef PointXYZ PnT;
 /** Short writing for PointCloud containing the chosen Point Type*/
-typedef PointCloud<PT> PC;
+typedef PointCloud<PnT> PnC;
 /** Map that stores configuration parameters in a key=value fashion*/
 typedef std::unordered_map<std::string,float> parameters;
 /** Typedef for shorter writing of timestamps */
@@ -173,9 +173,9 @@ enum class listType {vfh, esf, cvfh, ourcvfh, composite};
 
 class PoseEstimation;
 
-/**\brief Stores the database of poses for Pose Estimation 
+/**\brief Stores the database of poses for Pose Estimation
  *
- * This class is used internally by PoseEstimation, however it can be used to create or 
+ * This class is used internally by PoseEstimation, however it can be used to create or
  * load multiple databases and test pose estimation with them. I.e. with setDatabase() method of PoseEstimation.
  * Some examples:
  * \code
@@ -195,13 +195,13 @@ class PoseEstimation;
  * \author Federico Spinelli
  */
 class PoseDB{
-  
+
   friend class PoseEstimation;
   boost::shared_ptr<histograms> vfh_, esf_, cvfh_, ourcvfh_;
   vector<string> names_;
   vector<string> names_cvfh_, names_ourcvfh_;
-  boost::filesystem::path dbPath_; 
-  vector<PC> clouds_;
+  boost::filesystem::path dbPath_;
+  vector<PnC> clouds_;
   boost::shared_ptr<indexVFH> vfh_idx_;
   boost::shared_ptr<indexESF> esf_idx_;
   bool clouds_in_local_;
@@ -218,12 +218,12 @@ class PoseDB{
     /** \brief Default empty Constructor
      */
     PoseDB(){this->clouds_in_local_ = true;}
-    
+
     /** \brief Constructor which loads a database from disk
      * \param[in] pathDB Path to the directory containing the database of poses
      */
     PoseDB(boost::filesystem::path pathDB){this->load(pathDB);}
-    
+
     /** \brief Copy constructor from another PoseDB
      * \param[in] db Object to copy from
      */
@@ -246,12 +246,12 @@ class PoseDB{
      * pathDB must be a valid path and must not already exists, overwriting is not supported
      */
     bool save(boost::filesystem::path pathDB);
-    
+
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
      * \param[in] params Shared pointer to parameters to use during database creation
      * \return _True_ if successful, _false_ otherwise
-     * 
+     *
      * This method uses the provided set of parameters to create the database, erasing any previously loaded databases.
      * Please note that:
 - Constructing a database from scratch can take several minutes at least.
@@ -262,12 +262,12 @@ class PoseDB{
 Failure to respect the above can lead to unexpected wrong results.
      */
     bool create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
-    
+
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
      * \return _True_ if successful, _false_ otherwise
-     *  
-     * This method creates a set of default parameters and creates the database from it, erasing any previously loaded databases. 
+     *
+     * This method creates a set of default parameters and creates the database from it, erasing any previously loaded databases.
      * Please note that:
 - Constructing a database from scratch can take several minutes at least.
 - In order to use this method, PCD files must be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
@@ -277,7 +277,7 @@ Failure to respect the above can lead to unexpected wrong results.
 Failure to respect the above can lead to unexpected wrong results.
      */
     bool create(boost::filesystem::path pathClouds);
-      
+
     /** \brief Copy assignment operator
      * \param[in] db OBject to copy
      *
@@ -295,7 +295,7 @@ Failure to respect the above can lead to unexpected wrong results.
     void clear();
 
     /** \brief Tell if the database is empty
-     * 
+     *
      * \return _True_ if database is not loaded or empty, _False_ otherwise
      */
     bool isEmpty();
@@ -309,17 +309,17 @@ Failure to respect the above can lead to unexpected wrong results.
     bool isValidPath(boost::filesystem::path dbPath);
 };
 
-/** \brief Describes a single candidate object to the query 
+/** \brief Describes a single candidate object to the query
  *
  * This class is used internally by PoseEstimation, a few methods are present to look at rank, distance, RMSE and transformation, if needed.
  * However it is not meant to be used directly
  * \author Federico Spinelli
  **/
 class Candidate{
-  
+
   friend class PoseEstimation;
   string name_;
-  PC::Ptr cloud_;
+  PnC::Ptr cloud_;
   int rank_;
   float distance_;
   float normalized_distance_;
@@ -330,20 +330,20 @@ class Candidate{
     /** \brief Default empty Constructor
      */
     Candidate ();
-    
+
     /** \brief Constructor with name and cloud
      * \param[in] str The object name the candidate will have
      * \param[in] cl Point cloud which holds the object
      */
-    Candidate (string str, PC& cl);
-    
+    Candidate (string str, PnC& cl);
+
     /** \brief Constructor with name and cloud pointer
      * \param[in] str The object name the candidate will have
      * \param[in] clp Shared pointer to the point cloud that contains the object
      * Note that clp parameter should not be empty pointer, or the contructor will throw an error
      */
-    Candidate (string str, PC::Ptr clp);
-    
+    Candidate (string str, PnC::Ptr clp);
+
     /** \brief Copy Constructor from another Candidate
      * \param[in] c Candidate to copy from
      */
@@ -353,40 +353,40 @@ class Candidate{
      * \param[in] c Candidate to copy from
      */
     Candidate& operator= (const Candidate& c);
-    
+
     /** \brief Get Candidate Rank from the list of candidates it belongs
      * \return The rank of Candidate in the list
      *
      * A Candidate has a rank only after list(s) of Candidates are built by PoseEstimation
      */
     int getRank () const;
-    
+
     /** \brief Get the distance of Candidate from Query in the metric chosen by the feature
      * \return The distance the candidate has from the query
      *
      * A Candidate has a distance only after list(s) of Candidates are built by PoseEstimation
      */
     float getDistance () const;
-    
+
     /** \brief Get the normalized distance of Candidate from Query
      * \return The normalized distance the candidate has from the query
-     * 
+     *
      * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k", they are indipendent of the
-     * current metric chosen to calculate them, thus could be compared with other normalized distances from other 
+     * current metric chosen to calculate them, thus could be compared with other normalized distances from other
      * lists. A Candidate has a normalized distance only after list(s) of Candidates are built by PoseEstimation
      */
     float getNormalizedDistance () const;
-    
+
     /** \brief Get Root Mean Square Error of Candidate as it was after the refinement
      * \return The Root Mean Square Error of the Candidate
      *
      * A Candidate has an RMSE only after the refinement process has been performed by PoseEstimation
      */
     float getRMSE () const;
-    
+
     /** \brief Get Homogeneous Transformation that brings the Candidate over the Query
      * \param[out] t The transformation that brings the Candidate over the Query
-     * 
+     *
      * The transformation is expressed in the Candidate Reference System and it only has a meaning after the refinement
      * process has been performed by PoseEstimation
      */
@@ -395,7 +395,7 @@ class Candidate{
     /** \brief Get the point cloud that represent the Candidate
      * \param[out] cloud Copy of the point cloud of the candidate
      */
-    void getCloud (PC& cloud) const;
+    void getCloud (PnC& cloud) const;
 
     /** \brief Get Candidate name
      * \param[out] name The name of the Candidate
@@ -439,7 +439,7 @@ Alternatively the method estimate() can be called right after initialization wit
 \code
   PoseEstimation pe;
   PointCloud<PointXYZRGBA> cloud;
-  //... 
+  //...
   //Put somethging in cloud
   //...
   pe.estimate("query object", cloud, "DB_PATH"); //calls setQuery("query object", cloud), setDatabase("DB_PATH"), generateList(), refineCandidates()
@@ -450,7 +450,7 @@ Alternatively the method estimate() can be called right after initialization wit
 class PoseEstimation {
   ///Map to store all parameters as key=value pairs
   parameters params_;
-  
+
   ///Database used for Pose Estimation
   PoseDB database_;
 
@@ -459,13 +459,13 @@ class PoseEstimation {
 
   ///Internal counter used to count how many feature the class uses
   int feature_count_;
-  
+
   ///The name of the query to estimate
   string query_name_;
-  
+
   ///The cloud pointer that represent the query to estimate as supplied before any computation
-  PC::Ptr query_cloud_;
-  
+  PnC::Ptr query_cloud_;
+
   ///List of candidates to the query calculated from VFH
   vector<Candidate> vfh_list_;
   ///List of candidates to the query calculated from ESF
@@ -476,7 +476,7 @@ class PoseEstimation {
   vector<Candidate> ourcvfh_list_;
   ///List of candidates to the query composed from the other features
   vector<Candidate> composite_list_;
-  
+
   ///Internal parameter to check if the query was succesfully set and its features estimated
   bool query_set_;
   ///Internal parameter to check if list(s) of candidates are successfully generated
@@ -487,7 +487,7 @@ class PoseEstimation {
   bool db_set_;
   ///Internal parameter to check if query was supplied in a local refernce system
   bool local_query_;
-  
+
   ///Container that hold the query VFH feature
   PointCloud<VFHSignature308> vfh_;
   ///Container that hold the query CVFH feature
@@ -498,34 +498,34 @@ class PoseEstimation {
   PointCloud<ESFSignature640> esf_;
   ///Container that hold the query normals
   PointCloud<Normal> normals_;
-  
+
   ///Set a parameter of Pose Estimation from a string representing its value, used internally when reading parameters from a file
   bool setParam_ (string, string&);
-  
+
   ///Initialize the Query by computing preprocessing and features, returns true if success, internal use
   bool initQuery_();
-  
+
   ///Internal method to filter the query with Statistical Outlier Removal, internal use
   void filtering_();
-  
+
   ///Internal method to upsample the query with MLS Random Uniform Density, internal use
   void upsampling_();
-  
+
   ///Internal method to downsample the query with VoxelGrid, internal use
   void downsampling_();
-  
+
   ///Internal method to compute Surface Normals of the query, internal use, return true if success
   bool computeNormals_();
-  
+
   ///Internal method to compute VFH feature of the query, internal use
   void computeVFH_();
-  
+
   ///Internal method to compute ESF feature of the query, internal use
   void computeESF_();
-  
+
   ///Internal method to compute CVFH feature of the query, internal use
   void computeCVFH_();
-  
+
   ///Internal method to compute OURCVFH feature of the query, internal use
   void computeOURCVFH_();
 
@@ -533,20 +533,20 @@ class PoseEstimation {
    * \param[in] list The list to inspect and modifiy
    * \param[in] name The name to search in list
    * \param[out] dist The distace of Candidate found in list (normalized)
-   * 
+   *
    * Return true if the candidate is found on the list, false otherwise
    */
   bool findCandidate_(vector<Candidate>& list, string name, float& dist);
 
   public:
   ///Default Empty Constructor that sets default parameters (see them in config file "config/parameters.conf")
-  PoseEstimation(); 
-  
+  PoseEstimation();
+
   /**\brief Set a parameter of the Class directly, knowing its name
   * \param[in] key the parameter name to change
   * \param[in] value the value that key should assume
   * \return _True_ if successful, _false_ otherwise
-  * 
+  *
   * For more information on possible parameters look at \ref param.
   * Example Usage:
   * \code
@@ -559,7 +559,7 @@ class PoseEstimation {
   * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, float value);
-  
+
   /**\brief Set a parameter of the Class directly, knowing its name
   * \param[in] key the parameter name to change
   * \param[in] value the value that key should assume
@@ -570,7 +570,7 @@ class PoseEstimation {
   * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, int value) {return (this->setParam(key, (float)value) );}
-  
+
   /**\brief Set a parameter of the Class directly, knowing its name
   * \param[in] key the parameter name to change
   * \param[in] value the value that key should assume
@@ -581,12 +581,12 @@ class PoseEstimation {
   * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
   bool setParam (string key, double value) {return (this->setParam(key, (float)value) );}
-  
+
   /** \brief Initialize the class with parameters found in config file
   * \param[in] config_file Path to a config file to use
   * \return How many parameters were correctly found and set, or (-1) in case of errors
   *
-  * Configuration file must have extension .conf and follow certain naming conventions, 
+  * Configuration file must have extension .conf and follow certain naming conventions,
   * look at example .conf file provided for more details or at \ref param.
   * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
   */
@@ -600,23 +600,23 @@ class PoseEstimation {
   * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
    */
   int initParams (boost::shared_ptr<parameters> map);
-  
+
   /**\brief Constructor with parameters to set.
    *\param[in] map Shared pointer to unordered_map containing parameters to use
    *
    * For more information on parameters look at \ref param.
-   * Note: This constructor uses C++11 functionality and will  not compile without -std=c++11 
+   * Note: This constructor uses C++11 functionality and will  not compile without -std=c++11
    * It delegates construction to empty contructor then calls initParams()
    * It is the same way as calling empty constructor and then initParams() method.
    */
   PoseEstimation(boost::shared_ptr<parameters> map) : PoseEstimation() {this->initParams(map);}
-  
+
   /**\brief Constructor with path to a configuration file containing parameters to set.
    *\param[in] config_file Path to a config file to use
    *
-   * Configuration file must have extension .conf and follow certain naming conventions, 
+   * Configuration file must have extension .conf and follow certain naming conventions,
    * look at example .conf file provided for more details, or look at \ref param.
-   * Note: This constructor uses C++11 functionality and will probably not compile without -std=c++11 
+   * Note: This constructor uses C++11 functionality and will probably not compile without -std=c++11
    * It delegates construction to empty contructor then calls initParams()
    * It is the same way as calling empty constructor and then initParams() method
    */
@@ -626,13 +626,13 @@ class PoseEstimation {
   * \param[in] str The name the query should assume
   * \param[in] cl  Point cloud containing only the object to be estimated (i.e. already segmented)
   */
-  void setQuery (string str, PC& cl);
-  
+  void setQuery (string str, PnC& cl);
+
   /** \brief Set the Pose Estimation query (the object to be identified)
   * \param[in] str the name the query should assume
   * \param[in] clp Shared pointer containing only the pointcloud of the object to be estimated (i.e. already segmented)
   */
-  void setQuery (string str, PC::Ptr clp);
+  void setQuery (string str, PnC::Ptr clp);
 
   /// \brief Print current parameter values on screen
   void printParams();
@@ -641,7 +641,7 @@ class PoseEstimation {
    * \param[in] file Path on disk where to write the .conf file
    * \return _True_ if operation was successful, _false_ otherwise
    *
-   * The path specified must not point to an already existant file, or saveParams() will refuse to write. 
+   * The path specified must not point to an already existant file, or saveParams() will refuse to write.
    * The path may be absolute or relative and may or may not contain the extension, however remember that config files must have .conf extension to be accepted from PoseEstimation as valid config files, see also initParams()
    * Example code:
    * \code
@@ -683,7 +683,7 @@ class PoseEstimation {
    * Note that this method also calls setDatabase() on the path specified for future lists computations.
    */
   bool generateLists(boost::filesystem::path dbPath);
-  
+
   /** \brief Generates list(s) of candidates to the query using the database provided as argument
    * \param[in] db The PoseDB object containing the database of poses, previously generated or loaded.
    * \return _True_ if successful, _false_ otherwise
@@ -691,7 +691,7 @@ class PoseEstimation {
    * Note that this method also calls setDatabase() for future lists computations.
    */
   bool generateLists(PoseDB& db);
-  
+
   /** \brief Generates list(s) of candidates to the query using previously set database
    * \return _True_ if successful, _false_ otherwise
    */
@@ -721,10 +721,10 @@ class PoseEstimation {
     \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
-    already set parameters 
+    already set parameters
     */
-  bool estimate(string name, PC& cloud, boost::filesystem::path db_path);
-  
+  bool estimate(string name, PnC& cloud, boost::filesystem::path db_path);
+
   /** \brief Undergo the whole process of pose estimation
    *\param[in] name Name of the new query object to estimate
     \param[in] cloud_pointer Pointer to a point cloud containing the query object to estimate (segmented)
@@ -732,31 +732,31 @@ class PoseEstimation {
     \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
-    already set parameters 
+    already set parameters
     */
-  bool estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path);
-  
+  bool estimate(string name, PnC::Ptr cloud_pointer, boost::filesystem::path db_path);
+
   /** \brief Undergo the whole process of pose estimation
    *\param[in] name Name of the new query object to estimate
     \param[in] cloud Point cloud containing the query object to estimate (segmented)
-    \param[in] database PoseDB object to use as database 
+    \param[in] database PoseDB object to use as database
     \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
-    already set parameters 
+    already set parameters
     */
-  bool estimate(string name, PC& cloud, PoseDB& database);
-  
+  bool estimate(string name, PnC& cloud, PoseDB& database);
+
   /** \brief Undergo the whole process of pose estimation
-   *\param[in] name Name of the new query object to estimate 
+   *\param[in] name Name of the new query object to estimate
     \param[in] cloud_pointer Pointer to a point cloud containing the query object to estimate (segmented)
-    \param[in] database PoseDB object to use as database 
+    \param[in] database PoseDB object to use as database
     \return _True_ if pose estimation was successful in all its parts, _false_ otherwise
 
     This method calls is sequence setQuery() setDatabase() generateLists() and refineCandidates(), using the
-    already set parameters 
+    already set parameters
     */
-  bool estimate(string name, PC::Ptr cloud_pointer, PoseDB& database);
+  bool estimate(string name, PnC::Ptr cloud_pointer, PoseDB& database);
 
   /** \brief Print final estimation informations (such as name, distance, rmse and transformation) on screen
    */
@@ -779,7 +779,7 @@ class PoseEstimation {
    *
    * Returned pointer can be modified but any changes are not reflected back to the class,
    * use setParam() or initParams() to modify PoseEstimation parameters
-  */ 
+  */
   boost::shared_ptr<parameters> getParams();
   /** \brief Get a shared pointer of a copy of parameters used by the pose estimation
    *  \param[out] params Shared pointer of a copy of parameters used
@@ -787,26 +787,26 @@ class PoseEstimation {
    *
    * Passed pointer can be modified but any changes are not reflected back to the class,
    * use setParam() or initParams() to modify PoseEstimation parameters
-  */ 
+  */
   bool getParams(boost::shared_ptr<parameters> params);
 
   /** \brief Get a pointer to a copy of final chosen Candidate, representing the pose estimation
    * \return A pointer to a copy of the final Candidate
    */
   boost::shared_ptr<Candidate> getEstimation();
-  
+
   /** \brief Get a pointer to a copy of final chosen Candidate, representing the pose estimation
    * \param[out] est A pointer to a copy of the final Candidate chosen by refinement
    * \return _True_ if est correctly points to final pose estimation, _false_ otherwise
    */
   bool getEstimation(boost::shared_ptr<Candidate> est);
-  
+
   /** \brief Get a copy of final poseEstimation transformation
    * \param[out] t A matrix that will contain the final transformation
    * \return _True_ if t is correctly initialized, _false_ otherwise
    */
   bool getEstimationTransformation(Eigen::Matrix4f& t);
-  
+
   /** \brief Get a vector containing a list of Candidates to the Query
    * \param[out] list Vector containing a copy of Candidates list, ordered by rank
    * \param[in] type listType enumerate to select which list is to be copied among those created
@@ -833,11 +833,11 @@ class PoseEstimation {
   /** \brief Get name and  pointers holding point clouds of query object (before and after eventual preprocessing)
    * \param[out] name String containing query name
    * \param[out] clp Shared Pointer to a copy of query point cloud after eventual preprocessing
-   * \return _True_ if operation was successful, _false_ otherwise 
+   * \return _True_ if operation was successful, _false_ otherwise
    *
    * If no preprocessing was done (i.e. downsampling, upsampling and filtering parameters are all zero), clp and clp_pre point the same cloud
    */
-  bool getQuery (string& name, PC::Ptr clp);
+  bool getQuery (string& name, PnC::Ptr clp);
 
   /** \brief Get the estimated features (including normals) from the query
    * \param[out] vfh Point cloud pointer that will hold the VFH feature
@@ -881,11 +881,11 @@ class PoseEstimation {
    *    + 3: If ground truth and pose estimation do not match, hence the estimation was wrong (false)
    */
   bool saveTestResults(path file, string gt);
-  
+
   /** \brief Register pose estimation results into a file for testing purpose
    *  \param[in] file path to a txt file to write into, if file already exists it will be appended.
    *  \return _True_ if operation is succesful, _false_ otherwise.
-   *  
+   *
    *  Writes into a file pose estimation results for testing purpose. Given the final pose estimation, it saves the ranks of each list
    *  on which ground truth was found, ground truth used is query name, that must follow naming convention <obj>_<lat>_<long>. It also saves if the chosen final candidate matches the ground truth or not. For example a line could be like this:
    *  \code

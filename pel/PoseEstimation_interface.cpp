@@ -11,7 +11,7 @@ float MinMaxDistance (float* a, float* b, int size)
   //Process 11 items with each loop for efficency (since it should be applied to vectors of 308 elements)
   int i=0;
   for (; i<(size-10); i+=11)
-  { 
+  {
     num += min(a[i],b[i]) + min(a[i+1],b[i+1]) + min(a[i+2],b[i+2]) + min(a[i+3],b[i+3]) + min(a[i+4],b[i+4]) + min(a[i+5],b[i+5]);
     num += min(a[i+6],b[i+6]) + min(a[i+7],b[i+7]) + min(a[i+8],b[i+8]) + min(a[i+9],b[i+9]) + min(a[i+10],b[i+10]);
     den += max(a[i],b[i]) + max(a[i+1],b[i+1]) + max(a[i+2],b[i+2]) + max(a[i+3],b[i+3]) + max(a[i+4],b[i+4]) + max(a[i+5],b[i+5]);
@@ -52,7 +52,7 @@ bool PoseDB::isValidPath(path dbPath)
     return false;
   path Pclouds(dbPath.string()+"/Clouds");
   if ( !exists(Pclouds) || !is_directory(Pclouds) )
-    return false;  
+    return false;
   if ( !is_regular_file(dbPath.string()+ "/vfh.h5") || !(extension(dbPath.string()+ "/vfh.h5") == ".h5"))
     return false;
   if ( !is_regular_file(dbPath.string()+ "/esf.h5") || !(extension(dbPath.string()+ "/esf.h5") == ".h5"))
@@ -71,7 +71,7 @@ bool PoseDB::isValidPath(path dbPath)
     return false;
   if ( !is_regular_file(dbPath.string()+ "/names.ourcvfh") || !(extension(dbPath.string()+ "/names.ourcvfh") == ".ourcvfh"))
     return false;
-  
+
   return true;
 }
 
@@ -162,7 +162,7 @@ PoseDB& PoseDB::operator= (const PoseDB& db)
 /* Class PoseDB Implementation */
 bool PoseDB::load(path pathDB)
 {
-  
+
   if ( this->isValidPath(pathDB) )
   {
     path Pclouds(pathDB.string()+"/Clouds");
@@ -179,7 +179,7 @@ bool PoseDB::load(path pathDB)
     for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
     {
       if (is_regular_file(*it) && extension(*it)==".pcd" )
-      {  
+      {
         if (pcl::io::loadPCDFile (it->string(),clouds_[i])!=0)
         {
           print_warn("%*s]\tError loading PCD file number %d, name %s, skipping...\n",20,__func__,i+1,it->string().c_str());
@@ -228,7 +228,7 @@ bool PoseDB::load(path pathDB)
         continue;
       }
     }
-    
+
     try
     {
       histograms m;
@@ -387,11 +387,11 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
       {// for each cluster in database
         if (i != 0 && i != (names_cvfh_.size()-1) ) //not first neither last
         {
-          if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0) 
+          if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
           {//another cluster of the same object
             d = min (d, (MinMaxDistance(query->points[n].histogram, (*cvfh_)[i], 308)) );
           }
-          else 
+          else
           {//another cluster of another object
             if (n==0)
               distIdx.push_back( make_pair(d, s++) );
@@ -437,11 +437,11 @@ bool PoseDB::computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, li
       {// for each cluster in database
         if (i != 0 && i != (names_ourcvfh_.size()-1) ) //not first neither last
         {
-          if (names_ourcvfh_[i].compare(names_ourcvfh_[i-1]) == 0) 
+          if (names_ourcvfh_[i].compare(names_ourcvfh_[i-1]) == 0)
           {//another cluster of the same object
             d = min (d, (MinMaxDistance(query->points[n].histogram, (*ourcvfh_)[i], 308)) );
           }
-          else 
+          else
           {//another cluster of another object
             if (n==0)
               distIdx.push_back( make_pair(d, s++) );
@@ -500,7 +500,7 @@ void PoseDB::clear()
   clouds_in_local_=true;
 }
 /////////////////////////////////////////
-bool PoseDB::save(path pathDB)  
+bool PoseDB::save(path pathDB)
 {
   if (this->isEmpty())
   {
@@ -514,7 +514,7 @@ bool PoseDB::save(path pathDB)
     print_info("%*s]\tCreated directory to contain database in %s\n",20,__func__,pathDB.string().c_str());
     dbPath_ = pathDB;
   }
-  else 
+  else
   {
     if (isValidPath(pathDB))
     {
@@ -570,7 +570,7 @@ bool PoseDB::save(path pathDB)
 
 bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params)
 {
-  //Check Parameters correctness 
+  //Check Parameters correctness
   if (params->count("filtering"))
   {
     if (params->at("filtering") < 0)
@@ -579,7 +579,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("filtering")=0;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter filtering for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("filtering", 0);
@@ -592,7 +592,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("upsampling")=0;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter upsampling for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("upsampling", 0);
@@ -605,7 +605,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("downsampling")=1;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter downsampling for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("downsampling", 1);
@@ -620,7 +620,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         params->at("filterMeanK")=50;
       }
     }
-    else 
+    else
     {
       print_warn("%*s]\tParameter filterMeanK for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
       params->emplace ("filterMeanK", 50);
@@ -633,7 +633,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         params->at("filterStdDevMulThresh")=3;
       }
     }
-    else 
+    else
     {
       print_warn("%*s]\tParameter filterStdDevMulThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
       params->emplace ("filterStdDevMulThresh", 3);
@@ -649,14 +649,14 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         params->at("vgridLeafSize")=0.005;
       }
     }
-    else 
+    else
     {
       print_warn("%*s]\tParameter vgridLeafSize for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
       params->emplace ("vgridLeafSize", 0.005);
     }
   }
   if (params->at("upsampling")>0)
-  { 
+  {
     if (params->count("mlsPolyOrder"))
     {
       if (params->at("mlsPolyOrder") < 0)
@@ -665,7 +665,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         params->at("mlsPolyOrder")=2;
       }
     }
-    else 
+    else
     {
       print_warn("%*s]\tParameter mlsPolyOrder for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
       params->emplace ("mlsPolyOrder", 2);
@@ -678,7 +678,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         params->at("mlsPointDensity")=200;
       }
     }
-    else 
+    else
     {
       print_warn("%*s]\tParameter mlsPointDensity for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
       params->emplace ("mlsPointDensity",200);
@@ -691,7 +691,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         params->at("mlsPolyFit")=1;
       }
     }
-    else 
+    else
     {
       print_warn("%*s]\tParameter mlsPolyFit for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
       params->emplace ("mlsPolyFit",1);
@@ -704,7 +704,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         params->at("mlsSearchRadius")=0.05;
       }
     }
-    else 
+    else
     {
       print_warn("%*s]\tParameter mlsSearchRadius for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
       params->emplace ("mlsSearchRadius", 0.05);
@@ -718,7 +718,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("neRadiusSearch")=0.02;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter neRadiusSearch for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("neRadiusSearch", 0.02);
@@ -731,7 +731,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("cvfhEPSAngThresh")=7.5;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter cvfhEPSAngThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("cvfhEPSAngThresh", 7.5);
@@ -744,7 +744,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("cvfhCurvThresh")=0.025;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter cvfhCurvThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("cvfhCurvThresh", 0.025);
@@ -757,7 +757,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("cvfhClustTol")=0.01;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter cvfhClustTol for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("cvfhClustTol", 0.01);
@@ -770,7 +770,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("cvfhMinPoints")=50;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter cvfhMinPoints for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("cvfhMinPoints", 50);
@@ -783,7 +783,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("ourcvfhEPSAngThresh")=7.5;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter ourcvfhEPSAngThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("ourcvfhEPSAngThresh", 7.5);
@@ -796,7 +796,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("ourcvfhCurvThresh")=0.025;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter ourcvfhCurvThresh for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("ourcvfhCurvThresh", 0.025);
@@ -809,7 +809,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("ourcvfhClustTol")=0.01;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter ourcvfhClustTol for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("ourcvfhClustTol", 0.01);
@@ -822,7 +822,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("ourcvfhMinPoints")=50;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter ourcvfhMinPoints for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("ourcvfhMinPoints", 50);
@@ -835,7 +835,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("ourcvfhAxisRatio")=0.95;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter ourcvfhAxisRatio for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("ourcvfhAxisRatio", 0.95);
@@ -848,7 +848,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("ourcvfhMinAxisValue")=0.01;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter ourcvfhMinAxisValue for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("ourcvfhMinAxisValue", 0.01);
@@ -861,7 +861,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       params->at("ourcvfhRefineClusters")=1;
     }
   }
-  else 
+  else
   {
     print_warn("%*s]\tParameter ourcvfhRefineClusters for database creation does not exist in provided map, creating it with default value...\n",20,__func__);
     params->emplace ("ourcvfhRefineClusters", 1);
@@ -877,7 +877,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
     PointCloud<VFHSignature308>::Ptr tmp_cvfh (new PointCloud<VFHSignature308>);
     PointCloud<VFHSignature308>::Ptr tmp_ourcvfh (new PointCloud<VFHSignature308>);
     PointCloud<ESFSignature640>::Ptr tmp_esf (new PointCloud<ESFSignature640>);
-    PC::Ptr input (new PC);
+    PnC::Ptr input (new PnC);
     int i(0);
     for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
     {
@@ -895,12 +895,12 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         continue;
       }
       vector<string> vst;
-      PC::Ptr output (new PC);
+      PnC::Ptr output (new PnC);
       split (vst, it->string(), boost::is_any_of("../\\"), boost::token_compress_on);
       names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
       if (params->at("filtering") >0)
       {
-        StatisticalOutlierRemoval<PT> filter;
+        StatisticalOutlierRemoval<PnT> filter;
         filter.setMeanK ( params->at("filterMeanK") );
         filter.setStddevMulThresh ( params->at("filterStdDevMulThresh") );
         filter.setInputCloud(input);
@@ -909,11 +909,11 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       }
       if (params->at("upsampling") >0)
       {
-        MovingLeastSquares<PT, PT> mls;
-        search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+        MovingLeastSquares<PnT, PnT> mls;
+        search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
         mls.setInputCloud (input);
         mls.setSearchMethod (tree);
-        mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
+        mls.setUpsamplingMethod (MovingLeastSquares<PnT, PnT>::RANDOM_UNIFORM_DENSITY);
         mls.setComputeNormals (false);
         mls.setPolynomialOrder ( params->at("mlsPolyOrder") );
         mls.setPolynomialFit ( params->at("mlsPolyFit") );
@@ -924,9 +924,9 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       }
       if (params->at("downsampling") >0)
       {
-        VoxelGrid <PT> vgrid;
+        VoxelGrid <PnT> vgrid;
         vgrid.setInputCloud (input);
-        vgrid.setLeafSize ( params->at("vgridLeafSize"), params->at("vgridLeafSize"), params->at("vgridLeafSize")); 
+        vgrid.setLeafSize ( params->at("vgridLeafSize"), params->at("vgridLeafSize"), params->at("vgridLeafSize"));
         vgrid.setDownsampleAllData (true);
         vgrid.filter (*output); //Process Downsampling
         copyPointCloud(*output, *input);
@@ -967,8 +967,8 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         copyPointCloud(*output, *input);
       }
       //Normals computation
-      NormalEstimationOMP<PT, Normal> ne;
-      search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+      NormalEstimationOMP<PnT, Normal> ne;
+      search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
       PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
       ne.setSearchMethod(tree);
       ne.setRadiusSearch(params->at("neRadiusSearch"));
@@ -977,7 +977,7 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       ne.useSensorOriginAsViewPoint(); //use sensor origin stored inside point cloud as viewpoint, assume user has correctly set it
       ne.compute(*normals);
       //VFH
-      VFHEstimation<PT, Normal, VFHSignature308> vfhE;
+      VFHEstimation<PnT, Normal, VFHSignature308> vfhE;
       PointCloud<VFHSignature308> out;
       vfhE.setSearchMethod(tree);
       vfhE.setInputCloud (input);
@@ -986,14 +986,14 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
       vfhE.compute (out);
       tmp_vfh->push_back(out.points[0]);
       //ESF
-      ESFEstimation<PT, ESFSignature640> esfE;
+      ESFEstimation<PnT, ESFSignature640> esfE;
       PointCloud<ESFSignature640> out_esf;
       esfE.setSearchMethod(tree);
       esfE.setInputCloud (input);
       esfE.compute (out_esf);
       tmp_esf->push_back(out_esf.points[0]);
       //CVFH
-      CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
+      CVFHEstimation<PnT, Normal, VFHSignature308> cvfhE;
       cvfhE.setSearchMethod(tree);
       cvfhE.setInputCloud (input);
       cvfhE.setViewPoint (0, 0, 0);
@@ -1010,11 +1010,9 @@ bool PoseDB::create(boost::filesystem::path pathClouds, boost::shared_ptr<parame
         tmp_cvfh->push_back(out.points[n]);
       }
       //OURCVFH
-      //For some reason OURCVFHEstimation is not templated to treat PointXYZRGBA point types...
-      //Using PointXYZ...
-      OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
-      search::KdTree<PointXYZ>::Ptr tree2 (new search::KdTree<PointXYZ>);
-      PointCloud<PointXYZ>::Ptr input2 (new PointCloud<PointXYZ>);
+      OURCVFHEstimation<PnT, Normal, VFHSignature308> ourcvfhE;
+      search::KdTree<PnT>::Ptr tree2 (new search::KdTree<PnT>);
+      PointCloud<PnT>::Ptr input2 (new PointCloud<PnT>);
       copyPointCloud(*input, *input2);
       ourcvfhE.setSearchMethod(tree2);
       ourcvfhE.setInputCloud (input2);
@@ -1121,7 +1119,7 @@ Candidate::Candidate ()
   transformation_.setIdentity();
 }
 ///////////////////////////////////////////////////////////////////
-Candidate::Candidate (string str, PC& cl)
+Candidate::Candidate (string str, PnC& cl)
 {
   name_ = str;
   cloud_ = cl.makeShared();
@@ -1132,7 +1130,7 @@ Candidate::Candidate (string str, PC& cl)
   transformation_.setIdentity();
 }
 /////////////////////////////////////////////////////////////////////
-Candidate::Candidate (string str, PC::Ptr clp)
+Candidate::Candidate (string str, PnC::Ptr clp)
 {
   name_ = str;
   if (clp)
@@ -1154,7 +1152,7 @@ Candidate::Candidate (const Candidate& c)
   name_= c.name_;
   if (c.cloud_)
   {
-    PC cloud;
+    PnC cloud;
     copyPointCloud( *(c.cloud_), cloud);
     cloud_ = cloud.makeShared();
   }
@@ -1171,7 +1169,7 @@ Candidate& Candidate::operator= (const Candidate& c)
   if (c.cloud_)
   {
     this->cloud_.reset();
-    PC cloud;
+    PnC cloud;
     copyPointCloud( *(c.cloud_), cloud );
     this->cloud_ = cloud.makeShared();
   }
@@ -1186,37 +1184,37 @@ Candidate& Candidate::operator= (const Candidate& c)
 }
 ///////////////////////////////////////////////////////////////////////
 int Candidate::getRank () const
-{ 
+{
   if (rank_==-1)
     print_warn("%*s]\tCandidate is not part of any list, thus it has no rank, returning -1 ...\n",20,__func__);
-  return (rank_); 
+  return (rank_);
 }
 float Candidate::getDistance () const
-{ 
+{
   if (distance_==-1)
     print_warn("%*s]\tCandidate is not part of any list, thus it has no distance, returning -1 ...\n",20,__func__);
-  return (distance_); 
+  return (distance_);
 }
-float Candidate::getNormalizedDistance () const 
-{ 
+float Candidate::getNormalizedDistance () const
+{
   if (normalized_distance_==-1)
     print_warn("%*s]\tCandidate is not part of any list, thus it has no distance, returning -1 ...\n",20,__func__);
-  return (normalized_distance_); 
+  return (normalized_distance_);
 }
 float Candidate::getRMSE () const
-{ 
+{
   if (rmse_==-1)
     print_warn("%*s]\tCandidate has not been refined (yet), thus it has no RMSE, returning -1 ...\n",20,__func__);
-  return (rmse_); 
+  return (rmse_);
 }
 void Candidate::getTransformation (Eigen::Matrix4f& t) const
 {
   if (transformation_.isIdentity())
     print_warn("%*s]\tCandidate has Identity transformation, it probably hasn't been refined...\n",20,__func__);
-  t = transformation_; 
+  t = transformation_;
 }
 
-void Candidate::getCloud(PC& cloud) const
+void Candidate::getCloud(PnC& cloud) const
 {
   if (cloud_)
     copyPointCloud(*cloud_, cloud);
@@ -1234,7 +1232,7 @@ PoseEstimation::PoseEstimation ()
 {
   query_set_ = candidates_found_ = refinement_done_ = false;
   feature_count_ = 4;
-  PC a;
+  PnC a;
   query_cloud_=a.makeShared();
   params_["verbosity"]=1;
   params_["useVFH"]=params_["useESF"]=params_["useCVFH"]=params_["useOURCVFH"]=1;
@@ -1277,8 +1275,8 @@ bool PoseEstimation::setParam(string key, float value)
     return false;
   }
   params_[key]=value;
-  //Check if key was a valid one, since the class has fixed number of parameters, 
-  //if one was mispelled, now we have one more 
+  //Check if key was a valid one, since the class has fixed number of parameters,
+  //if one was mispelled, now we have one more
   if (params_.size() != size)
   {
     if (params_["verbosity"]>0)
@@ -1323,14 +1321,14 @@ bool PoseEstimation::setParam_ (string key, string& value)
       print_warn("%*s]\tInvalid %s=%s : %s \n", 20,__func__, key.c_str(), value.c_str(), oor.what());
     return false;
   }
-  return (this->setParam(key, f) ); 
+  return (this->setParam(key, f) );
 }
 //////////////////////////////////////////////////////////////////////////////////////
 int PoseEstimation::initParams(boost::filesystem::path config_file)
-{ 
-  if ( exists(config_file) && is_regular_file(config_file))   
+{
+  if ( exists(config_file) && is_regular_file(config_file))
   {
-    if (extension(config_file)==".conf") 
+    if (extension(config_file)==".conf")
     {
       ifstream file (config_file.string().c_str());
       string line;
@@ -1376,7 +1374,7 @@ int PoseEstimation::initParams(boost::filesystem::path config_file)
         print_error("%*s]\tCannot open config file! (%s)\n", 20,__func__, config_file.string().c_str());
         return (-1);
       }
-    }  
+    }
     else
     {
       print_error("%*s]\tConfig file provided (%s) has no valid extension! (must be .conf)\n", 20,__func__, config_file.string().c_str());
@@ -1428,8 +1426,8 @@ void PoseEstimation::filtering_()
     print_info("%*s]\tSetting Standard Deviation multiplier to %g\n",20,__func__, params_["filterStdDevMulThresh"]);
     timer.reset();
   }
-  PC::Ptr filtered (new PC);
-  StatisticalOutlierRemoval<PT> fil;
+  PnC::Ptr filtered (new PnC);
+  StatisticalOutlierRemoval<PnT> fil;
   fil.setMeanK (params_["filterMeanK"]);
   fil.setStddevMulThresh (params_["filterStdDevMulThresh"]);
   fil.setInputCloud(query_cloud_);
@@ -1456,12 +1454,12 @@ void PoseEstimation::upsampling_()
     print_info("%*s]\tSetting search radius to %g\n",20,__func__, params_["mlsSearchRadius"]);
     timer.reset();
   }
-  PC::Ptr upsampled (new PC);
-  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
-  MovingLeastSquares<PT, PT> mls;
+  PnC::Ptr upsampled (new PnC);
+  search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
+  MovingLeastSquares<PnT, PnT> mls;
   mls.setInputCloud(query_cloud_);
   mls.setSearchMethod(tree);
-  mls.setUpsamplingMethod (MovingLeastSquares<PT, PT>::RANDOM_UNIFORM_DENSITY);
+  mls.setUpsamplingMethod (MovingLeastSquares<PnT, PnT>::RANDOM_UNIFORM_DENSITY);
   mls.setComputeNormals (false);
   mls.setPolynomialOrder(params_["mlsPolyOrder"]);
   mls.setPolynomialFit(params_["mlsPolyFit"]);
@@ -1486,8 +1484,8 @@ void PoseEstimation::downsampling_()
     print_info("%*s]\tSetting Leaf Size to %g\n",20,__func__, params_["vgridLeafSize"]);
     timer.reset();
   }
-  PC::Ptr downsampled (new PC);
-  VoxelGrid<PT> vg;
+  PnC::Ptr downsampled (new PnC);
+  VoxelGrid<PnT> vg;
   vg.setInputCloud(query_cloud_);
   vg.setLeafSize (params_["vgridLeafSize"], params_["vgridLeafSize"], params_["vgridLeafSize"]);
   vg.setDownsampleAllData (true);
@@ -1510,8 +1508,8 @@ bool PoseEstimation::computeNormals_()
     print_info("%*s]\tSetting a neighborhood radius of %g\n",20,__func__, params_["neRadiusSearch"]);
     timer.reset();
   }
-  NormalEstimationOMP<PT, Normal> ne;
-  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+  NormalEstimationOMP<PnT, Normal> ne;
+  search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
   ne.setSearchMethod(tree);
   ne.setRadiusSearch(params_["neRadiusSearch"]);
   ne.setNumberOfThreads(0); //use pcl autoallocation
@@ -1535,8 +1533,8 @@ void PoseEstimation::computeVFH_()
     print_info("%*s]\tEstimating VFH feature of query...\n",20,__func__);
     timer.reset();
   }
-  VFHEstimation<PT, Normal, VFHSignature308> vfhE;
-  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+  VFHEstimation<PnT, Normal, VFHSignature308> vfhE;
+  search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
   vfhE.setSearchMethod(tree);
   vfhE.setInputCloud (query_cloud_);
   vfhE.setViewPoint (query_cloud_->sensor_origin_(0), query_cloud_->sensor_origin_(1), query_cloud_->sensor_origin_(2));
@@ -1558,8 +1556,8 @@ void PoseEstimation::computeESF_()
     print_info("%*s]\tEstimating ESF feature of query...\n",20,__func__);
     timer.reset();
   }
-  ESFEstimation<PT, ESFSignature640> esfE;
-  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+  ESFEstimation<PnT, ESFSignature640> esfE;
+  search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
   esfE.setSearchMethod(tree);
   esfE.setInputCloud (query_cloud_);
   esfE.compute (esf_);
@@ -1577,14 +1575,14 @@ void PoseEstimation::computeCVFH_()
   if (params_["verbosity"]>1)
   {
     print_info("%*s]\tEstimating CVFH feature of query...\n",20,__func__);
-    print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["cvfhEPSAngThresh"]); 
-    print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["cvfhCurvThresh"]); 
-    print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["cvfhClustTol"]); 
-    print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["cvfhMinPoints"]); 
+    print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["cvfhEPSAngThresh"]);
+    print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["cvfhCurvThresh"]);
+    print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["cvfhClustTol"]);
+    print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["cvfhMinPoints"]);
     timer.reset();
   }
-  CVFHEstimation<PT, Normal, VFHSignature308> cvfhE;
-  search::KdTree<PT>::Ptr tree (new search::KdTree<PT>);
+  CVFHEstimation<PnT, Normal, VFHSignature308> cvfhE;
+  search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
   cvfhE.setSearchMethod(tree);
   cvfhE.setInputCloud (query_cloud_);
   cvfhE.setViewPoint (query_cloud_->sensor_origin_(0), query_cloud_->sensor_origin_(1), query_cloud_->sensor_origin_(2));
@@ -1610,19 +1608,17 @@ void PoseEstimation::computeOURCVFH_()
   if (params_["verbosity"]>1)
   {
     print_info("%*s]\tEstimating OURCVFH feature of query...\n",20,__func__);
-    print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["ourcvfhEPSAngThresh"]); 
-    print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["ourcvfhCurvThresh"]); 
-    print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["ourcvfhClustTol"]); 
-    print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["ourcvfhMinPoints"]); 
-    print_info("%*s]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",20,__func__,params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]); 
-    print_info("%*s]\tUsing Refinement Factor of %g for clusters\n",20,__func__,params_["ourcvfhRefineClusters"]); 
+    print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,params_["ourcvfhEPSAngThresh"]);
+    print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,params_["ourcvfhCurvThresh"]);
+    print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,params_["ourcvfhClustTol"]);
+    print_info("%*s]\tConsidering a minimum of %g points for a cluster\n",20,__func__,params_["ourcvfhMinPoints"]);
+    print_info("%*s]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",20,__func__,params_["ourcvfhAxisRatio"],params_["ourcvfhMinAxisValue"]);
+    print_info("%*s]\tUsing Refinement Factor of %g for clusters\n",20,__func__,params_["ourcvfhRefineClusters"]);
     timer.reset();
   }
-  //For some reason OURCVFHEstimation is not templated to treat PointXYZRGBA point types...
-  //Using PointXYZ...
-  OURCVFHEstimation<PointXYZ, Normal, VFHSignature308> ourcvfhE;
-  search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ>);
-  PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
+  OURCVFHEstimation<PnT, Normal, VFHSignature308> ourcvfhE;
+  search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
+  PointCloud<PnT>::Ptr cloud (new PointCloud<PnT>);
   copyPointCloud(*query_cloud_, *cloud);
   ourcvfhE.setSearchMethod(tree);
   ourcvfhE.setInputCloud (cloud);
@@ -1660,7 +1656,7 @@ bool PoseEstimation::initQuery_()
     print_error("%*s]\tCannot initialize query, point cloud with zero points given",20,__func__);
     return false;
   }
-  Eigen::Vector3f s_orig ( query_cloud_->sensor_origin_(0),  query_cloud_->sensor_origin_(1),  query_cloud_->sensor_origin_(2) ); 
+  Eigen::Vector3f s_orig ( query_cloud_->sensor_origin_(0),  query_cloud_->sensor_origin_(1),  query_cloud_->sensor_origin_(2) );
   Eigen::Quaternionf s_orie = query_cloud_->sensor_orientation_;
   if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
   {
@@ -1722,7 +1718,7 @@ bool PoseEstimation::initQuery_()
   return true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setQuery(string str, PC& cl)
+void PoseEstimation::setQuery(string str, PnC& cl)
 {
   query_set_ = false;
   query_name_ = str;
@@ -1731,7 +1727,7 @@ void PoseEstimation::setQuery(string str, PC& cl)
     query_set_ = true;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-void PoseEstimation::setQuery(string str, PC::Ptr clp)
+void PoseEstimation::setQuery(string str, PnC::Ptr clp)
 {
   query_set_ = false;
   query_name_ = str;
@@ -2165,7 +2161,7 @@ bool PoseEstimation::generateLists()
       [](Candidate const & a, Candidate const & b)
       {
       return (a.normalized_distance_ < b.normalized_distance_ );
-      });  
+      });
   composite_list_.resize(k);
   for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
     it->rank_ = it - composite_list_.begin() +1; //write the rank of the candidate in the list
@@ -2217,7 +2213,7 @@ void PoseEstimation::printCandidates()
   if (!candidates_found_)
   {
     if (params_["verbosity"]>0)
-      print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to print them!\n",20,__func__); 
+      print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to print them!\n",20,__func__);
     return;
   }
   if (params_["verbosity"]>1)
@@ -2262,7 +2258,7 @@ void PoseEstimation::printCandidates()
   print_info("%-6s", "Rank");
   print_info("%-30s\n","Composite");
   for (int i=0; i<params_["kNeighbors"]; ++i)
-  { 
+  {
     print_value("%-6d", (int)composite_list_[i].rank_);
     print_info("%-15s D:", composite_list_[i].name_.c_str());
     print_value("%-9g   ", composite_list_[i].normalized_distance_);
@@ -2279,10 +2275,10 @@ bool PoseEstimation::refineCandidates()
   }
   if (local_query_)
     print_error("%*s]\tQuery in local reference system in not implemented yet, set another query or transform it, exiting...\n",20,__func__); //TODO implement this
-  CentroidPoint<PT> qct;
+  CentroidPoint<PnT> qct;
   for (int i=0; i<query_cloud_->points.size(); ++i)
     qct.add(query_cloud_->points[i]);
-  PT query_centroid;
+  PnT query_centroid;
   qct.get(query_centroid);
   if (params_["progBisection"]>0)
   {
@@ -2293,7 +2289,7 @@ bool PoseEstimation::refineCandidates()
     timer.reset();
     vector<Candidate> list; //make a temporary list to manipulate
     boost::copy(composite_list_, back_inserter(list));
-    IterativeClosestPoint<PT, PT, float> icp;
+    IterativeClosestPoint<PnT, PnT, float> icp;
     icp.setInputTarget(query_cloud_); //query
     icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
@@ -2304,8 +2300,8 @@ bool PoseEstimation::refineCandidates()
     {
       for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
       {
-        PC::Ptr aligned (new PC);
-        PC::Ptr candidate (new PC);
+        PnC::Ptr aligned (new PnC);
+        PnC::Ptr candidate (new PnC);
         copyPointCloud(*(it->cloud_), *candidate);
         candidate->sensor_origin_.setZero();
         candidate->sensor_orientation_.setIdentity();
@@ -2317,8 +2313,8 @@ bool PoseEstimation::refineCandidates()
         else
         {
           Eigen::Matrix4f T_kli, T_cen;
-          CentroidPoint<PT> cct;
-          PT candidate_centroid;
+          CentroidPoint<PnT> cct;
+          PnT candidate_centroid;
           if (this->database_.isLocal())
           { //database is in local frame
             Eigen::Matrix3f R (it->cloud_->sensor_orientation_);
@@ -2328,14 +2324,14 @@ bool PoseEstimation::refineCandidates()
                      R(1,0), R(1,1), R(1,2), t(1),
                      R(2,0), R(2,1), R(2,2), t(2),
                      0,      0,      0,      1;
-            PC::Ptr cloud_in_k (new PC);
+            PnC::Ptr cloud_in_k (new PnC);
             transformPointCloud(*candidate, *cloud_in_k, T_kli);
             for (int i=0; i< cloud_in_k->points.size(); ++i)
               cct.add(cloud_in_k->points[i]);
             cct.get(candidate_centroid);
-            T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
-                     0,1,0, (query_centroid.y - candidate_centroid.y), 
-                     0,0,1, (query_centroid.z - candidate_centroid.z), 
+            T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+                     0,1,0, (query_centroid.y - candidate_centroid.y),
+                     0,0,1, (query_centroid.z - candidate_centroid.z),
                      0,0,0, 1;
             guess = T_cen*T_kli;
           }
@@ -2344,14 +2340,14 @@ bool PoseEstimation::refineCandidates()
             for (int i=0; i< it->cloud_->points.size(); ++i)
               cct.add(it->cloud_->points[i]);
             cct.get(candidate_centroid);
-            T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
-                     0,1,0, (query_centroid.y - candidate_centroid.y), 
-                     0,0,1, (query_centroid.z - candidate_centroid.z), 
+            T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+                     0,1,0, (query_centroid.y - candidate_centroid.y),
+                     0,0,1, (query_centroid.z - candidate_centroid.z),
                      0,0,0, 1;
             guess = T_cen;
           }
         }
-        icp.align(*aligned, guess); //initial gross estimation 
+        icp.align(*aligned, guess); //initial gross estimation
         it->transformation_ = icp.getFinalTransformation();
         it->rmse_ = sqrt(icp.getFitnessScore());
         if (params_["verbosity"]>1)
@@ -2372,7 +2368,7 @@ bool PoseEstimation::refineCandidates()
       //check if candidate falled under rmse threshold, no need to check them all since list is now sorted with min rmse on top
       if (list[0].rmse_ < params_["rmseThreshold"] )
       {
-        //convergence 
+        //convergence
         pose_estimation_.reset();
         pose_estimation_ = boost::make_shared<Candidate>(list[0]);
         refinement_done_=true;
@@ -2419,24 +2415,24 @@ bool PoseEstimation::refineCandidates()
       print_info("%*s]\tStarting Brute Force...\n",20,__func__);
     StopWatch timer;
     timer.reset();
-    IterativeClosestPoint<PT, PT, float> icp;
+    IterativeClosestPoint<PnT, PnT, float> icp;
     icp.setInputTarget(query_cloud_); //query
     icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
     icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
     icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
-    icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2)); 
+    icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2));
     for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
     {
-      PC::Ptr aligned (new PC);
-      PC::Ptr candidate (new PC);
+      PnC::Ptr aligned (new PnC);
+      PnC::Ptr candidate (new PnC);
       copyPointCloud(*(it->cloud_), *candidate);
       //icp align source over target, result in aligned
       candidate->sensor_origin_.setZero();
       candidate->sensor_orientation_.setIdentity();
       icp.setInputSource(candidate); //the candidate
       Eigen::Matrix4f T_kli, T_cen, guess;
-      CentroidPoint<PT> cct;
-      PT candidate_centroid;
+      CentroidPoint<PnT> cct;
+      PnT candidate_centroid;
       if (this->database_.isLocal())
       { //database is in local frame
         Eigen::Matrix3f R( it->cloud_->sensor_orientation_ );
@@ -2446,14 +2442,14 @@ bool PoseEstimation::refineCandidates()
                  R(1,0), R(1,1), R(1,2), t(1),
                  R(2,0), R(2,1), R(2,2), t(2),
                  0,      0,      0,      1;
-        PC::Ptr cloud_in_k (new PC);
+        PnC::Ptr cloud_in_k (new PnC);
         transformPointCloud(*(it->cloud_), *cloud_in_k, T_kli);
         for (int i=0; i< cloud_in_k->points.size(); ++i)
           cct.add(cloud_in_k->points[i]);
         cct.get(candidate_centroid);
-        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
-                 0,1,0, (query_centroid.y - candidate_centroid.y), 
-                 0,0,1, (query_centroid.z - candidate_centroid.z), 
+        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+                 0,1,0, (query_centroid.y - candidate_centroid.y),
+                 0,0,1, (query_centroid.z - candidate_centroid.z),
                  0,0,0, 1;
         guess = T_cen*T_kli;
       }
@@ -2462,9 +2458,9 @@ bool PoseEstimation::refineCandidates()
         for (int i=0; i< it->cloud_->points.size(); ++i)
           cct.add(it->cloud_->points[i]);
         cct.get(candidate_centroid);
-        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x), 
-                 0,1,0, (query_centroid.y - candidate_centroid.y), 
-                 0,0,1, (query_centroid.z - candidate_centroid.z), 
+        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+                 0,1,0, (query_centroid.y - candidate_centroid.y),
+                 0,0,1, (query_centroid.z - candidate_centroid.z),
                  0,0,0, 1;
         guess = T_cen;
       }
@@ -2511,7 +2507,7 @@ bool PoseEstimation::refineCandidates()
   }
 }
 
-bool PoseEstimation::estimate(string name, PC& cloud, boost::filesystem::path db_path)
+bool PoseEstimation::estimate(string name, PnC& cloud, boost::filesystem::path db_path)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud);
@@ -2520,7 +2516,7 @@ bool PoseEstimation::estimate(string name, PC& cloud, boost::filesystem::path db
   else
     return false;
 }
-bool PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, boost::filesystem::path db_path)
+bool PoseEstimation::estimate(string name, PnC::Ptr cloud_pointer, boost::filesystem::path db_path)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud_pointer);
@@ -2529,7 +2525,7 @@ bool PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, boost::filesys
   else
     return false;
 }
-bool PoseEstimation::estimate(string name, PC& cloud, PoseDB& database)
+bool PoseEstimation::estimate(string name, PnC& cloud, PoseDB& database)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud);
@@ -2538,7 +2534,7 @@ bool PoseEstimation::estimate(string name, PC& cloud, PoseDB& database)
   else
     return false;
 }
-bool PoseEstimation::estimate(string name, PC::Ptr cloud_pointer, PoseDB& database)
+bool PoseEstimation::estimate(string name, PnC::Ptr cloud_pointer, PoseDB& database)
 {
   query_set_=candidates_found_=db_set_=refinement_done_ =false;
   setQuery(name, cloud_pointer);
@@ -2605,7 +2601,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
   timestamp t(TIME_NOW);
   if (exists(file) && is_directory(file)) //existant directory, save to <query_name>.estimation inside it
   {
-    try 
+    try
     {
       fstream f;
       if (append)
@@ -2631,7 +2627,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
   }
   else if (exists(file) && is_regular_file(file)) //existant file, append or overwrite
   {
-    try 
+    try
     {
       fstream f;
       if (append)
@@ -2669,7 +2665,7 @@ bool PoseEstimation::saveEstimation(path file, bool append)
         return  false;
       }
     }
-    try 
+    try
     {
       ofstream f;
       f.open ( file.string().c_str() );
@@ -2815,7 +2811,7 @@ bool PoseEstimation::saveCandidates(boost::filesystem::path file)
   if (!candidates_found_)
   {
     if (params_["verbosity"]>0)
-      print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to save them!\n",20,__func__); 
+      print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to save them!\n",20,__func__);
     return false;
   }
   if (exists(file) && params_["verbosity"]>1)
@@ -2972,7 +2968,7 @@ void PoseEstimation::printQuery()
   }
 }
 
-bool PoseEstimation::getQuery(string& name, PC::Ptr clp)
+bool PoseEstimation::getQuery(string& name, PnC::Ptr clp)
 {
   if (!query_set_)
   {
@@ -2985,10 +2981,10 @@ bool PoseEstimation::getQuery(string& name, PC::Ptr clp)
     copyPointCloud(*query_cloud_, *clp);
   else
   {
-    PC cl;
+    PnC cl;
     copyPointCloud(*query_cloud_, cl);
     clp = cl.makeShared();
-  } 
+  }
   return true;
 }
 
@@ -3138,12 +3134,12 @@ void PoseEstimation::viewEstimation()
     return;
   }
   visualization::PCLVisualizer viewer;
-  PC::Ptr pe (new PC);
+  PnC::Ptr pe (new PnC);
   transformPointCloud( *(pose_estimation_->cloud_), *pe, pose_estimation_->transformation_ );
   pe->sensor_origin_.setZero();
   pe->sensor_orientation_.setIdentity();
-  visualization::PointCloudColorHandlerCustom<PointXYZRGBA> candidate_color_handler (pe, 0, 255, 0);
-  visualization::PointCloudColorHandlerCustom<PointXYZRGBA> query_color_handler (query_cloud_, 255, 0, 0);
+  visualization::PointCloudColorHandlerCustom<PnT> candidate_color_handler (pe, 0, 255, 0);
+  visualization::PointCloudColorHandlerCustom<PnT> query_color_handler (query_cloud_, 255, 0, 0);
   viewer.addPointCloud(query_cloud_, query_color_handler, "query");
   viewer.addCoordinateSystem(0.2);
   viewer.addPointCloud(pe, candidate_color_handler, "estimation");
@@ -3177,7 +3173,7 @@ bool PoseEstimation::saveTestResults(path file, string gt)
       print_warn("%*s]\tEstimation is not done yet...\n",20,__func__);
     return false;
   }
-  try 
+  try
   {
     fstream f;
     f.open ( file.string().c_str(), fstream::out | fstream::app );
@@ -3190,7 +3186,7 @@ bool PoseEstimation::saveTestResults(path file, string gt)
       for (int i=0; i<vfh_list_.size();++i)
       {
         if (gt.compare(vfh_list_[i].name_) ==0)
-        {  
+        {
           f << i+1 << " ";
           break;
         }
@@ -3207,7 +3203,7 @@ bool PoseEstimation::saveTestResults(path file, string gt)
       for (int i=0; i<esf_list_.size();++i)
       {
         if (gt.compare(esf_list_[i].name_) ==0)
-        {  
+        {
           f << i+1 << " ";
           break;
         }
@@ -3224,7 +3220,7 @@ bool PoseEstimation::saveTestResults(path file, string gt)
       for (int i=0; i<cvfh_list_.size();++i)
       {
         if (gt.compare(cvfh_list_[i].name_) ==0)
-        {  
+        {
           f << i+1 << " ";
           break;
         }
@@ -3241,7 +3237,7 @@ bool PoseEstimation::saveTestResults(path file, string gt)
       for (int i=0; i<ourcvfh_list_.size();++i)
       {
         if (gt.compare(ourcvfh_list_[i].name_) ==0)
-        {  
+        {
           f << i+1 << " ";
           break;
         }
@@ -3252,7 +3248,7 @@ bool PoseEstimation::saveTestResults(path file, string gt)
     for (int i=0; i<composite_list_.size();++i)
     {
       if (gt.compare(composite_list_[i].name_) ==0)
-      {  
+      {
         f << i+1 << " ";
         break;
       }
@@ -3295,7 +3291,7 @@ bool PoseEstimation::saveTestResults(path file, string gt)
   return true;
 }
 
-bool PoseEstimation::elaborateTests(path file, path result) 
+bool PoseEstimation::elaborateTests(path file, path result)
 {
   int k = params_["kNeighbors"];
   unsigned int tot_v(0),tot_e(0),tot_c(0),tot_o(0),tot(0);
@@ -3344,16 +3340,16 @@ bool PoseEstimation::elaborateTests(path file, path result)
           ++tot;
         }
         catch (...)
-        { 
+        {
           print_error ("%*s]\tError reading from test file. Try recreating it.\n",20,__func__);
-          return false; 
+          return false;
         }
       }//end of file
     }
     else
     {
       print_error ("%*s]\tError opening test file for reading. Try recreating it.\n",20,__func__);
-      return false; 
+      return false;
     }
     f.close();
   }
@@ -3428,7 +3424,7 @@ bool PoseEstimation::elaborateTests(path file, path result)
   else
   {
     print_error ("%*s]\tError opening result file for writing. Check if %s is a valid path.\n",20,__func__,result.string().c_str());
-    return false; 
+    return false;
   }
   res.close();
   return true;
