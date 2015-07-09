@@ -6,7 +6,7 @@ Library for pose estimation, code api is available [here.](http://federicocp.bit
 Set Up
 ------------
 ### Quick setup
-       git clone https://Tabjones@bitbucket.org/Tabjones/pel.git
+       git clone https://Tabjones@bitbucket.org/Tabjones/pose-estimation-library.git pel
        cd pel
        mkdir build && cd build
        cmake ..
