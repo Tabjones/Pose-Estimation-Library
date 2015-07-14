@@ -38,23 +38,23 @@
 
 namespace pel
 {
-  /**\brief Stores the database of poses for PoseEstimation
-   * This class is used internally by PoseEstimation, however it can be used to create or
-   * load multiple databases and test pose estimation with them. I.e. with setDatabase() method of PoseEstimation.
+  /**\brief Stores the database of poses for PoseEstimation.
+   * Manages PoseEstimation database, providing methods to load and save them.
+   * The interface is used internally by PoseEstimation, however it can be used by the user
+   * to manage multiple databases and test PoseEstimation with them.
+   * For instance with setDatabase() method from PoseEstimation class.
+   *
    * Some examples:
    * \code
-   * PoseDB database; //empty database
-   * database.load("LOCATION"); //load a database from a location
-   * PoseDB database2("LOCATION2"); //create another database and load it from another location
-   * database = database2; //Now database holds a copy of database2
-   * database2.clear(); //database2 is now empty
-   * database2.create("PCD_FILES_LOCATION"); //create a new database from scratch using the poses found at supplied location
-   * //...
-   * PoseEstimation prova; //create a pose estimation with default parameters
-   * prova.setDatabase(database); //tell prova to use the first database
-   * //...  estimate
-   * prova.setDatabase(database2); //now use the second database
-   * //... estimate again with another database
+   * Database db; //empty database
+   * db.load("/path/to/location"); //load a database from the specified location
+   * Database another_db ("/another/location"); //create another database and load it from another location
+   * PoseEstimation test; //create a pose estimation with default parameters
+   * test.setDatabase(db); //tell prova to use the first database
+   * //... setting target, parameters, etc...
+   * test.estimate;
+   * test.setDatabase(another_db); //now use the second database
+   * test.estimate; //estimate the same target again with another database
    * \endcode
    * \author Federico Spinelli
    */
@@ -77,48 +77,61 @@ namespace pel
     ///Flann index for esf
     boost::shared_ptr<indexESF> esf_idx_;
     ///unused
-    bool clouds_in_local_;
-//TODO
-    /**\brief Calculates unnormalized distance of objects, based on their cluster distances, internal use.
-     * \param[in] query Pointer to the query histogram(s)
-     * \param[in] feat Enum that indicates which list: listType::cvfh or listType::ourcvfh
-     * \param[out] distIdx Vector of unnormalized distances of objects and they relative index
+    bool clouds_in_local_; //TODO
+
+    /**\brief Calculates unnormalized distance of objects, based on their cluster distances. This is only used
+     * for CVFH and OURCVFH, since other features don't have clusters.
+     * \param[in] target Pointer to the target histogram
+     * \param[in] feat Enum that indicates from which list the histogram belongs (listType::cvfh or listType::ourcvfh only)
+     * \param[out] distIdx Vector of unnormalized distances of objects and their relative index
      * \return _True_ if distances are correctly computed, _false_ otherwise
      */
-    bool computeDistFromClusters_(PointCloud<VFHSignature308>::Ptr query, listType feat, vector<pair<float, int> >& distIdx);
+    bool
+    computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, listType feat,
+        std::vector<std::pair<float, int> >& distIdx);
 
     public:
     /** \brief Default empty Constructor
     */
-    PoseDB(){this->clouds_in_local_ = true;}
+    Database () {}
 
     /** \brief Constructor which loads a database from disk
      * \param[in] pathDB Path to the directory containing the database of poses
      */
-    PoseDB(boost::filesystem::path pathDB){this->load(pathDB);}
+    Database (boost::filesystem::path pathDB)
+    {
+      this->load(pathDB);
+    }
 
     /** \brief Copy constructor from another PoseDB
-     * \param[in] db Object to copy from
+     * \param[in] db Database object to copy from
      */
-    PoseDB(const PoseDB& db);
+    Database (const Database &db);
 
-    /** \brief Check if database contains cloud in local reference system
+    /** TODO \brief Check if database contains cloud in local reference system
      * \return _True_ if clouds are expressed in local reference system, _False_ if they are expressed in sensor reference system, i.e. their sensor_origin_ and sensor_orientation_ are left as default (zero, identity).
      */
-    bool isLocal(){return clouds_in_local_;}
+    bool
+    isLocal ()
+    {
+      return (clouds_in_local_);
+    }
 
-    /** \brief Load a database from disk, knowing its location
+    /** \brief Load a database from disk, previously saved with save method
      * \param[in] pathDB Path to the directory containing the database of poses
+     * \return _True_ if operation is succesfull, _False_ otherwise
      */
-    bool load(boost::filesystem::path pathDB);
+    bool
+    load (boost::filesystem::path pathDB);
 
     /** \brief Save a database to disk
-     * \param[in] pathDB Path to a directory on disk, inside which to save the database, directory must not exist.
+     * \param[in] pathDB Path to a directory on disk, inside which to save the database.
      * \return _True_ if successful, _false_ otherwise
      *
-     * pathDB must be a valid path and must not already exists, overwriting is not supported
+     * pathDB must be a valid path and must not already exists, overwriting is not supported!
      */
-    bool save(boost::filesystem::path pathDB);
+    bool
+    save (boost::filesystem::path pathDB);
 
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
@@ -134,7 +147,7 @@ namespace pel
 
      Failure to respect the above can lead to unexpected wrong results.
      */
-    bool create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
+   //TODO this must be a class of its own         bool create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
 
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
@@ -149,37 +162,35 @@ namespace pel
 
      Failure to respect the above can lead to unexpected wrong results.
      */
-    bool create(boost::filesystem::path pathClouds);
+    //TODO look above!   bool create(boost::filesystem::path pathClouds);
 
     /** \brief Copy assignment operator
      * \param[in] db OBject to copy
-     *
-     * Example usage:
-     * \code
-     * PoseDB a; //a is empty
-     * PoseDB b(path_to_database); //b is loaded from path
-     * a = b; // now a holds a copy of b
-     * \endcode
      */
-    PoseDB& operator= (const PoseDB& db);
+    //TODO also add other operators
+    Database& operator= (const Database& db);
 
-    /** \brief Erase the database from memory, leaving it unset
+    /** \brief Erase the entire database from memory, leaving it unset
     */
-    void clear();
+    void
+    clear ();
 
     /** \brief Tell if the database is empty
      *
      * \return _True_ if database is not loaded or empty, _False_ otherwise
      */
-    bool isEmpty();
+    bool
+    isEmpty ();
 
     /** \brief Check if a path contains a valid database
      * \param[in] dbPath Path to directory containing database to check
      * \return _True_ if valid, _False_ otherwise
      *
-     * Checks if the directory has a valid database structure, clouds of poses, FLANN matrices of histograms, indexes and name files
+     * Checks if the directory has a valid database structure, clouds of poses, FLANN matrices of histograms, indexes and name files.
+     * A location saved with save method is always a valid path.
      */
-    bool isValidPath(boost::filesystem::path dbPath);
+    bool
+    isValidPath (boost::filesystem::path dbPath);
   };
 }
 
