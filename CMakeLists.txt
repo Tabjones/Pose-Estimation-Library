@@ -25,6 +25,10 @@ set(INCLUDE_INSTALL_ROOT "include/${PROJECT_NAME_LOWER}-${PEL_MAJOR_VERSION}.${P
 set(INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}/${PROJECT_NAME_LOWER}")
 set(BIN_INSTALL_DIR "bin")
 set(PKGCONFIG_INSTALL_DIR "${LIB_INSTALL_DIR}/pkgconfig")
+set(PEL_OUTPUT_LIB_DIR "${PEL_BINARY_DIR}/${LIB_INSTALL_DIR}")
+set(PEL_OUTPUT_BIN_DIR "${PEL_BINARY_DIR}/${BIN_INSTALL_DIR}")
+make_directory("${PEL_OUTPUT_LIB_DIR}")
+make_directory("${PEL_OUTPUT_BIN_DIR}")
 
 ##
 # this is copy paste form http://www.itk.org/Wiki/CMake_RPATH_handling
@@ -39,6 +43,8 @@ IF("${is_system_dir}" STREQUAL "-1")
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
 ENDIF("${is_system_dir}" STREQUAL "-1")
 
+## -------> Add uninstall target
+#TODO
 
 #OLDcmakelist
 set (PEL_INSTALL_DIR "lib/pel-${PEL_VERSION}" CACHE PATH "Installation directory for library" )
