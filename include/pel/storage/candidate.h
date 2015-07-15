@@ -34,7 +34,7 @@
 #ifndef PEL_CANDIDATE_H_
 #define PEL_CANDIDATE_H_
 
-#include "common.h"
+#include <pel/common.h>
 
 namespace pel
 {

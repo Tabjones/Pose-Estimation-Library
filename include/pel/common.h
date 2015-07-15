@@ -38,11 +38,13 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <string>
+#include <unordered_map>
 #include <Eigen/Dense>
 //Make sure that only MPL2(or more permissive) Licensed code of Eigen is used
 #define EIGEN_MPL2_ONLY
 #include <flann/flann.h>
 #include <flann/io/hdf5.h>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
 namespace pel
 {
@@ -52,5 +54,51 @@ namespace pel
   typedef pcl::PointCloud<Pt> PtC;
   ///FLANN matrix used to store histograms
   typedef flann::Matrix<float> histograms;
+  ///FLANN Index for VFH
+  typedef flann::Index<flann::ChiSquareDistance<float> > indexVFH;
+  ///FLANN Index for ESF
+  typedef flann::Index<flann::L2<float> > indexESF;
+  ///Short writing of timestamps
+  typedef boost::posix_time::ptime timestamp;
+  /// Enumerator for list of candidates
+  enum class listType {vfh, esf, cvfh, ourcvfh, composite};
+  /** Map that stores configuration parameters in a key=value fashion*/
+  typedef std::unordered_map<std::string,float> parameters;
+  /**\addtogroup global Global Functions
+   *
+   * General utilities functions
+   * @{ */
+  /**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
+   * \param[in] a The first histogram
+   * \param[in] b The second histogram
+   * \param[in] size Size of vectors
+   * \returns The computed dstance _D_
+   *
+   * The distance _D_ is defined by the following metric:
+   * \f[
+   *  D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
+   * \f]
+   * where n=308 for CVFH/OURCVFH histograms
+   */
+  float
+  MinMaxDistance (float* a, float* b, int size)
+  {
+    float num(1.0f), den(1.0f);
+    //Process 4 items with each loop for efficency (since it should be applied to vectors of 308 elements)
+    int i=0;
+    for (; i<(size-3); i+=4)
+    {
+      num += min(a[i],b[i]) + min(a[i+1],b[i+1]) + min(a[i+2],b[i+2]) + min(a[i+3],b[i+3]);
+      den += max(a[i],b[i]) + max(a[i+1],b[i+1]) + max(a[i+2],b[i+2]) + max(a[i+3],b[i+3]);
+    }
+    //process last 0-4 elements (if size!=308)
+    while ( i < size)
+    {
+      num += min(a[i],b[i]);
+      den += max(a[i],b[i]);
+      ++i;
+    }
+    return (1 - (num/den));
+  }
 }
 #endif //PEL_COMMON_H_

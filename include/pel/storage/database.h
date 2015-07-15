@@ -34,7 +34,15 @@
 #ifndef PEL_DATABASE_H_
 #define PEL_DATABASE_H_
 
-#include "common.h"
+#include <pel/common.h>
+#include <pcl/io/pcd_io.h>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/algorithm/sort.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem.hpp>
+#include <algorithm>
+#include <fstream>
 
 namespace pel
 {
@@ -58,7 +66,8 @@ namespace pel
    * \endcode
    * \author Federico Spinelli
    */
-  class Database{
+  class Database
+  {
 
     //friend class PoseEstimation;
 
@@ -76,8 +85,6 @@ namespace pel
     boost::shared_ptr<indexVFH> vfh_idx_;
     ///Flann index for esf
     boost::shared_ptr<indexESF> esf_idx_;
-    ///unused
-    bool clouds_in_local_; //TODO
 
     /**\brief Calculates unnormalized distance of objects, based on their cluster distances. This is only used
      * for CVFH and OURCVFH, since other features don't have clusters.
@@ -108,15 +115,6 @@ namespace pel
      */
     Database (const Database &db);
 
-    /** TODO \brief Check if database contains cloud in local reference system
-     * \return _True_ if clouds are expressed in local reference system, _False_ if they are expressed in sensor reference system, i.e. their sensor_origin_ and sensor_orientation_ are left as default (zero, identity).
-     */
-    bool
-    isLocal ()
-    {
-      return (clouds_in_local_);
-    }
-
     /** \brief Load a database from disk, previously saved with save method
      * \param[in] pathDB Path to the directory containing the database of poses
      * \return _True_ if operation is succesfull, _False_ otherwise
@@ -128,7 +126,7 @@ namespace pel
      * \param[in] pathDB Path to a directory on disk, inside which to save the database.
      * \return _True_ if successful, _false_ otherwise
      *
-     * pathDB must be a valid path and must not already exists, overwriting is not supported!
+     * pathDB must be a valid path and must not already exists, overwriting is not supported! TODO change to a single file and thus enable overwrite
      */
     bool
     save (boost::filesystem::path pathDB);
@@ -140,14 +138,16 @@ namespace pel
      *
      * This method uses the provided set of parameters to create the database, erasing any previously loaded databases.
      * Please note that:
-     - Constructing a database from scratch can take several minutes at least.
-     - In order to use this method, PCD files must be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
+     - Constructing a database from scratch can take several minutes at least, depending on how many poses you have.
+     TODO explain it better - In order from this method to succed, PCD files must be expressed in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
      - PCD files must represent previously segmented objects, no elements of the scene should be present.
      - PCD files must have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
 
      Failure to respect the above can lead to unexpected wrong results.
      */
-   //TODO this must be a class of its own         bool create(boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
+   //TODO this must be a class of its own
+    bool
+    create (boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
 
     /** \brief Compute the whole database from scratch and store it in memory.
      * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
@@ -162,7 +162,9 @@ namespace pel
 
      Failure to respect the above can lead to unexpected wrong results.
      */
-    //TODO look above!   bool create(boost::filesystem::path pathClouds);
+    //TODO look above!
+    bool
+    create (boost::filesystem::path pathClouds);
 
     /** \brief Copy assignment operator
      * \param[in] db OBject to copy
@@ -180,7 +182,7 @@ namespace pel
      * \return _True_ if database is not loaded or empty, _False_ otherwise
      */
     bool
-    isEmpty ();
+    isEmpty () const;
 
     /** \brief Check if a path contains a valid database
      * \param[in] dbPath Path to directory containing database to check
@@ -190,7 +192,7 @@ namespace pel
      * A location saved with save method is always a valid path.
      */
     bool
-    isValidPath (boost::filesystem::path dbPath);
+    isValidPath (boost::filesystem::path dbPath) const;
   };
 }
 
