@@ -6,6 +6,8 @@ endif()
 
 project(PEL)
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
+set(PROJECT_DESCRIPTION "Pose Estimation Library (PEL)")
+set(PROJECT_URL "https://bitbucket.org/Tabjones/pose-estimation-library")
 
 ## -------> Include pkgconfig (shipped with CMake)
 include (FindPkgConfig)
@@ -24,11 +26,15 @@ set(LIB_INSTALL_DIR "lib")
 set(INCLUDE_INSTALL_ROOT "include/${PROJECT_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}")
 set(INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}/${PROJECT_NAME_LOWER}")
 set(BIN_INSTALL_DIR "bin")
+set(PELCONFIG_INSTALL_DIR "share/${PROJECT_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}")
 set(PKGCONFIG_INSTALL_DIR "${LIB_INSTALL_DIR}/pkgconfig")
-set(PEL_OUTPUT_LIB_DIR "${PEL_BINARY_DIR}/${LIB_INSTALL_DIR}")
-set(PEL_OUTPUT_BIN_DIR "${PEL_BINARY_DIR}/${BIN_INSTALL_DIR}")
+set(PEL_OUTPUT_LIB_DIR "${PROJECT_BINARY_DIR}/${LIB_INSTALL_DIR}")
+set(PEL_OUTPUT_BIN_DIR "${PROJECT_BINARY_DIR}/${BIN_INSTALL_DIR}")
 make_directory("${PEL_OUTPUT_LIB_DIR}")
 make_directory("${PEL_OUTPUT_BIN_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PEL_OUTPUT_LIB_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PEL_OUTPUT_LIB_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PEL_OUTPUT_BIN_DIR}")
 
 ##
 # this is copy paste form http://www.itk.org/Wiki/CMake_RPATH_handling
@@ -43,79 +49,97 @@ IF("${is_system_dir}" STREQUAL "-1")
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
 ENDIF("${is_system_dir}" STREQUAL "-1")
 
-## -------> Add uninstall target
-configure_file( "${PEL_SOURCE_DIR}/cmake/uninstall.cmake.in"
-                "${PEL_BINARY_DIR}/uninstall.cmake" IMMEDIATE @ONLY)
-add_custom_target(uninstall "${CMAKE_COMMAND}" -P 
-                  "${PEL_BINARY_DIR}/uninstakk.cmake")
+## -------> Add uninstall target  TODO
+configure_file( "${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake.in"
+  "${PROJECT_BINARY_DIR}/uninstall.cmake" IMMEDIATE @ONLY)
+add_custom_target(uninstall "${CMAKE_COMMAND}" -P
+  "${PROJECT_BINARY_DIR}/uninstakk.cmake")
 
-#OLDcmakelist
-set (PEL_INSTALL_DIR "lib/pel-${PEL_VERSION}" CACHE PATH "Installation directory for library" )
-set (PEL_INCLUDE_DIR "include/pel-${PEL_VERSION}" CACHE PATH "Installation directory for header files" )
-set (PEL_INSTALLCMAKE_DIR "lib/CMake/PEL" CACHE PATH "Installation directory for CMake files")
+## -------> Add support for c++11
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") #will result in error during compilation if not supported
 
-#configure version file
-configure_file (
-  "${PROJECT_SOURCE_DIR}/version.cmake.in"
-  "${PROJECT_SOURCE_DIR}/pel/version.h"
+
+##################################################################
+############## ------> Build Phase ###############################
+##################################################################
+
+## -------> Search for dependencies
+set(LINK_LIBS "")
+#Pcl 1.7.2
+find_package(PCL 1.7.2 REQUIRED)
+if (PCL_FOUND)
+  include_directories(BEFORE ${PCL_INCLUDE_DIRS})
+  link_directories(${PCL_LIBRARY_DIRS})
+  add_definitions(${PCL_DEFINITIONS})
+  set(LINK_LIBS "${LINK_LIBS} ${PCL_LIBRARIES}")
+endif (PCL_FOUND)
+#hdf5
+find_package(HDF5 REQUIRED)
+if (HDF5_FOUND)
+  include_directories(${HDF5_INCLUDE_DIRS})
+  set(LINK_LIBS "${LINK_LIBS} ${HDF5_LIBRARIES}")
+endif (HDF5_FOUND)
+#boost
+find_package(Boost REQUIRED)
+if (Boost_FOUND)
+  include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+  link_directories(${Boost_LIBRARY_DIRS})
+  set(LINK_LIBS "${LINK_LIBS} ${Boost_LIBRARIES}")
+endif (Boost_FOUND)
+#Flann
+find_package(FLANN REQUIRED)
+if (FLANN_FOUND)
+  include_directories(${FLANN_INCLUDE_DIRS})
+  set(LINK_LIBS "${LINK_LIBS} ${FLANN_LIBRARIES}")
+endif (FLANN_FOUND)
+
+## -------> Library Build
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+set(srcs
+  src/pose_estimation.cpp
+  src/storage/database.cpp
   )
 
-#make relative path absolute (needed later on...)
-foreach(p INSTALL INCLUDE INSTALLCMAKE)
-  set (var PEL_${p}_DIR)
-  if (NOT IS_ABSOLUTE "${${var}}")
-    set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-  endif()
-endforeach()
-
-include_directories(
-  "${PROJECT_SOURCE_DIR}"
-  "${PROJECT_BINARY_DIR}"
+set(incls
+  "include/pel/common.h"
+  "include/pel/pose_estimation.h"
+  "include/pel/storage/candidate.h"
+  "include/pel/storage/database.h"
   )
 
-add_subdirectory(pel)
+add_library (${PROJECT_NAME_LOWER} SHARED ${srcs} ${incls})
+target_link_libraries (${PROJECT_NAME_LOWER} ${LINK_LIBS})
+set_target_properties(${PROJECT_NAME_LOWER} PROPERTIES
+  VERSION ${PEL_VERSION}
+  SOVERSION ${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}
+  LINK_FLAGS -Wl, --as-needed
+  )
 
-#==============================================
-#Add all targets to the build-tree export set
-export (TARGETS pel
-        FILE "${PROJECT_BINARY_DIR}/pelTargets.cmake"
-       )
-export (PACKAGE PEL)
+install(TARGETS ${PROJECT_NAME_LOWER}
+  RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+  LIBRARY DESTINATION ${LIB_INSTALL_DIR}
+  ARCHIVE DESTINATION ${LIB_INSTALL_DIR}
+  )
+install(FILES ${incls} DESTINATION ${INCLUDE_INSTALL_DIR})
 
-#Create PELConfig.cmake and PELConfigVersion files
-file (RELATIVE_PATH REL_INCLUDE_DIR "${PEL_INSTALLCMAKE_DIR}"
-  "${PEL_INCLUDE_DIR}" )
-#for install tree
-set (CONF_INCLUDE_DIRS "${PEL_INSTALLCMAKE_DIR}/${REL_INCLUDE_DIR}")
-configure_file (PELConfig.cmake.in
-                "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake" @ONLY )
-#for build tree
-#set (CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/pel/" "${PROJECT_BINARY_DIR}")
-configure_file (PELConfig.cmake.in
-                "${PROJECT_BINARY_DIR}/PELConfig.cmake" @ONLY)
+## -------> Make a pkg-config file for the library
+set(PKG_NAME ${PROJECT_NAME_LOWER})
+set(PKG_DESC ${PROJECT_DESCRIPTION})
+set(PKG_URL ${PROJECT_URL})
+set(PKG_DEPS "pcl_common-1.7 pcl_features-1.7 pcl_filters-1.7 pcl_visualizaton-1.7 pcl_geometry-1.7
+  pcl_io-1.7 pcl_registration-1.7 pcl_search-1.7 pcl_kdtree-1.7 pcl_sample_consensus-1.7 
+  pcl_segmentation-1.7 pcl_surface-1.7")
+set(pc_file ${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}.pc)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/pkgconfig.cmake.in ${pc_file} @ONLY)
 
-message(STATUS "build= ${PROJECT_BINARY_DIR}/PELConfig.cmake")
-message(STATUS "inst= ${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake")
-message(STATUS "conf_include= ${CONF_INCLUDE_DIRS}")
+## ------> Configure PELConfig.cmake
+configure_file("${PROJECT_SOURCE_DIR}/cmake/PELConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/PELConfig.cmake" @ONLY)
+configure_file("${PROJECT_SOURCE_DIR}/cmake/PELConfigVersion.cmake.in"
+    "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake" @ONLY)
+install(FILES 
+    "${PROJECT_BINARY_DIR}/PELConfig.cmake"
+    "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake"
+    DESTINATION ${PELCONFIG_INSTALL_DIR})
 
-#for both
-configure_file (PELConfigVersion.cmake.in
-                "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake" @ONLY )
-
-#install PELConfig set of cmake files
-install(FILES
-        "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PELConfig.cmake"
-        "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake"
-        DESTINATION "${PEL_INSTALLCMAKE_DIR}")
-#install export set
-install(EXPORT  pelTargets
-  DESTINATION "${PEL_INSTALLCMAKE_DIR}")
-
-
-#Add an uninstall target
-configure_file (
-    "${CMAKE_CURRENT_SOURCE_DIR}/uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
-    IMMEDIATE @ONLY
-    )
-add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake)
