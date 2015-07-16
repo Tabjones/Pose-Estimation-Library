@@ -44,7 +44,10 @@ IF("${is_system_dir}" STREQUAL "-1")
 ENDIF("${is_system_dir}" STREQUAL "-1")
 
 ## -------> Add uninstall target
-#TODO
+configure_file( "${PEL_SOURCE_DIR}/cmake/uninstall.cmake.in"
+                "${PEL_BINARY_DIR}/uninstall.cmake" IMMEDIATE @ONLY)
+add_custom_target(uninstall "${CMAKE_COMMAND}" -P 
+                  "${PEL_BINARY_DIR}/uninstakk.cmake")
 
 #OLDcmakelist
 set (PEL_INSTALL_DIR "lib/pel-${PEL_VERSION}" CACHE PATH "Installation directory for library" )
