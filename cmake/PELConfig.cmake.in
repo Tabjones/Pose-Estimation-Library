@@ -9,13 +9,21 @@ find_package(PkgConfig QUIET)
 file(TO_CMAKE_PATH "${PEL_DIR}" PEL_DIR)
 #Compute paths
 get_filename_component(PEL_ROOT "${PEL_DIR}" PATH)
-#TODO
-set(PEL_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
 
-#Library dependencies
-if(NOT TARGET pel AND NOT PEL_BINARY_DIR)
-  include("${PEL_CMAKE_DIR}/pelTargets.cmake")
-endif()
+if (EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
+  #Found a PEL installation
+  set(PEL_INCLUDE_DIRS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}")
+  set(PEL_LIBRARY_DIRS "${PEL_ROOT}/@LIB_INSTALL_DIR@")
+  set(PEL_LIBRARIES pel)
+elseif(EXISTS "${PEL_DIR}/include/pel/pel_config.h")
+  #Found PEL into build tree
+  set(PEL_INCLUDE_DIRS "${PEL_DIR}/include")
+  set(PEL_LIBRARY_DIRS "${PEL_DIR}/@LIB_INSTALL_DIR@")
+  set(PEL_SOURCE_TREE "@CMAKE_SOURCE_DIR@")
+  set(PEL_LIBRARIES pel)
+else(EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
+  #Not found ...
+  message(STATUS "PEL Not found on this system")
+endif(EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
 
-#imported target 
-set (PEL_LIBRARIES pel)
+#add find package standard args 
