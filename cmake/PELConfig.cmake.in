@@ -14,16 +14,26 @@ if (EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pe
   #Found a PEL installation
   set(PEL_INCLUDE_DIRS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}")
   set(PEL_LIBRARY_DIRS "${PEL_ROOT}/@LIB_INSTALL_DIR@")
-  set(PEL_LIBRARIES pel)
+  find_library(PEL_LIB @PROJECT_NAME_LOWER@ HINTS ${PEL_LIBRARY_DIRS}
+    DOC "Pose Estimation Library" NO_DEFAULT_PATH)
+  set(PEL_LIBRARIES "${PEL_LIB}")
 elseif(EXISTS "${PEL_DIR}/include/pel/pel_config.h")
   #Found PEL into build tree
   set(PEL_INCLUDE_DIRS "${PEL_DIR}/include")
   set(PEL_LIBRARY_DIRS "${PEL_DIR}/@LIB_INSTALL_DIR@")
   set(PEL_SOURCE_TREE "@CMAKE_SOURCE_DIR@")
-  set(PEL_LIBRARIES pel)
+  find_library(PEL_LIB @PROJECT_NAME_LOWER@ HINTS ${PEL_LIBRARY_DIRS}
+    DOC "Pose Estimation Library" NO_DEFAULT_PATH)
+  set(PEL_LIBRARIES "${PEL_LIB}")
 else(EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
   #Not found ...
+  unset(PEL_INCLUDE_DIRS)
+  unset(PEL_LIBRARY_DIRS)
+  unset(PEL_LIBRARIES)
   message(STATUS "PEL Not found on this system")
 endif(EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
 
-#add find package standard args 
+include(FindPackageHandleStandardArgs)
+
+#Handles PEL_FOUND true/false if last variables are defined
+find_package_handle_standard_args(pel DEFAULT_MSG PEL_INCLUDE_DIRS PEL_LIBRARY_DIRS PEL_LIBRARIES)

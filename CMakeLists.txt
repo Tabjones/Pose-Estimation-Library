@@ -58,6 +58,8 @@ add_custom_target(uninstall "${CMAKE_COMMAND}" -P
 ## -------> Add support for c++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") #will result in error during compilation if not supported
 
+## -------> Set some user options (for now only 1!)
+option(EIGEN_MPL2_ONLY "Force Eigen to use only MPL2(or more permissive) licensed code" ON)
 
 ##################################################################
 ############## ------> Build Phase ###############################
@@ -96,12 +98,16 @@ endif (FLANN_FOUND)
 ## -------> Library Build
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+configure_file("${PROJECT_SOURCE_DIR}/cmake/config_h.cmake.in"
+    "${PROJECT_BINARY_DIR}/include/pel/pel_config.h")
+
 set(srcs
   src/pose_estimation.cpp
   src/storage/database.cpp
   )
 
 set(incls
+  "include/pel/pel_config.h"
   "include/pel/common.h"
   "include/pel/pose_estimation.h"
   "include/pel/storage/candidate.h"
@@ -128,7 +134,7 @@ set(PKG_NAME ${PROJECT_NAME_LOWER})
 set(PKG_DESC ${PROJECT_DESCRIPTION})
 set(PKG_URL ${PROJECT_URL})
 set(PKG_DEPS "pcl_common-1.7 pcl_features-1.7 pcl_filters-1.7 pcl_visualizaton-1.7 pcl_geometry-1.7
-  pcl_io-1.7 pcl_registration-1.7 pcl_search-1.7 pcl_kdtree-1.7 pcl_sample_consensus-1.7 
+  pcl_io-1.7 pcl_registration-1.7 pcl_search-1.7 pcl_kdtree-1.7 pcl_sample_consensus-1.7
   pcl_segmentation-1.7 pcl_surface-1.7")
 set(pc_file ${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}.pc)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/pkgconfig.cmake.in ${pc_file} @ONLY)
@@ -138,7 +144,7 @@ configure_file("${PROJECT_SOURCE_DIR}/cmake/PELConfig.cmake.in"
     "${PROJECT_BINARY_DIR}/PELConfig.cmake" @ONLY)
 configure_file("${PROJECT_SOURCE_DIR}/cmake/PELConfigVersion.cmake.in"
     "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake" @ONLY)
-install(FILES 
+install(FILES
     "${PROJECT_BINARY_DIR}/PELConfig.cmake"
     "${PROJECT_BINARY_DIR}/PELConfigVersion.cmake"
     DESTINATION ${PELCONFIG_INSTALL_DIR})

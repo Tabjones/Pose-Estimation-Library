@@ -34,14 +34,13 @@
 #ifndef PEL_COMMON_H_
 #define PEL_COMMON_H_
 
+#include <pel/pel_config.h>
 #include <pcl/console/print.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <string>
 #include <unordered_map>
 #include <Eigen/Dense>
-//Make sure that only MPL2(or more permissive) Licensed code of Eigen is used
-#define EIGEN_MPL2_ONLY
 #include <flann/flann.h>
 #include <flann/io/hdf5.h>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
