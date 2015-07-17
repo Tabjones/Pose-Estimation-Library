@@ -22,6 +22,7 @@ elseif(EXISTS "${PEL_DIR}/include/pel/pel_config.h")
   set(PEL_INCLUDE_DIRS "${PEL_DIR}/include")
   set(PEL_LIBRARY_DIRS "${PEL_DIR}/@PEL_LIB_INSTALL_DIR@")
   set(PEL_SOURCE_TREE "@PEL_SOURCE_DIR@")
+  list(APPEND ${PEL_INCLUDE_DIRS} "${PEL_SOURCE_TREE}/include")
   find_library(PEL_LIB @PEL_NAME_LOWER@ HINTS ${PEL_LIBRARY_DIRS}
     DOC "Pose Estimation Library" NO_DEFAULT_PATH)
   set(PEL_LIBRARIES "${PEL_LIB}")

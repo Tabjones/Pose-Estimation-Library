@@ -27,7 +27,7 @@ string (REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
 ## -------> Set Install dirs
 set(PEL_LIB_INSTALL_DIR "lib" CACHE STRING "Relative path for library install")
 set(INCLUDE_INSTALL_ROOT "include/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}")
-set(PEL_INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}/${PEL_NAME_LOWER}" CACHE STRING "Relative path for headers install")
+set(PEL_INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}" CACHE STRING "Relative path for headers install")
 set(PEL_BIN_INSTALL_DIR "bin" CACHE STRING "Relative path for binaries install")
 set(PEL_CONFIG_INSTALL_DIR "share/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}" CACHE STRING "Relative path for PELConfig files install")
 set(PEL_PKGCONFIG_INSTALL_DIR "${PEL_LIB_INSTALL_DIR}/pkgconfig" CACHE STRING "Relative path for pkgconfig files install")
@@ -97,27 +97,27 @@ include_directories(${PEL_SOURCE_DIR}/include)
 configure_file("${PEL_SOURCE_DIR}/cmake/config_h.cmake.in"
   "${PEL_BIN_DIR}/include/pel/pel_config.h")
 
+set(PEL_CONFIG_H_FILE include/pel/pel_config.h)
+
 include_directories(${PEL_BIN_DIR}/include)
 
 set(srcs
   src/pose_estimation.cpp
-  src/storage/database.cpp
+  src/database.cpp
   )
 
 set(incls
-  "include/pel/pel_config.h"
   "include/pel/common.h"
   "include/pel/pose_estimation.h"
-  "include/pel/storage/candidate.h"
-  "include/pel/storage/database.h"
+  "include/pel/candidate.h"
+  "include/pel/database.h"
   )
 
-add_library (${PEL_NAME_LOWER} SHARED ${srcs} ${incls})
+add_library (${PEL_NAME_LOWER} SHARED ${srcs} ${incls} ${PEL_CONFIG_H_FILE})
 target_link_libraries (${PEL_NAME_LOWER} ${LINK_LIBS})
 set_target_properties(${PEL_NAME_LOWER} PROPERTIES
   VERSION "${PEL_VERSION}"
   SOVERSION "${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}"
-  LINK_FLAGS "-Wl, --as-needed"
   )
 
 install(TARGETS ${PEL_NAME_LOWER}
@@ -126,6 +126,7 @@ install(TARGETS ${PEL_NAME_LOWER}
   ARCHIVE DESTINATION ${PEL_LIB_INSTALL_DIR}
   )
 install(FILES ${incls} DESTINATION ${PEL_INCLUDE_INSTALL_DIR})
+install(FILES "${PEL_BIN_DIR}/${PEL_CONFIG_H_FILE}" DESTINATION ${PEL_INCLUDE_INSTALL_DIR})
 
 ## -------> Make a pkg-config file for the library
 set(PKG_NAME ${PEL_NAME_LOWER})

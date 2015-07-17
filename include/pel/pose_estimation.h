@@ -34,9 +34,8 @@
 #ifndef PEL_POSE_ESTIMATION_H_
 #define PEL_POSE_ESTIMATION_H_
 
-#include <pel/common.h>
-#include <pel/storage/database.h>
-#include <pel/storage/candidate.h>
+#include <pel/database.h>
+#include <pel/candidate.h>
 #include <cmath>
 #include <stdexcept>
 #include <pcl/common/norms.h>
@@ -160,7 +159,7 @@ namespace pel
     pcl::PointCloud<pcl::Normal> normals_;
 
     ///Set a parameter of Pose Estimation from a string representing its value, used internally when reading parameters from a file
-    bool setParam_ (string, string&);
+    bool setParam_ (std::string, std::string&);
 
     ///Initialize the Query by computing preprocessing and features, returns true if success, internal use
     bool initQuery_();
@@ -286,13 +285,13 @@ namespace pel
      * \param[in] str The name the query should assume
      * \param[in] cl  Point cloud containing only the object to be estimated (i.e. already segmented)
      */
-    void setQuery (std::string str, PnC& cl);
+    void setQuery (std::string str, PtC& cl);
 
     /** \brief Set the Pose Estimation query (the object to be identified)
      * \param[in] str the name the query should assume
      * \param[in] clp Shared pointer containing only the pointcloud of the object to be estimated (i.e. already segmented)
      */
-    void setQuery (std::string str, PnC::Ptr clp);
+    void setQuery (std::string str, PtC::Ptr clp);
 
     /// \brief Print current parameter values on screen
     void printParams();
@@ -569,7 +568,7 @@ namespace pel
      *
      * Result file will be truncated, if it already exists
      */
-    bool elaborateTests(boost::filesystem::path file, path result);
+    bool elaborateTests(boost::filesystem::path file, boost::filesystem::path result);
   };
 }
 
