@@ -52,11 +52,11 @@ IF("${is_system_dir}" STREQUAL "-1")
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${PEL_LIB_INSTALL_DIR}")
 ENDIF("${is_system_dir}" STREQUAL "-1")
 
-## -------> Add uninstall target  TODO
+## -------> Add uninstall target
 configure_file( "${PEL_SOURCE_DIR}/cmake/uninstall.cmake.in"
   "${PEL_BIN_DIR}/uninstall.cmake" IMMEDIATE @ONLY)
 add_custom_target(uninstall "${CMAKE_COMMAND}" -P
-  "${PEL_BIN_DIR}/uninstakk.cmake")
+  "${PEL_BIN_DIR}/uninstall.cmake")
 
 ## -------> Add support for c++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") #will result in error during compilation if not supported
