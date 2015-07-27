@@ -121,77 +121,18 @@ namespace pel
     */
     Database () {}
 
-    /** \brief Constructor which loads a database from disk
-     * \param[in] pathDB Path to the directory containing the database of poses
-     */
-    Database (boost::filesystem::path pathDB)
-    {
-      this->load(pathDB);
-    }
-
     /** \brief Copy constructor from another PoseDB
-     * \param[in] db Database object to copy from
+     * \param[in] other Database to copy from
      */
-    Database (const Database &db);
-
-    /** \brief Load a database from disk, previously saved with save method
-     * \param[in] pathDB Path to the directory containing the database of poses
-     * \return _True_ if operation is succesfull, _False_ otherwise
-     */
-    bool
-    load (boost::filesystem::path pathDB);
-
-    /** \brief Save a database to disk
-     * \param[in] pathDB Path to a directory on disk, inside which to save the database.
-     * \return _True_ if successful, _false_ otherwise
-     *
-     * pathDB must be a valid path and must not already exists, overwriting is not supported! TODO change to a single file and thus enable overwrite
-     */
-    bool
-    save (boost::filesystem::path pathDB);
-
-    /** \brief Compute the whole database from scratch and store it in memory.
-     * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
-     * \param[in] params Shared pointer to parameters to use during database creation
-     * \return _True_ if successful, _false_ otherwise
-     *
-     * This method uses the provided set of parameters to create the database, erasing any previously loaded databases.
-     * Please note that:
-     - Constructing a database from scratch can take several minutes at least, depending on how many poses you have.
-     TODO explain it better - In order from this method to succed, PCD files must be expressed in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
-     - PCD files must represent previously segmented objects, no elements of the scene should be present.
-     - PCD files must have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
-
-     Failure to respect the above can lead to unexpected wrong results.
-     */
-   //TODO this must be a class of its own
-    bool
-    create (boost::filesystem::path pathClouds, boost::shared_ptr<parameters> params);
-
-    /** \brief Compute the whole database from scratch and store it in memory.
-     * \param[in] pathClouds Path to a directory on disk that contains all the pcd files of object poses
-     * \return _True_ if successful, _false_ otherwise
-     *
-     * This method creates a set of default parameters and creates the database from it, erasing any previously loaded databases.
-     * Please note that:
-     - Constructing a database from scratch can take several minutes at least.
-     - In order to use this method, PCD files must be expressed either in the sensor reference frame (i.e the kinect) or in local reference frame (i.e. in the object center). In the latter case sensor_origin_ and sensor_orientation_ of each cloud must be filled with the proper transformation that express where the sensor was during acquisition.
-     - PCD files must represent previously segmented objects, no elements of the scene should be present.
-     - PCD files must have stored the viewpoint location (coordinates of where the sensor was positioned during acquisition) inside their sensor_origin_ (if not zero) and sensor_orientation_ (if not identity).
-
-     Failure to respect the above can lead to unexpected wrong results.
-     */
-    //TODO look above!
-    bool
-    create (boost::filesystem::path pathClouds);
+    Database (const Database& other);
 
     /** \brief Copy assignment operator
-     * \param[in] db OBject to copy
+     * \param[in] other Database to copy from
      */
-    //TODO also add other operators
-    Database& operator= (const Database& db);
+    Database& operator= (const Database& other);
 
-    /** \brief Erase the entire database from memory, leaving it unset
+    /** \brief Erase the entire database. I.E. a call to isEmpty() method will return _True_ after
+     * after this operation
     */
     void
     clear ();
@@ -202,16 +143,6 @@ namespace pel
      */
     bool
     isEmpty () const;
-
-    /** \brief Check if a path contains a valid database
-     * \param[in] dbPath Path to directory containing database to check
-     * \return _True_ if valid, _False_ otherwise
-     *
-     * Checks if the directory has a valid database structure, clouds of poses, FLANN matrices of histograms, indexes and name files.
-     * A location saved with save method is always a valid path.
-     */
-    bool
-    isValidPath (boost::filesystem::path dbPath) const;
   };
 }
 

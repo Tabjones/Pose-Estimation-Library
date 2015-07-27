@@ -102,87 +102,100 @@ namespace pel
     return true;
   }
 
-  Database::Database (const Database& db)
+  Database::Database (const Database& other)
   {
-    histograms vfh (new float[db.vfh_->rows * db.vfh_->cols], db.vfh_->rows, db.vfh_->cols);
-    for (size_t i=0; i<db.vfh_->rows; ++i)
-      for (size_t j=0; j<db.vfh_->cols; ++j)
-        vfh[i][j] = (*db.vfh_)[i][j];
-    vfh_ = boost::make_shared<histograms>(vfh);
-    histograms esf (new float[db.esf_->rows * db.esf_->cols], db.esf_->rows, db.esf_->cols);
-    for (size_t i=0; i<db.esf_->rows; ++i)
-      for (size_t j=0; j<db.esf_->cols; ++j)
-        esf[i][j] = (*db.esf_)[i][j];
-    esf_ = boost::make_shared<histograms>(esf);
-    histograms cvfh (new float[db.cvfh_->rows * db.cvfh_->cols], db.cvfh_->rows, db.cvfh_->cols);
-    for (size_t i=0; i<db.cvfh_->rows; ++i)
-      for (size_t j=0; j<db.cvfh_->cols; ++j)
-        cvfh[i][j] = (*db.cvfh_)[i][j];
-    cvfh_ = boost::make_shared<histograms>(cvfh);
-    histograms ourcvfh (new float[db.ourcvfh_->rows * db.ourcvfh_->cols], db.ourcvfh_->rows, db.ourcvfh_->cols);
-    for (size_t i=0; i<db.ourcvfh_->rows; ++i)
-      for (size_t j=0; j<db.ourcvfh_->cols; ++j)
-        ourcvfh[i][j] = (*db.ourcvfh_)[i][j];
-    ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
-    boost::copy (db.names_, back_inserter(names_));
-    boost::copy (db.names_cvfh_, back_inserter(names_cvfh_));
-    boost::copy (db.names_ourcvfh_, back_inserter(names_ourcvfh_));
-    boost::copy (db.clouds_, back_inserter(clouds_));
-    db_path_ = db.db_path_;
+    //Make a local copy of other, so that this is exception safe
+    histograms vfh (new float[other.vfh_->rows * other.vfh_->cols], other.vfh_->rows, other.vfh_->cols);
+    for (size_t i=0; i<other.vfh_->rows; ++i)
+      for (size_t j=0; j<other.vfh_->cols; ++j)
+        vfh[i][j] = (*other.vfh_)[i][j];
+    histograms esf (new float[other.esf_->rows * other.esf_->cols], other.esf_->rows, other.esf_->cols);
+    for (size_t i=0; i<other.esf_->rows; ++i)
+      for (size_t j=0; j<other.esf_->cols; ++j)
+        esf[i][j] = (*other.esf_)[i][j];
+    histograms cvfh (new float[other.cvfh_->rows * other.cvfh_->cols], other.cvfh_->rows, other.cvfh_->cols);
+    for (size_t i=0; i<other.cvfh_->rows; ++i)
+      for (size_t j=0; j<other.cvfh_->cols; ++j)
+        cvfh[i][j] = (*other.cvfh_)[i][j];
+    histograms ourcvfh (new float[other.ourcvfh_->rows * other.ourcvfh_->cols], other.ourcvfh_->rows, other.ourcvfh_->cols);
+    for (size_t i=0; i<other.ourcvfh_->rows; ++i)
+      for (size_t j=0; j<other.ourcvfh_->cols; ++j)
+        ourcvfh[i][j] = (*other.ourcvfh_)[i][j];
+    std::vector<std::string> names;
+    boost::copy (other.names_, back_inserter(names));
+    std::vector<std::string> names_cvfh;
+    boost::copy (other.names_cvfh_, back_inserter(names_cvfh));
+    std::vector<std::string> names_ourcvfh;
+    boost::copy (other.names_ourcvfh_, back_inserter(names_ourcvfh));
+    std::vector<PtC> clouds;
+    boost::copy (other.clouds_, back_inserter(clouds));
     //only way to copy FLANN indexs that i'm aware of (save it to disk then load it)
-    db.vfh_idx_->save(".idx__tmp");
-    indexVFH idx_vfh (*vfh_, SavedIndexParams(".idx__tmp"));
+    other.vfh_idx_->save(".idx_v_tmp");
+    indexVFH idx_vfh (vfh, SavedIndexParams(".idx_v_tmp"));
+    other.esf_idx_->save(".idx_e_tmp");
+    indexESF idx_esf (esf, SavedIndexParams(".idx_e_tmp"));
+    //finally save the local copy into this
+    db_path_ = other.db_path_;
+    vfh_ = boost::make_shared<histograms>(vfh);
+    esf_ = boost::make_shared<histograms>(esf);
+    cvfh_ = boost::make_shared<histograms>(cvfh);
+    ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
     vfh_idx_ = boost::make_shared<indexVFH>(idx_vfh);
     vfh_idx_ -> buildIndex();
-    boost::filesystem::remove(".idx__tmp");
-    db.esf_idx_->save(".idx__tmp");
-    indexESF idx_esf (*esf_, SavedIndexParams(".idx__tmp"));
+    boost::filesystem::remove(".idx_v_tmp");
     esf_idx_ = boost::make_shared<indexESF>(idx_esf);
     esf_idx_ -> buildIndex();
-    boost::filesystem::remove(".idx__tmp");
+    boost::filesystem::remove(".idx_e_tmp");
+    names_.clear();
+    names_cvfh_.clear();
+    names_ourcvfh_.clear();
+    clouds_.clear();
+    boost::copy (names, back_inserter(names_));
+    boost::copy (names_ourcvfh, back_inserter(names_ourcvfh_));
+    boost::copy (clouds, back_inserter(clouds_));
+    boost::copy (names_cvfh, back_inserter(names_cvfh_));
   }
-
+//TODO exception safe
   Database&
-  Database::operator= (const Database& db)
+  Database::operator= (const Database& other)
   {
-    this->clear();
-    histograms vfh (new float[db.vfh_->rows * db.vfh_->cols], db.vfh_->rows, db.vfh_->cols);
-    for (size_t i=0; i<db.vfh_->rows; ++i)
-      for (size_t j=0; j<db.vfh_->cols; ++j)
-        vfh[i][j] = (*db.vfh_)[i][j];
-    this->vfh_ = boost::make_shared<histograms>(vfh);
-    histograms esf (new float[db.esf_->rows * db.esf_->cols], db.esf_->rows, db.esf_->cols);
-    for (size_t i=0; i<db.esf_->rows; ++i)
-      for (size_t j=0; j<db.esf_->cols; ++j)
-        esf[i][j] = (*db.esf_)[i][j];
-    this->esf_ = boost::make_shared<histograms>(esf);
-    histograms cvfh (new float[db.cvfh_->rows * db.cvfh_->cols], db.cvfh_->rows, db.cvfh_->cols);
-    for (size_t i=0; i<db.cvfh_->rows; ++i)
-      for (size_t j=0; j<db.cvfh_->cols; ++j)
-        cvfh[i][j] = (*db.cvfh_)[i][j];
-    this->cvfh_ = boost::make_shared<histograms>(cvfh);
-    histograms ourcvfh (new float[db.ourcvfh_->rows * db.ourcvfh_->cols], db.ourcvfh_->rows, db.ourcvfh_->cols);
-    for (size_t i=0; i<db.ourcvfh_->rows; ++i)
-      for (size_t j=0; j<db.ourcvfh_->cols; ++j)
-        ourcvfh[i][j] = (*db.ourcvfh_)[i][j];
-    this->ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
-    boost::copy (db.names_, back_inserter(this->names_));
-    boost::copy (db.names_cvfh_, back_inserter(this->names_cvfh_));
-    boost::copy (db.names_ourcvfh_, back_inserter(this->names_ourcvfh_));
-    boost::copy (db.clouds_, back_inserter(this->clouds_));
-    this->db_path_ = db.db_path_;
+    histograms vfh (new float[other.vfh_->rows * other.vfh_->cols], other.vfh_->rows, other.vfh_->cols);
+    for (size_t i=0; i<other.vfh_->rows; ++i)
+      for (size_t j=0; j<other.vfh_->cols; ++j)
+        vfh[i][j] = (*other.vfh_)[i][j];
+    histograms esf (new float[other.esf_->rows * other.esf_->cols], other.esf_->rows, other.esf_->cols);
+    for (size_t i=0; i<other.esf_->rows; ++i)
+      for (size_t j=0; j<other.esf_->cols; ++j)
+        esf[i][j] = (*other.esf_)[i][j];
+    histograms cvfh (new float[other.cvfh_->rows * other.cvfh_->cols], other.cvfh_->rows, other.cvfh_->cols);
+    for (size_t i=0; i<other.cvfh_->rows; ++i)
+      for (size_t j=0; j<other.cvfh_->cols; ++j)
+        cvfh[i][j] = (*other.cvfh_)[i][j];
+    histograms ourcvfh (new float[other.ourcvfh_->rows * other.ourcvfh_->cols], other.ourcvfh_->rows, other.ourcvfh_->cols);
+    for (size_t i=0; i<other.ourcvfh_->rows; ++i)
+      for (size_t j=0; j<other.ourcvfh_->cols; ++j)
+        ourcvfh[i][j] = (*other.ourcvfh_)[i][j];
+    boost::copy (other.names_, back_inserter(this->names_));
+    boost::copy (other.names_cvfh_, back_inserter(this->names_cvfh_));
+    boost::copy (other.names_ourcvfh_, back_inserter(this->names_ourcvfh_));
+    boost::copy (other.clouds_, back_inserter(this->clouds_));
+    this->db_path_ = other.db_path_;
     //only way to copy FLANN indexs that i'm aware of (save it to disk then load it)
-    db.vfh_idx_->save(".idx__tmp");
+    other.vfh_idx_->save(".idx__tmp");
     indexVFH idx_vfh ((*this->vfh_), SavedIndexParams(".idx__tmp"));
     this->vfh_idx_ = boost::make_shared<indexVFH>(idx_vfh);
     this->vfh_idx_ -> buildIndex();
     boost::filesystem::remove(".idx__tmp"); //delete tmp file
     //only way to copy indexs that i'm aware of (save it to disk then load it)
-    db.esf_idx_->save(".idx__tmp");
+    other.esf_idx_->save(".idx__tmp");
     indexESF idx_esf ((*this->esf_), SavedIndexParams(".idx__tmp"));
     this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
     this->esf_idx_ -> buildIndex();
     boost::filesystem::remove(".idx__tmp"); //delete tmp file
+    this->vfh_ = boost::make_shared<histograms>(vfh);
+    this->esf_ = boost::make_shared<histograms>(esf);
+    this->cvfh_ = boost::make_shared<histograms>(cvfh);
+    this->ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
     return *this;
   }
 
