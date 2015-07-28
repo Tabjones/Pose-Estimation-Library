@@ -16,7 +16,7 @@ set(PEL_BIN_DIR ${PROJECT_BINARY_DIR})
 include (FindPkgConfig)
 
 ## -------> Set Global Version of the Library, then dissect it to set various version variables
-set (PEL_VERSION 0.4.1 CACHE STRING "PEL Version (maj.min.rev)")
+set (PEL_VERSION 0.4.1 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
 string (REGEX REPLACE "^([0-9]+).*" "\\1"
     PEL_MAJOR_VERSION "${PEL_VERSION}")
 string (REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1"
@@ -61,7 +61,7 @@ add_custom_target(uninstall "${CMAKE_COMMAND}" -P
 ## -------> Add support for c++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") #will result in error during compilation if not supported
 
-## -------> Set some user options (for now only 1!)
+## -------> Set Eigen to use only MPL2 licensed sources
 set(EIGEN_MPL2_ONLY ON CACHE BOOL "Force Eigen to use only MPL2(or more permissive) licensed code")
 
 ##################################################################
@@ -97,21 +97,34 @@ include_directories(${PEL_SOURCE_DIR}/include)
 configure_file("${PEL_SOURCE_DIR}/cmake/config_h.cmake.in"
   "${PEL_BIN_DIR}/include/pel/pel_config.h")
 
-set(PEL_CONFIG_H_FILE include/pel/pel_config.h)
+set(PEL_CONFIG_H_FILE "include/pel/pel_config.h")
 
 include_directories(${PEL_BIN_DIR}/include)
 
-set(srcs
-  src/pose_estimation.cpp
-  src/database.cpp
+## ------> List Sources
+set(srcs_base
+  "src/pose_estimation.cpp"
   )
-
-set(incls
+list(APPEND srcs ${srcs_base})
+set(srcs_db
+  "src/database/database.cpp"
+  )
+list(APPEND srcs ${srcs_db})
+## ------> List headers
+list(APPEND incls ${PEL_CONFIG_H_FILE})
+set(incls_base
   "include/pel/common.h"
   "include/pel/pose_estimation.h"
-  "include/pel/candidate.h"
-  "include/pel/database.h"
   )
+list(APPEND incls ${incls_base})
+set(incls_cand
+  "include/pel/candidates/candidate.h"
+  )
+list(APPEND incls ${incls_cand})
+set(incls_db
+  "include/pel/database/database.h"
+  )
+list(APPEND incls ${incls_db})
 
 add_library (${PEL_NAME_LOWER} SHARED ${srcs} ${incls} ${PEL_CONFIG_H_FILE})
 target_link_libraries (${PEL_NAME_LOWER} ${LINK_LIBS})
@@ -119,13 +132,15 @@ set_target_properties(${PEL_NAME_LOWER} PROPERTIES
   VERSION "${PEL_VERSION}"
   SOVERSION "${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}"
   )
-
+## -----> Install
 install(TARGETS ${PEL_NAME_LOWER}
   RUNTIME DESTINATION ${PEL_BIN_INSTALL_DIR}
   LIBRARY DESTINATION ${PEL_LIB_INSTALL_DIR}
   ARCHIVE DESTINATION ${PEL_LIB_INSTALL_DIR}
   )
-install(FILES ${incls} DESTINATION ${PEL_INCLUDE_INSTALL_DIR})
+install(FILES ${incls_base} DESTINATION ${PEL_INCLUDE_INSTALL_DIR})
+install(FILES ${incls_cand} DESTINATION "${PEL_INCLUDE_INSTALL_DIR}/candidates")
+install(FILES ${incls_db} DESTINATION "${PEL_INCLUDE_INSTALL_DIR}/database")
 install(FILES "${PEL_BIN_DIR}/${PEL_CONFIG_H_FILE}" DESTINATION ${PEL_INCLUDE_INSTALL_DIR})
 
 ## -------> Make a pkg-config file for the library

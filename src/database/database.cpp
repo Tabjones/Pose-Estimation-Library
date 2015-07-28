@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <pel/database.h>
+#include <pel/database/database.h>
 #include <boost/make_shared.hpp>
 
 using namespace pcl::console;
@@ -71,7 +71,7 @@ namespace pel
     else
       return false;
   }
-
+/*
   bool
   Database::isValidPath (boost::filesystem::path dbPath) const
   {
@@ -101,7 +101,7 @@ namespace pel
 
     return true;
   }
-
+*/
   Database::Database (const Database& other)
   {
     //Make a local copy of other, so that this is exception safe

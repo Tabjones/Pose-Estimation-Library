@@ -34,8 +34,8 @@
 #ifndef PEL_POSE_ESTIMATION_H_
 #define PEL_POSE_ESTIMATION_H_
 
-#include <pel/database.h>
-#include <pel/candidate.h>
+#include <pel/database/database.h>
+#include <pel/candidates/candidate.h>
 #include <cmath>
 #include <stdexcept>
 #include <pcl/common/norms.h>
