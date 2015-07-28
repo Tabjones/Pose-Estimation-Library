@@ -47,6 +47,7 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/filesystem.hpp>
 #include <algorithm>
+#include <utility>
 
 namespace pel
 {
@@ -84,7 +85,7 @@ namespace pel
    * where n=308 for CVFH/OURCVFH histograms
    */
   float
-  MinMaxDistance (float* a, float* b, int size);
+  getMinMaxDistance (float* a, float* b, int size);
 
   /**\brief Check if passed path could contain a valid database
    * \param[in] db_path The path to check
@@ -92,6 +93,6 @@ namespace pel
    * @}
    */
   bool
-  isValidDatabase (boost::filesystem::path db_path);
+  isValidDatabasePath (boost::filesystem::path db_path);
 }
 #endif //PEL_COMMON_H_

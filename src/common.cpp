@@ -36,7 +36,7 @@
 namespace pel
 {
   float
-  MinMaxDistance (float* a, float* b, int size)
+  getMinMaxDistance (float* a, float* b, int size)
   {
     float num(1.0f), den(1.0f);
     //Process 4 items with each loop for efficency (since it should be applied to vectors of 308 elements)
@@ -57,7 +57,7 @@ namespace pel
   }
 
   bool
-  isValidDatabase (boost::filesystem::path db_path)
+  isValidDatabasePath (boost::filesystem::path db_path)
   {
     if ( !boost::filesystem::exists(db_path) || !boost::filesystem::is_directory(db_path) )
       return false;

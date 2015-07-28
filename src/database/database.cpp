@@ -105,6 +105,16 @@ namespace pel
     boost::copy (names_cvfh, back_inserter(names_cvfh_));
   }
 
+  Database::Database (Database&& other): vfh_(std::move(other.vfh_)), esf_(std::move(other.esf_)),
+      cvfh_(std::move(other.cvfh_)), ourcvfh_(std::move(other.ourcvfh_)), db_path_(std::move(other.db_path_)),
+      vfh_idx_(std::move(other.vfh_idx_)), esf_idx_(std::move(other.esf_idx_))
+  {
+    names_.swap(other.names_);
+    names_cvfh_.swap(other.names_cvfh_);
+    names_ourcvfh_.swap(other.names_ourcvfh_);
+    clouds_.swap(other.clouds_);
+  }
+
   Database&
   Database::operator= (const Database& other)
   {
@@ -161,6 +171,23 @@ namespace pel
     return *this;
   }
 
+  Database&
+  Database::operator= (Database&& other)
+  {
+    this->vfh_ = std::move(other.vfh_);
+    this->esf_ = std::move(other.esf_);
+    this->cvfh_ = std::move(other.cvfh_);
+    this->ourcvfh_ = std::move(other.ourcvfh_);
+    this->names_ = std::move(other.names_);
+    this->names_cvfh_ = std::move(other.names_cvfh_);
+    this->names_ourcvfh_ = std::move(other.names_ourcvfh_);
+    this->db_path_= std::move(other.db_path_);
+    this->clouds_ = std::move(other.clouds_);
+    this->vfh_idx_ = std::move(other.vfh_idx_);
+    this->esf_idx_ = std::move(other.esf_idx_);
+    return *this;
+  }
+
   bool
   Database::computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, listType feat,
       std::vector<std::pair<float, int> >& distIdx)
@@ -188,7 +215,7 @@ namespace pel
           {
             if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
             {//another cluster of the same object
-              d = std::min (d, (MinMaxDistance(target->points[n].histogram, (*cvfh_)[i], 308)) );
+              d = std::min (d, (getMinMaxDistance(target->points[n].histogram, (*cvfh_)[i], 308)) );
             }
             else
             {//another cluster of another object
@@ -196,14 +223,14 @@ namespace pel
                 distIdx.push_back( std::make_pair(d, s++) );
               else
                 distIdx[s++].first += d;
-              d = MinMaxDistance (target->points[n].histogram, (*cvfh_)[i], 308);
+              d = getMinMaxDistance (target->points[n].histogram, (*cvfh_)[i], 308);
             }
           }
           else if (i == (names_cvfh_.size() -1) )
           {//last cluster of last object
             if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
             {//last cluster is still part of previous object
-              d = std::min (d, (MinMaxDistance(target->points[n].histogram, (*cvfh_)[i], 308)) );
+              d = std::min (d, (getMinMaxDistance(target->points[n].histogram, (*cvfh_)[i], 308)) );
               if (n==0)
                 distIdx.push_back( std::make_pair(d, s++) );
               else
@@ -211,7 +238,7 @@ namespace pel
             }
             else
             {//last cluster is part of another last object
-              d = MinMaxDistance(target->points[n].histogram, (*cvfh_)[i], 308);
+              d = getMinMaxDistance(target->points[n].histogram, (*cvfh_)[i], 308);
               if (n==0)
                 distIdx.push_back( std::make_pair(d, s++) );
               else
@@ -220,7 +247,7 @@ namespace pel
           }
           else
           {//first cluster of first object
-            d = MinMaxDistance (target->points[n].histogram, (*cvfh_)[i], 308);
+            d = getMinMaxDistance (target->points[n].histogram, (*cvfh_)[i], 308);
           }
         }//end of for each cluster in db
       }//end of for each target cluster
@@ -238,7 +265,7 @@ namespace pel
           {
             if (names_ourcvfh_[i].compare(names_ourcvfh_[i-1]) == 0)
             {//another cluster of the same object
-              d = std::min (d, (MinMaxDistance(target->points[n].histogram, (*ourcvfh_)[i], 308)) );
+              d = std::min (d, (getMinMaxDistance(target->points[n].histogram, (*ourcvfh_)[i], 308)) );
             }
             else
             {//another cluster of another object
@@ -246,14 +273,14 @@ namespace pel
                 distIdx.push_back( std::make_pair(d, s++) );
               else
                 distIdx[s++].first += d;
-              d = MinMaxDistance (target->points[n].histogram, (*ourcvfh_)[i], 308);
+              d = getMinMaxDistance (target->points[n].histogram, (*ourcvfh_)[i], 308);
             }
           }
           else if (i == (names_cvfh_.size() -1) )
           {//last cluster of last object
             if (names_cvfh_[i].compare(names_cvfh_[i-1]) == 0)
             {//last cluster is still part of previous object
-              d = std::min (d, (MinMaxDistance(target->points[n].histogram, (*ourcvfh_)[i], 308)) );
+              d = std::min (d, (getMinMaxDistance(target->points[n].histogram, (*ourcvfh_)[i], 308)) );
               if (n==0)
                 distIdx.push_back( std::make_pair(d, s++) );
               else
@@ -261,7 +288,7 @@ namespace pel
             }
             else
             {//last cluster is part of another last object
-              d = MinMaxDistance(target->points[n].histogram, (*ourcvfh_)[i], 308);
+              d = getMinMaxDistance(target->points[n].histogram, (*ourcvfh_)[i], 308);
               if (n==0)
                 distIdx.push_back( std::make_pair(d, s++) );
               else
@@ -270,7 +297,7 @@ namespace pel
           }
           else
           {//first cluster of first object
-            d = MinMaxDistance (target->points[n].histogram, (*ourcvfh_)[i], 308);
+            d = getMinMaxDistance (target->points[n].histogram, (*ourcvfh_)[i], 308);
           }
         }//end of for each cluster in db
       }//end of for each target
@@ -299,189 +326,6 @@ namespace pel
     db_path_.clear();
   }
 /*
-  //TODO rework
-  bool Database::load (boost::filesystem::path pathDB)
-  {
-    if ( this->isValidPath(pathDB) )
-    {
-      boost::filesystem::path Pclouds(pathDB.string()+"/Clouds");
-      std::vector<boost::filesystem::path> pvec;
-      boost::copy (directory_iterator(Pclouds), directory_iterator(), back_inserter(pvec));
-      if (pvec.size() <= 0)
-      {
-        print_error("%*s]\tNo files in Clouds directory of database, cannot load poses, aborting...\n",20,__func__);
-        return false;
-      }
-      boost::sort (pvec.begin(), pvec.end());
-      clouds_.resize(pvec.size());
-      int i(0);
-      for (std::vector<boost::filesystem::path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
-      {
-        if (boost::filesystem::is_regular_file(*it) && boost::filesystem::extension(*it)==".pcd" )
-        {
-          if (pcl::io::loadPCDFile (it->string(),clouds_[i])!=0)
-          {
-            print_warn("%*s]\tError loading PCD file number %d, name %s, skipping...\n",20,__func__,i+1,it->string().c_str());
-            continue;
-          }
-          Eigen::Vector3f s_orig (clouds_[i].sensor_origin_(0), clouds_[i].sensor_origin_(1), clouds_[i].sensor_origin_(2) ) ;
-          Eigen::Quaternionf s_orie = clouds_[i].sensor_orientation_;
-          if (clouds_[i].points.size() <= 0)
-            print_warn("%*s]\tLoaded PCD file number %d, name %s has ZERO points!! Are you loading the correct files?\n",20,__func__,i+1,it->string().c_str());
-        }
-        else
-        {
-          print_warn("%*s]\t%s is not a PCD file, skipping...\n",20,__func__,it->string().c_str());
-          continue;
-        }
-      }
-
-      try
-      {
-        histograms m;
-        flann::load_from_file (m, pathDB.string() + "/vfh.h5", "VFH Histograms");
-        vfh_ = boost::make_shared<histograms>(m);
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading VFH histograms, file is likely corrupted, try recreating database...\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        histograms m;
-        flann::load_from_file (m, pathDB.string() + "/esf.h5", "ESF Histograms");
-        esf_ = boost::make_shared<histograms>(m);
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading ESF histograms, file is likely corrupted, try recreating database...\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        histograms m;
-        flann::load_from_file (m, pathDB.string() + "/cvfh.h5", "CVFH Histograms");
-        cvfh_ = boost::make_shared<histograms>(m);
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading CVFH histograms, file is likely corrupted, try recreating database...\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        histograms m;
-        flann::load_from_file (m, pathDB.string() + "/ourcvfh.h5", "OURCVFH Histograms");
-        ourcvfh_ = boost::make_shared<histograms>(m);
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading OURCVFH histograms, file is likely corrupted, try recreating database...\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        indexVFH idx (*vfh_, SavedIndexParams(pathDB.string()+"/vfh.idx"));
-        vfh_idx_ = boost::make_shared<indexVFH>(idx);
-        vfh_idx_ -> buildIndex();
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading VFH index, file is likely corrupted, try recreating database...\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        indexESF idx (*esf_, SavedIndexParams(pathDB.string()+"/esf.idx"));
-        esf_idx_ = boost::make_shared<indexESF>(idx);
-        esf_idx_ -> buildIndex();
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading ESF index, file is likely corrupted, try recreating database...\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        ifstream file ((pathDB.string()+"/names.list").c_str());
-        std::string line;
-        if (file.is_open())
-        {
-          while (getline (file, line))
-          {
-            trim(line); //remove white spaces from line
-            names_.push_back(line);
-          }//end of file
-        }
-        else
-        {
-          print_error("%*s]\tError opening names.list, file is likely corrupted, try recreating database\n",20,__func__);
-          return false;
-        }
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading names.list, file is likely corrupted, try recreating database\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        ifstream file ((pathDB.string()+"/names.cvfh").c_str());
-        std::string line;
-        if (file.is_open())
-        {
-          while (getline (file, line))
-          {
-            trim(line); //remove white spaces from line
-            names_cvfh_.push_back(line);
-          }//end of file
-        }
-        else
-        {
-          print_error("%*s]\tError opening names.cvfh, file is likely corrupted, try recreating database\n",20,__func__);
-          return false;
-        }
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading names.cvfh, file is likely corrupted, try recreating database\n",20,__func__);
-        return false;
-      }
-      try
-      {
-        ifstream file ((pathDB.string()+"/names.ourcvfh").c_str());
-        string line;
-        if (file.is_open())
-        {
-          while (getline (file, line))
-          {
-            trim(line); //remove white spaces from line
-            names_ourcvfh_.push_back(line);
-          }//end of file
-        }
-        else
-        {
-          print_error("%*s]\tError opening names.ourcvfh, file is likely corrupted, try recreating database\n",20,__func__);
-          return false;
-        }
-      }
-      catch (...)
-      {
-        print_error("%*s]\tError loading names.ourcvfh, file is likely corrupted, try recreating database\n",20,__func__);
-        return false;
-      }
-    }
-    else
-    {
-      print_error("%*s]\t%s is not a valid database directory, or does not exist\n",20,__func__,pathDB.string().c_str());
-      return false;
-    }
-    dbPath_=pathDB;
-    return true;
-  }
-
-
   //TODO rework
   bool
   Database::save (boost::filesystem::path pathDB)

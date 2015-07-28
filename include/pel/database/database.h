@@ -31,16 +31,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef PEL_DATABASE_H_
-#define PEL_DATABASE_H_
+#ifndef PEL_DATABASE_DATABASE_H_
+#define PEL_DATABASE_DATABASE_H_
 
 #include <pel/common.h>
-#include <pcl/io/pcd_io.h>
+#include <pel/database/database_io.h>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/sort.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <fstream>
 
 namespace pel
 {
@@ -66,6 +65,7 @@ namespace pel
    */
   class Database
   {
+
     ///Shared pointers to database histograms
     boost::shared_ptr<histograms> vfh_, esf_, cvfh_, ourcvfh_;
     ///Names of database clouds
@@ -97,15 +97,25 @@ namespace pel
     */
     Database () {}
 
-    /** \brief Copy constructor from another PoseDB
+    /** \brief Copy constructor
      * \param[in] other Database to copy from
      */
     Database (const Database& other);
+
+    /**\brief Move constructor
+     * \param[in] other Database to move from
+     */
+    Database (Database&& other);
 
     /** \brief Copy assignment operator
      * \param[in] other Database to copy from
      */
     Database& operator= (const Database& other);
+
+    /** \brief Move assignment operator
+     * \param[in] other Database to move from
+     */
+    Database& operator= (Database&& other);
 
     /** \brief Erase the entire database. I.E. a call to isEmpty() method will return _True_ after
      * after this operation
@@ -119,7 +129,10 @@ namespace pel
      */
     bool
     isEmpty () const;
+
+    friend bool DatabaseReader::load (boost::filesystem::path, Database&);
+    friend Database& DatabaseReader::load (boost::filesystem::path);
   };
 }
 
-#endif //PEL_DATABASE_H_
+#endif //PEL_DATABASE_DATABASE_H_

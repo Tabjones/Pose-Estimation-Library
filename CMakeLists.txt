@@ -109,6 +109,7 @@ set(srcs_base
 list(APPEND srcs ${srcs_base})
 set(srcs_db
   "src/database/database.cpp"
+  "src/database/database_io.cpp"
   )
 list(APPEND srcs ${srcs_db})
 ## ------> List headers
@@ -124,6 +125,7 @@ set(incls_cand
 list(APPEND incls ${incls_cand})
 set(incls_db
   "include/pel/database/database.h"
+  "include/pel/database/database_io.h"
   )
 list(APPEND incls ${incls_db})
 
