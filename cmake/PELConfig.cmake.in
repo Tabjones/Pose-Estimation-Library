@@ -4,6 +4,7 @@
 # This sets the following variables:
 # PEL_INCLUDE_DIRS - directory of include files.
 # PEL_LIBRARIES - libraries to link against.
+# PEL_LIBRARY_DIRS - directory of libraries.
 
 find_package(PkgConfig QUIET)
 file(TO_CMAKE_PATH "${PEL_DIR}" PEL_DIR)

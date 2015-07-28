@@ -38,27 +38,6 @@ using namespace pcl::console;
 
 namespace pel
 {
-  float
-  MinMaxDistance (float* a, float* b, int size)
-  {
-    float num(1.0f), den(1.0f);
-    //Process 4 items with each loop for efficency (since it should be applied to vectors of 308 elements)
-    int i=0;
-    for (; i<(size-3); i+=4)
-    {
-      num += std::min(a[i],b[i]) + std::min(a[i+1],b[i+1]) + std::min(a[i+2],b[i+2]) + std::min(a[i+3],b[i+3]);
-      den += std::max(a[i],b[i]) + std::max(a[i+1],b[i+1]) + std::max(a[i+2],b[i+2]) + std::max(a[i+3],b[i+3]);
-    }
-    //process last 0-4 elements (if size!=308)
-    while ( i < size)
-    {
-      num += std::min(a[i],b[i]);
-      den += std::max(a[i],b[i]);
-      ++i;
-    }
-    return (1 - (num/den));
-  }
-
   bool
   Database::isEmpty () const
   {
@@ -71,37 +50,7 @@ namespace pel
     else
       return false;
   }
-/*
-  bool
-  Database::isValidPath (boost::filesystem::path dbPath) const
-  {
-    if ( !boost::filesystem::exists(dbPath) || !boost::filesystem::is_directory(dbPath) )
-      return false;
-    boost::filesystem::path Pclouds(dbPath.string() + "/Clouds");
-    if ( !boost::filesystem::exists(Pclouds) || !boost::filesystem::is_directory(Pclouds) )
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/vfh.h5") || !(boost::filesystem::extension(dbPath.string()+ "/vfh.h5") == ".h5"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/esf.h5") || !(boost::filesystem::extension(dbPath.string()+ "/esf.h5") == ".h5"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/cvfh.h5") || !(boost::filesystem::extension(dbPath.string()+ "/cvfh.h5") == ".h5"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/ourcvfh.h5") || !(boost::filesystem::extension(dbPath.string()+ "/ourcvfh.h5") == ".h5"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/vfh.idx") || !(boost::filesystem::extension(dbPath.string()+ "/vfh.idx") == ".idx"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/esf.idx") || !(boost::filesystem::extension(dbPath.string()+ "/esf.idx") == ".idx"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/names.list") || !(boost::filesystem::extension(dbPath.string()+ "/names.list") == ".list"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/names.cvfh") || !(boost::filesystem::extension(dbPath.string()+ "/names.cvfh") == ".cvfh"))
-      return false;
-    if ( !boost::filesystem::is_regular_file(dbPath.string()+ "/names.ourcvfh") || !(boost::filesystem::extension(dbPath.string()+ "/names.ourcvfh") == ".ourcvfh"))
-      return false;
 
-    return true;
-  }
-*/
   Database::Database (const Database& other)
   {
     //Make a local copy of other, so that this is exception safe
@@ -155,7 +104,7 @@ namespace pel
     boost::copy (clouds, back_inserter(clouds_));
     boost::copy (names_cvfh, back_inserter(names_cvfh_));
   }
-//TODO exception safe
+
   Database&
   Database::operator= (const Database& other)
   {
@@ -175,27 +124,40 @@ namespace pel
     for (size_t i=0; i<other.ourcvfh_->rows; ++i)
       for (size_t j=0; j<other.ourcvfh_->cols; ++j)
         ourcvfh[i][j] = (*other.ourcvfh_)[i][j];
-    boost::copy (other.names_, back_inserter(this->names_));
-    boost::copy (other.names_cvfh_, back_inserter(this->names_cvfh_));
-    boost::copy (other.names_ourcvfh_, back_inserter(this->names_ourcvfh_));
-    boost::copy (other.clouds_, back_inserter(this->clouds_));
-    this->db_path_ = other.db_path_;
+    std::vector<std::string> names;
+    boost::copy (other.names_, back_inserter(names));
+    std::vector<std::string> names_cvfh;
+    boost::copy (other.names_cvfh_, back_inserter(names_cvfh));
+    std::vector<std::string> names_ourcvfh;
+    boost::copy (other.names_ourcvfh_, back_inserter(names_ourcvfh));
+    std::vector<PtC> clouds;
+    boost::copy (other.clouds_, back_inserter(clouds));
     //only way to copy FLANN indexs that i'm aware of (save it to disk then load it)
-    other.vfh_idx_->save(".idx__tmp");
-    indexVFH idx_vfh ((*this->vfh_), SavedIndexParams(".idx__tmp"));
-    this->vfh_idx_ = boost::make_shared<indexVFH>(idx_vfh);
-    this->vfh_idx_ -> buildIndex();
-    boost::filesystem::remove(".idx__tmp"); //delete tmp file
+    other.vfh_idx_->save(".idx_v_tmp");
+    indexVFH idx_vfh (vfh, SavedIndexParams(".idx_v_tmp"));
+    boost::filesystem::remove(".idx_v_tmp"); //delete tmp file
     //only way to copy indexs that i'm aware of (save it to disk then load it)
-    other.esf_idx_->save(".idx__tmp");
-    indexESF idx_esf ((*this->esf_), SavedIndexParams(".idx__tmp"));
-    this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
-    this->esf_idx_ -> buildIndex();
-    boost::filesystem::remove(".idx__tmp"); //delete tmp file
+    other.esf_idx_->save(".idx_e_tmp");
+    indexESF idx_esf (esf, SavedIndexParams(".idx_e_tmp"));
+    boost::filesystem::remove(".idx_e_tmp"); //delete tmp file
+    //save tmp db into this
     this->vfh_ = boost::make_shared<histograms>(vfh);
     this->esf_ = boost::make_shared<histograms>(esf);
     this->cvfh_ = boost::make_shared<histograms>(cvfh);
     this->ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
+    this->vfh_idx_ = boost::make_shared<indexVFH>(idx_vfh);
+    this->vfh_idx_ -> buildIndex();
+    this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
+    this->esf_idx_ -> buildIndex();
+    this->names_.clear();
+    this->names_cvfh_.clear();
+    this->names_ourcvfh_.clear();
+    this->clouds_.clear();
+    boost::copy (names, back_inserter(this->names_));
+    boost::copy (names_ourcvfh, back_inserter(this->names_ourcvfh_));
+    boost::copy (clouds, back_inserter(this->clouds_));
+    boost::copy (names_cvfh, back_inserter(this->names_cvfh_));
+    this->db_path_ = other.db_path_;
     return *this;
   }
 
@@ -320,6 +282,7 @@ namespace pel
       return false;
     }
   }
+
   void
   Database::clear ()
   {

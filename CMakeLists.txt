@@ -104,6 +104,7 @@ include_directories(${PEL_BIN_DIR}/include)
 ## ------> List Sources
 set(srcs_base
   "src/pose_estimation.cpp"
+  "src/common.cpp"
   )
 list(APPEND srcs ${srcs_base})
 set(srcs_db

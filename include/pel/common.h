@@ -45,6 +45,8 @@
 #include <flann/flann.h>
 #include <flann/io/hdf5.h>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/filesystem.hpp>
+#include <algorithm>
 
 namespace pel
 {
@@ -64,5 +66,32 @@ namespace pel
   enum class listType {vfh, esf, cvfh, ourcvfh, composite};
   /** Map that stores configuration parameters in a key=value fashion*/
   typedef std::unordered_map<std::string,float> parameters;
+
+  /**\addtogroup global Global Functions
+   *
+   * General utilities functions
+   * @{ */
+  /**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
+   * \param[in] a The first histogram
+   * \param[in] b The second histogram
+   * \param[in] size Size of vectors
+   * \returns The computed dstance _D_
+   *
+   * The distance _D_ is defined by the following metric:
+   * \f[
+   *  D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
+   * \f]
+   * where n=308 for CVFH/OURCVFH histograms
+   */
+  float
+  MinMaxDistance (float* a, float* b, int size);
+
+  /**\brief Check if passed path could contain a valid database
+   * \param[in] db_path The path to check
+   * \returns _True_ if valid, _False_ otherwise
+   * @}
+   */
+  bool
+  isValidDatabase (boost::filesystem::path db_path);
 }
 #endif //PEL_COMMON_H_

@@ -40,31 +40,10 @@
 #include <boost/range/algorithm/sort.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/filesystem.hpp>
-#include <algorithm>
 #include <fstream>
 
 namespace pel
 {
-  /**\addtogroup global Global Functions
-   *
-   * General utilities functions
-   * @{ */
-  /**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
-   * \param[in] a The first histogram
-   * \param[in] b The second histogram
-   * \param[in] size Size of vectors
-   * \returns The computed dstance _D_
-   *
-   * The distance _D_ is defined by the following metric:
-   * \f[
-   *  D = 1 - \frac{1+\sum_i^n{min\left(a_i,b_i\right)}}{1+\sum_i^n{max\left(a_i,b_i\right)}}
-   * \f]
-   * where n=308 for CVFH/OURCVFH histograms
-   */
-  float
-  MinMaxDistance (float* a, float* b, int size);
-
   /**\brief Stores the database of poses for PoseEstimation.
    * Manages PoseEstimation database, providing methods to load and save them.
    * The interface is used internally by PoseEstimation, however it can be used by the user
@@ -87,9 +66,6 @@ namespace pel
    */
   class Database
   {
-
-    //friend class PoseEstimation;
-
     ///Shared pointers to database histograms
     boost::shared_ptr<histograms> vfh_, esf_, cvfh_, ourcvfh_;
     ///Names of database clouds
