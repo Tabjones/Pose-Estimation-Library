@@ -36,10 +36,6 @@
 
 #include <pel/common.h>
 #include <pel/database/database_io.h>
-#include <boost/range/algorithm/copy.hpp>
-#include <boost/range/algorithm/sort.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/trim.hpp>
 
 namespace pel
 {
@@ -131,7 +127,7 @@ namespace pel
     isEmpty () const;
 
     friend bool DatabaseReader::load (boost::filesystem::path, Database&);
-    friend Database& DatabaseReader::load (boost::filesystem::path);
+    friend bool DatabaseWriter::save (boost::filesystem::path, const Database&, bool);
   };
 }
 

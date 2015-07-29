@@ -48,6 +48,11 @@
 #include <boost/filesystem.hpp>
 #include <algorithm>
 #include <utility>
+#include <iostream>
+#include <iterator>
+
+///Current local time, seconds precision
+#define TIME_NOW boost::posix_time::second_clock::local_time()
 
 namespace pel
 {

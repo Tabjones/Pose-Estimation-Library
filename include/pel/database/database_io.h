@@ -37,6 +37,10 @@
 #include <pel/common.h>
 #include <fstream>
 #include <pcl/io/pcd_io.h>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/algorithm/sort.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 namespace pel
 {
@@ -48,37 +52,76 @@ namespace pel
   class DatabaseReader
   {
     ///Last succesfully loaded path
-    boost::filesystem::path last_loaded;
+    boost::filesystem::path last_loaded_;
 
     public:
+      /**\brief Empty Constructor
+      */
+      DatabaseReader () {}
 
-    /**\brief Empty Constructor
-     */
-    DatabaseReader () {}
+      /**\brief Empty Destructor.
+      */
+      virtual ~DatabaseReader () {}
 
-    /**\brief Empty Destructor.
-     */
-    virtual ~DatabaseReader() {}
+      /**\brief Load a database from disk.
+       * \param[in] path Path to the directory on disk containing database to load
+       * \parma[out] target Database object to load into.
+       * \returns _True_ if operation is succesful, _False_ otherwise.
+       *
+       * If path is not valid or database fails to load, target is not touched
+       */
+      bool
+      load (boost::filesystem::path path, Database& target);
 
-    /**\brief Load a database from disk.
-     * \param[in] path Path to the directory on disk containing database to load
-     * \parma[out] target Database object to store the loaded one.
-     * \returns _True_ if operation is succesful, _False_ otherwise.
-     *
-     * If path is not valid or database fails to load, target is not touched
-     */
-    bool
-    load (boost::filesystem::path path, Database& target);
+      /**\brief Load a database from disk.
+       * \param[in] path Path to the directory on disk containing database to load
+       * \returns The loaded Database.
+       *
+       * If path is not valid or database fails to load, returns an empty database
+       */
+      Database
+      load (boost::filesystem::path path);
 
-    /**\brief Load a database from disk.
-     * \param[in] path Path to the directory on disk containing database to load
-     * \returns The loaded Database.
-     *
-     * If path is not valid or database fails to load, returns an empty database
-     */
-    Database&
-    load (boost::filesystem::path path);
+      /**\brief Reload a database from the last succesfully loaded path
+       * \param[out] target Database object to load into.
+       * \returns _True_ if operation is succesful, _False_ otherwise
+       */
+      bool
+      reload (Database& target);
 
+      /**\brief Reload a database from the last succesfully loaded path
+       * \returns The loaded database, or an empty one if operation fails
+       */
+      Database
+      reload ();
+  };
+
+  /**\brief Writes(saves) a Database to disk.
+   * Manages Database writing to disk, providing methods to save them.
+   * \author Federico Spinelli
+   */
+  class DatabaseWriter
+  {
+    ///Last saved location
+    boost::filesystem::path last_saved_;
+
+    public:
+      /**\brief Empty Constructor
+       */
+      DatabaseWriter () {}
+
+      /**\brief Empty Destructor
+       */
+      virtual ~DatabaseWriter () {}
+
+      /**\brief Save a Database to disk.
+       * \param[in] path Path to a location on disk to save into.
+       * \parma[in] db Database to save.
+       * \param[in] overwrite if _True_ save location will get overwritten regardless of its content, if _False_ operation will fail unless target location is an empty directory.
+       * \return _True_ if operation is succesful, _False_ otherwise.
+       */
+      bool
+      save (boost::filesystem::path path, const Database& db, bool overwrite=false);
   };
 }
 #endif //PEL_DATABASE_DATABASE_IO_H_
