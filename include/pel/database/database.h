@@ -36,6 +36,7 @@
 
 #include <pel/common.h>
 #include <pel/database/database_io.h>
+#include <pel/database/database_creator.h>
 
 namespace pel
 {

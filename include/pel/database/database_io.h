@@ -117,7 +117,7 @@ namespace pel
       /**\brief Save a Database to disk.
        * \param[in] path Path to a location on disk to save into.
        * \parma[in] db Database to save.
-       * \param[in] overwrite if _True_ save location will get overwritten regardless of its content, if _False_ operation will fail unless target location is an empty directory.
+       * \param[in] overwrite if _True_ save location will get overwritten if needed regardless of its content, if _False_ operation will fail unless target location is an empty directory, or does not exists.
        * \return _True_ if operation is succesful, _False_ otherwise.
        */
       bool

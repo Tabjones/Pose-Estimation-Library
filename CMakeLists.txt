@@ -110,6 +110,7 @@ list(APPEND srcs ${srcs_base})
 set(srcs_db
   "src/database/database.cpp"
   "src/database/database_io.cpp"
+  "src/database/database_creator.cpp"
   )
 list(APPEND srcs ${srcs_db})
 
@@ -127,6 +128,7 @@ list(APPEND incls ${incls_cand})
 set(incls_db
   "include/pel/database/database.h"
   "include/pel/database/database_io.h"
+  "include/pel/database/database_creator.h"
   )
 list(APPEND incls ${incls_db})
 
