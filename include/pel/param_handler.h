@@ -35,6 +35,10 @@
 #define _INCL_PARAM_HANDLER_H_
 
 #include <pel/common.h>
+#include <fstream>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 
 namespace pel
 {
@@ -53,8 +57,67 @@ namespace pel
       parameters params_;
       ///How many valid parameters are there
       int size_of_valid_params_;
+      ///\brief Set a param from a string value converting it to float. Used internally to read from file.
+      bool
+      setParam (const std::string key, const std::string value);
 
-      /**\brief //TODO
+    public:
+      /**\brief Set a param from a float value
+       * \param[in] key Valid key that identifies a parameter, look at docs for a valid keys list
+       * \param[in] value The value the key will assume
+       * \return _True_ if the specified key is correctly set to specified value, _False_ otherwise
+       */
+      bool
+      setParam (const std::string key, const float value);
+
+      /**\brief Load a set of parameters from a configuration file
+       * \param[in] config_file File containing parameters in yaml format
+       * \returns The number of parameters set correctly, or (-1) in case of errors.
+       *
+       * Note: Config file can be any file, but must contain a "key: value" on each line (with or without whitespaces). Lists or other
+       * YAML contruct are not supported.
+       * Note2: config_file could specify a subset of all valid parameters (even only 1). in this case
+       * only specified parameters are set, others are left untouched.
+       */
+      int
+      loadParamsFromFile (const boost::filesystem::path config_file);
+
+      /**\brief Set parameters from a previously initialized map
+       * \param[in] par_map std::unorderd_map to set parameters from.
+       * \returns The number of parameters set correctly, or (-1) in case of errors.
+       *
+       * Note: par_map could be a subset of all valid parameters (even only 1), in this case only
+       * specified parameters are set, others are left untouched.
+       */
+      int
+      setParamsFromMap (const parameters& par_map);
+
+      /**\brief Get a map containing all current parameters
+       * \returns The map of parameters
+      */
+      inline parameters
+      getAllParams () const
+      {
+        return params_;
+      }
+
+      /**\brief Get the value of a specified parameter key
+       *\param[in] key Valid key that identifies a parameter to read
+       *\return The value of requested key, or (-1) in case of errors
+       */
+      inline float
+      getParam (const std::string key) const;
+
+      /**\brief Save current parameters to a YAML file
+       *\param[in] config_file Path on disk to dump parameters
+       *\param[in] overwrite Truncate old file, if exists. If _False_ old file will be preserved.
+       *\return _True_ if operation is succesful, _False_ otherwise.
+       *
+       * Note: a .yaml extension gets appended to config_file if it has no extension.
+       */
+      bool
+      dumpParamsToFile (boost::filesystem::path config_file, bool overwrite=false) const;
+
   };
 }
 #endif //_INCL_PARAM_HANDLER_H_

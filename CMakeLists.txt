@@ -105,6 +105,7 @@ include_directories(${PEL_BIN_DIR}/include)
 set(srcs_base
   "src/pose_estimation.cpp"
   "src/common.cpp"
+  "src/param_handler.cpp"
   )
 list(APPEND srcs ${srcs_base})
 set(srcs_db
@@ -118,6 +119,7 @@ list(APPEND srcs ${srcs_db})
 list(APPEND incls ${PEL_CONFIG_H_FILE})
 set(incls_base
   "include/pel/common.h"
+  "include/pel/param_handler.h"
   "include/pel/pose_estimation.h"
   )
 list(APPEND incls ${incls_base})

@@ -33,6 +33,8 @@
 
 #include <pel/param_handler.h>
 
+using namespace pcl::console;
+
 namespace pel
 {
   ParamHandler::ParamHandler ()
@@ -65,5 +67,192 @@ namespace pel
     params_["ourcvfh_min_axis_value"]=0.01;
     params_["ourcvfh_refine_clusters"]=1;
     size_of_valid_params_ = params_.size();
+  }
+
+  bool
+  ParamHandler::setParam (const std::string key, const float value)
+  {
+    float verb_level = getParam("verbosity");
+    if (value < 0)
+    {
+      if (verb_level > 0)
+        print_warn("%*s]\tParameter '%s' has a negative value (%g), ignoring...\n", 20,__func__, key.c_str(), value);
+      return false;
+    }
+    params_[key]=value;
+    //Check if key was a valid one, since the class has fixed number of parameters,
+    //if one was mispelled, now we have one more
+    if (params_.size() != size_of_valid_params_)
+    {
+      if (verb_level > 0)
+        print_warn("%*s]\tInvalid key parameter '%s', ignoring...\n", 20,__func__, key.c_str());
+      params_.erase(key);
+      return false;
+    }
+    else if (verb_level > 1)
+      print_info("%*s]\tSetting parameter: %s=%g\n",20,__func__,key.c_str(),value);
+    return true;
+  }
+
+  bool
+  ParamHandler::setParam (const std::string key, const std::string value)
+  {
+    float f;
+    float verb_level = getParam("verbosity");
+    try
+    {
+      f = stof(value);
+    }
+    catch (const std::invalid_argument& ia)
+    {
+      if ( verb_level > 0)
+        print_warn("%*s]\tInvalid %s=%s : %s \n",20,__func__, key.c_str(), value.c_str(), ia.what());
+      return false;
+    }
+    catch (const std::out_of_range& oor)
+    {
+      if (verb_level > 0)
+        print_warn("%*s]\tInvalid %s=%s : %s \n", 20,__func__, key.c_str(), value.c_str(), oor.what());
+      return false;
+    }
+    return (this->setParam(key, f));
+  }
+
+  int
+  ParamHandler::loadParamsFromFile (const boost::filesystem::path config_file)
+  {
+    if ( boost::filesystem::exists(config_file) && boost::filesystem::is_regular_file(config_file))
+    {
+      float verb_level = getParam("verbosity");
+      std::ifstream file (config_file.c_str());
+      std::string line;
+      if (file.is_open())
+      {
+        int count (0);
+        while (getline (file, line))
+        {
+          boost::trim(line); //remove white spaces from line
+          if (line.empty())
+          {
+            //do nothing empty line ...
+            continue;
+          }
+          else if (line.compare(0,1,"#") == 0 )
+          {
+            //do nothing comment line ...
+            continue;
+          }
+          else
+          {
+            std::vector<std::string> vst;
+            //split the line to get a key and a token or trailing comments
+            boost::split(vst, line, boost::is_any_of("#"), boost::token_compress_on);
+            line = vst.at(0);
+            boost::split(vst, line, boost::is_any_of(":"), boost::token_compress_on);
+            if (vst.size()!=2)
+            {
+              if (verb_level > 0)
+                print_warn("%*s]\tInvalid configuration line (%s), ignoring... Must be [Token]:[Value]\n", 20,__func__, line.c_str());
+              continue;
+            }
+            std::string key (vst.at(0));
+            std::string value (vst.at(1));
+            boost::trim(key);
+            boost::trim(value);
+            if ( setParam(key, value) )
+            {
+              //success
+              ++count;
+            }
+          }
+        }//end of config file
+        file.close();
+        return (count);
+      }
+      else
+      {
+        print_error("%*s]\tCannot open config file! (%s)\n", 20,__func__, config_file.c_str());
+        return (-1);
+      }
+    }
+    else
+    {
+      print_error("%*s]\tPath to config_file is not valid, or non existant! (%s)\n", 20,__func__, config_file.c_str());
+      return (-1);
+    }
+  }
+
+  inline float
+  ParamHandler::getParam (const std::string key) const
+  {
+    if (params_.count(key))
+      return ( params_.at(key) );
+    else
+      return (-1);
+  }
+
+  int
+  ParamHandler::setParamsFromMap (const parameters& par_map)
+  {
+    if (!par_map.empty())
+    {
+      int count (0);
+      for (const auto& x: par_map)
+        if (this->setParam(x.first, x.second))
+          ++count;
+      return (count);
+    }
+    else
+    {
+      print_error("%*s]\tEmpty map provided, cannot set parameters...\n", 20,__func__);
+      return (-1);
+    }
+  }
+
+  bool
+  ParamHandler::dumpParamsToFile (boost::filesystem::path config_file, bool overwrite) const
+  {
+    float verb_level = getParam("verbosity");
+    if (!config_file.has_extension())
+    {
+      config_file+=".yaml";
+    }
+    if (boost::filesystem::exists (config_file) && boost::filesystem::is_regular_file (config_file))
+    {
+      if (overwrite)
+      {
+        boost::filesystem::remove (config_file);
+        if (verb_level > 0)
+          print_warn("%*s]\t File %s already exists, overwriting it as requested.\n", 20,__func__, config_file.c_str());
+      }
+      else
+      {
+        print_error("%*s]\t File %s already exists, not overwriting it as requested. Aborting...\n", 20,__func__, config_file.c_str());
+        return false;
+      }
+    }
+    std::ofstream file;
+    file.open(config_file.c_str());
+    if (file.is_open())
+    {
+      try
+      {
+        for (const auto& x: params_)
+          file << x.first << ": " << x.second << std::endl;
+      }
+      catch (...)
+      {
+        print_error("%*s]\tError writing into %s file, aborting...\n",20,__func__, config_file.c_str());
+        return false;
+      }
+    }
+    else
+    {
+      print_error("%*s]\tCannot open %s file for writing, aborting...\n",20,__func__, config_file.c_str());
+      return false;
+    }
+    if (verb_level > 1)
+      print_info("%*s]\tParameters written into %s succesfully.\n",20,__func__, config_file.c_str());
+    return true;
   }
 }
