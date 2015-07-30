@@ -35,6 +35,7 @@
 #define PEL_DATABASE_DATABASE_CREATOR_H_
 
 #include <pel/common.h>
+#include <pel/param_handler.h>
 #include <fstream>
 #include <pcl/io/pcd_io.h>
 #include <boost/range/algorithm/copy.hpp>
@@ -49,7 +50,7 @@ namespace pel
    *
    * \author Federico Spinelli
    */
-  class DatabaseCreator
+  class DatabaseCreator : public ParamHandler
   {
 
     public:
