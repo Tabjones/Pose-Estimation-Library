@@ -45,7 +45,7 @@ namespace pel
     params_["downsamp_leaf_size"]=0.005f;
     params_["upsamp"] = params_["filter"]=0;
     params_["lists_size"]=20;
-    params_["icp_max iterations"]=200;
+    params_["icp_max_iterations"]=200;
     params_["icp_reciprocal_corr"]=1;
     params_["icp_rmse_thresh"]=0.003f;
     params_["upsamp_poly_order"]=2;
@@ -67,6 +67,63 @@ namespace pel
     params_["ourcvfh_min_axis_value"]=0.01;
     params_["ourcvfh_refine_clusters"]=1;
     size_of_valid_params_ = params_.size();
+  }
+
+  void
+  ParamHandler::checkAndFixMinParam(std::string key, const float min)
+  {
+    if (params_.count(key))
+      if(params_.at(key) < min)
+      {
+        if (params_.at("verbosity") > 0 )
+          print_warn("%*s]\tParameter '%s' has value %g, which is below minimum allowed of %g, setting it to minimum...\n",20,__func__, key.c_str(),params_.at(key), min);
+        params_.at(key) = min;
+      }
+  }
+
+  void
+  ParamHandler::checkAndFixMinMaxParam(std::string key, const float min, const float max)
+  {
+    checkAndFixMinParam(key,min);
+    if (params_.count(key))
+      if(params_.at(key) > max)
+      {
+        if (params_.at("verbosity") > 0 )
+          print_warn("%*s]\tParameter '%s' has value %g, which is above maximum allowed of %g, setting it to maximum...\n",20,__func__, key.c_str(),params_.at(key), max);
+        params_.at(key) = min;
+      }
+  }
+
+  void
+  ParamHandler::fixParameters ()
+  {
+    //Check Parameters correctness
+    checkAndFixMinMaxParam("verbosity", 0, 2);
+    checkAndFixMinMaxParam("downsamp", 0, 1);
+    checkAndFixMinParam("downsamp_leaf_size", 0.0001);
+    checkAndFixMinMaxParam("upsamp", 0,1);
+    checkAndFixMinParam("lists_size", 1);
+    checkAndFixMinParam("icp_max_iterations", 1);
+    checkAndFixMinMaxParam("icp_reciprocal_corr", 0, 1);
+    checkAndFixMinParam("icp_rmse_thresh", 0.000001);
+    checkAndFixMinParam("upsamp_poly_order", 1);
+    checkAndFixMinParam("upsamp_point_density", 1);
+    checkAndFixMinMaxParam("upsamp_poly_fit", 0, 1);
+    checkAndFixMinParam("upsamp_search_radius", 0.0001);
+    checkAndFixMinParam("filter_mean_k", 1);
+    checkAndFixMinParam("filter_std_dev_mul_thresh", 0.00001);
+    checkAndFixMinParam("normals_radius_search", 0.0001);
+    checkAndFixMinParam("cvfh_ang_thresh", 0.0001);
+    checkAndFixMinParam("cvfh_curv_thresh", 0.0001);
+    checkAndFixMinParam("cvfh_clus_tol", 0.0001);
+    checkAndFixMinParam("cvfh_clus_min_points", 1);
+    checkAndFixMinParam("ourcvfh_ang_thresh", 0.0001);
+    checkAndFixMinParam("ourcvfh_curv_thresh", 0.0001);
+    checkAndFixMinParam("ourcvfh_clus_tol", 0.0001);
+    checkAndFixMinParam("ourcvfh_clus_min_points", 1);
+    checkAndFixMinParam("ourcvfh_axis_ratio", 0.0001);
+    checkAndFixMinParam("ourcvfh_min_axis_value", 0.0001);
+    checkAndFixMinMaxParam("ourcvfh_refine_clusters", 0, 1);
   }
 
   bool

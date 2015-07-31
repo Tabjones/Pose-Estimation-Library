@@ -52,7 +52,9 @@ namespace pel
    */
   class DatabaseCreator : public ParamHandler
   {
-
+    protected:
+      
+      
     public:
       /**\brief Empty Constructor
       */

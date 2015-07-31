@@ -39,7 +39,6 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-
 namespace pel
 {
   /**\brief Base class for parameters handling
@@ -60,6 +59,15 @@ namespace pel
       ///\brief Set a param from a string value converting it to float. Used internally to read from file.
       bool
       setParam (const std::string key, const std::string value);
+      ///\brief Check for parameters value correctness, and adjust them if they are obviously wrong
+      void
+      fixParameters ();
+      ///\brief Check if specified key is bounded between a min and max value and evenutally threshold it
+      void
+      checkAndFixMinMaxParam (std::string key, const float min, const float max);
+      ///\brief Check if specified key is below certain min value, and eventually threshold it
+      void
+      checkAndFixMinParam (std::string key, const float min);
 
     public:
       /**\brief Set a param from a float value
