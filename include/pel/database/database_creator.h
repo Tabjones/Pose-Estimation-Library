@@ -52,9 +52,6 @@ namespace pel
    */
   class DatabaseCreator : public ParamHandler
   {
-    protected:
-      
-      
     public:
       /**\brief Empty Constructor
       */
@@ -63,6 +60,17 @@ namespace pel
       /**\brief Empty Destructor.
       */
       virtual ~DatabaseCreator () {}
+
+      /**\brief Create a database from a set of poses
+       * \param[in] path_clouds Path to a directory that stores pcds of poses to create database from.
+       * \returns Database created from supplied poses, or empty one if failed.
+       *
+       * Note: building a database from scratch could take several minutes, depending on how many
+       * poses are supplied, and your processing power.
+       * Note: Default parameters are used, if you want to change them used methods inherited by ParamHandler
+       */
+      Database&
+      create (boost::filesystem::path path_clouds);
 
   };
 
