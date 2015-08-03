@@ -239,7 +239,7 @@ namespace pel
     }
   }
 
-  inline float
+  float
   ParamHandler::getParam (const std::string key) const
   {
     if (params_.count(key))

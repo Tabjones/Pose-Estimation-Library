@@ -41,11 +41,31 @@
 
 namespace pel
 {
+  /**\brief Bare base interface for parameters handling
+   */
+  class ParamHandlerBase
+  {
+    public:
+      // Dtor
+      virtual ~ParamHandlerBase() =0;
+      ///\brief Base interface for setParam
+      virtual bool
+      setParam (const std::string, const float)=0;
+      ///\brief Base interface for getParam
+      virtual float
+      getParam (const std::string) const =0;
+      ///\brief Base interface for dumpParamsToFile
+      virtual bool
+      dumpParamsToFile (boost::filesystem::path, bool) const =0;
+      ///\brief Base interface for loadParamsFromFile
+      virtual int
+      loadParamsFromFile (const boost::filesystem::path) =0;
+  };
   /**\brief Base class for parameters handling
    *
    * Cannot be used directly, but only inherithed
    */
-  class ParamHandler
+  class ParamHandler : public ParamHandlerBase
   {
     protected:
       ///Protected constructor, we dont want explicit instantiation of the class, only derived, still we dont want it to be pure virtual
@@ -75,7 +95,7 @@ namespace pel
        * \param[in] value The value the key will assume
        * \return _True_ if the specified key is correctly set to specified value, _False_ otherwise
        */
-      bool
+      virtual bool
       setParam (const std::string key, const float value);
 
       /**\brief Load a set of parameters from a configuration file
@@ -87,7 +107,7 @@ namespace pel
        * Note2: config_file could specify a subset of all valid parameters (even only 1). in this case
        * only specified parameters are set, others are left untouched.
        */
-      int
+      virtual int
       loadParamsFromFile (const boost::filesystem::path config_file);
 
       /**\brief Set parameters from a previously initialized map
@@ -113,7 +133,7 @@ namespace pel
        *\param[in] key Valid key that identifies a parameter to read
        *\return The value of requested key, or (-1) in case of errors
        */
-      inline float
+      virtual float
       getParam (const std::string key) const;
 
       /**\brief Save current parameters to a YAML file
@@ -123,7 +143,7 @@ namespace pel
        *
        * Note: a .yaml extension gets appended to config_file if it has no extension.
        */
-      bool
+      virtual bool
       dumpParamsToFile (boost::filesystem::path config_file, bool overwrite=false) const;
 
   };

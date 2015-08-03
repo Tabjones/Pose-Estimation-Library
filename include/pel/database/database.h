@@ -129,6 +129,7 @@ namespace pel
 
     friend bool DatabaseReader::load (boost::filesystem::path, Database&);
     friend bool DatabaseWriter::save (boost::filesystem::path, const Database&, bool);
+    friend Database DatabaseCreator::create (boost::filesystem::path path_cloud);
   };
 }
 

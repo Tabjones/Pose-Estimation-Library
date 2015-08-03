@@ -46,7 +46,7 @@
 namespace pel
 {
   class Database;
-  /**\brief Creates a Database from acquired poses.
+  /**\brief Creates a Database from acquired poses, uses inherited parameters handle.
    *
    * \author Federico Spinelli
    */
@@ -69,7 +69,7 @@ namespace pel
        * poses are supplied, and your processing power.
        * Note: Default parameters are used, if you want to change them used methods inherited by ParamHandler
        */
-      Database&
+      Database
       create (boost::filesystem::path path_clouds);
 
   };

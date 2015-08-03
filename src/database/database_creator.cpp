@@ -34,131 +34,116 @@
 #include <pel/database/database_io.h>
 #include <pel/database/database.h>
 #include <pel/database/database_creator.h>
+#include <pcl/common/common.h>
+#include <pcl/common/angles.h>
+#include <pcl/common/transforms.h>
+#include <pcl/features/vfh.h>
+#include <pcl/features/esf.h>
+#include <pcl/features/cvfh.h>
+#include <pcl/features/our_cvfh.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/surface/mls.h>
+#include <pcl/search/kdtree.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 
 using namespace pcl::console;
 
 namespace pel
 {
-  //TODO rework
-  Database&
+  Database
   DatabaseCreator::create (boost::filesystem::path path_clouds)
   {
     //Check params correctness
     fixParameters();
+    Database created;
     //Start database creation
-    /*
-    if (exists(pathClouds) && is_directory(pathClouds))
+    if (boost::filesystem::exists(path_clouds) && boost::filesystem::is_directory(path_clouds))
     {
-      this->clear();
-      vector<path> pvec;
-      copy(directory_iterator(pathClouds), directory_iterator(), back_inserter(pvec));
+      std::vector<boost::filesystem::path> pvec;
+      copy(boost::filesystem::directory_iterator(path_clouds), boost::filesystem::directory_iterator(), back_inserter(pvec));
       sort(pvec.begin(), pvec.end());
-      PointCloud<VFHSignature308>::Ptr tmp_vfh (new PointCloud<VFHSignature308>);
-      PointCloud<VFHSignature308>::Ptr tmp_cvfh (new PointCloud<VFHSignature308>);
-      PointCloud<VFHSignature308>::Ptr tmp_ourcvfh (new PointCloud<VFHSignature308>);
-      PointCloud<ESFSignature640>::Ptr tmp_esf (new PointCloud<ESFSignature640>);
-      PnC::Ptr input (new PnC);
+      pcl::PointCloud<pcl::VFHSignature308>::Ptr tmp_vfh (new pcl::PointCloud<pcl::VFHSignature308>);
+      pcl::PointCloud<pcl::VFHSignature308>::Ptr tmp_cvfh (new pcl::PointCloud<pcl::VFHSignature308>);
+      pcl::PointCloud<pcl::VFHSignature308>::Ptr tmp_ourcvfh (new pcl::PointCloud<pcl::VFHSignature308>);
+      pcl::PointCloud<pcl::ESFSignature640>::Ptr tmp_esf (new pcl::PointCloud<pcl::ESFSignature640>);
+      PtC::Ptr input (new PtC);
       int i(0);
-      for (vector<path>::const_iterator it(pvec.begin()); it != pvec.end(); ++it, ++i)
+      for (const auto& file : pvec)
       {
-        if (is_regular_file (*it) && it->extension() == ".pcd")
+        if (is_regular_file (file) && file.extension() == ".pcd")
         {
-          if (pcl::io::loadPCDFile(it->string().c_str(), *input)!=0 ) //loadPCDFile returns 0 if success
+          if (pcl::io::loadPCDFile(file.c_str(), *input)!=0 ) //loadPCDFile returns 0 if success
           {
-            print_warn("%*s]\tError Loading Cloud %s, skipping...\n",20,__func__,it->string().c_str());
+            print_warn("%*s]\tError Loading Cloud %s, skipping...\n",20,__func__,file.c_str());
             continue;
           }
         }
         else
         {
-          print_warn("%*s]\tLoaded File (%s) is not a pcd, skipping...\n",20,__func__,it->string().c_str());
+          print_warn("%*s]\tLoaded File (%s) is not a pcd, skipping...\n",20,__func__,file.c_str());
           continue;
         }
-        vector<string> vst;
-        PnC::Ptr output (new PnC);
-        split (vst, it->string(), boost::is_any_of("../\\"), boost::token_compress_on);
-        names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
-        if (params->at("filtering") >0)
+        std::vector<std::string> vst;
+        PtC::Ptr output (new PtC);
+        boost::split (vst, file.string(), boost::is_any_of("../\\"), boost::token_compress_on);
+        created.names_.push_back(vst.at(vst.size()-2)); //filename without extension and path
+        if (this->getParam("filtering") >0)
         {
-          StatisticalOutlierRemoval<PnT> filter;
-          filter.setMeanK ( params->at("filterMeanK") );
-          filter.setStddevMulThresh ( params->at("filterStdDevMulThresh") );
+          pcl::StatisticalOutlierRemoval<Pt> filter;
+          filter.setMeanK ( this->getParam("filter_mean_k") );
+          filter.setStddevMulThresh ( this->getParam("filter_std_dev_mul_thresh") );
           filter.setInputCloud(input);
           filter.filter(*output); //Process Filtering
-          copyPointCloud(*output, *input);
+          pcl::copyPointCloud(*output, *input);
         }
-        if (params->at("upsampling") >0)
+        if (this->getParam("upsamp") >0)
         {
-          MovingLeastSquares<PnT, PnT> mls;
-          search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
+          pcl::MovingLeastSquares<Pt, Pt> mls;
+          pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
           mls.setInputCloud (input);
           mls.setSearchMethod (tree);
-          mls.setUpsamplingMethod (MovingLeastSquares<PnT, PnT>::RANDOM_UNIFORM_DENSITY);
+          mls.setUpsamplingMethod (pcl::MovingLeastSquares<Pt, Pt>::RANDOM_UNIFORM_DENSITY);
           mls.setComputeNormals (false);
-          mls.setPolynomialOrder ( params->at("mlsPolyOrder") );
-          mls.setPolynomialFit ( params->at("mlsPolyFit") );
-          mls.setSearchRadius ( params->at("mlsSearchRadius") );
-          mls.setPointDensity( params->at("mlsPointDensity") );
+          mls.setPolynomialOrder ( this->getParam("upsamp_poly_order") );
+          mls.setPolynomialFit ( this->getParam("upsamp_poly_fit") );
+          mls.setSearchRadius ( this->getParam("upsamp_search_radius") );
+          mls.setPointDensity( this->getParam("upsamp_point_density") );
           mls.process (*output); //Process Upsampling
           copyPointCloud(*output, *input);
         }
-        if (params->at("downsampling") >0)
+        if (this->getParam("downsamp") >0)
         {
-          VoxelGrid <PnT> vgrid;
+          pcl::VoxelGrid <Pt> vgrid;
           vgrid.setInputCloud (input);
-          vgrid.setLeafSize ( params->at("vgridLeafSize"), params->at("vgridLeafSize"), params->at("vgridLeafSize"));
+          float leaf = this->getParam("downsamp_leaf_size");
+          vgrid.setLeafSize (leaf, leaf, leaf);
           vgrid.setDownsampleAllData (true);
           vgrid.filter (*output); //Process Downsampling
           copyPointCloud(*output, *input);
         }
-        clouds_.push_back(*input); //store processed cloud
+        created.clouds_.push_back(*input); //store processed cloud
         Eigen::Vector3f s_orig (input->sensor_origin_(0), input->sensor_origin_(1), input->sensor_origin_(2) );
         Eigen::Quaternionf s_orie = input->sensor_orientation_;
-        if (it == pvec.begin())
-        {
-          //check if clouds are in local or sensor ref frame
-          if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
-          {
-            this->clouds_in_local_ = false;
-          }
-          else
-          {
-            this->clouds_in_local_ = true;
-          }
-        }
-        else
-        {
-          if (s_orig.isZero(1e-5) && s_orie.isApprox(Eigen::Quaternionf::Identity(), 1e-5) )
-          {
-            if (this->clouds_in_local_ == true)
-              print_warn("%*s]\tLoaded PCD file %s, has sensor reference frame, while others found before were expressed in local object reference frame. Make sure you are loading the correct files!!",20,__func__,vst.at(vst.size()-2).c_str());
-          }
-          else
-          {
-            if (this->clouds_in_local_ == false)
-              print_warn("%*s]\tLoaded PCD file %s, has local object reference frame, while others found before were expressed in sensor reference frame. Make sure you are loading the correct files!!",20,__func__,vst.at(vst.size()-2).c_str());
-          }
-        }
-        if (this->clouds_in_local_)
-        {
-          input->sensor_origin_.setZero();
-          input->sensor_orientation_.setIdentity();
-          transformPointCloud(*input, *output, s_orig, s_orie); //TODO
-          copyPointCloud(*output, *input);
-        }
+        input->sensor_origin_.setZero();
+        input->sensor_orientation_.setIdentity();
+        pcl::transformPointCloud(*input, *output, s_orig, s_orie);
+        pcl::copyPointCloud(*output, *input);
         //Normals computation
-        NormalEstimationOMP<PnT, Normal> ne;
-        search::KdTree<PnT>::Ptr tree (new search::KdTree<PnT>);
-        PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
+        pcl::NormalEstimationOMP<Pt, pcl::Normal> ne;
+        pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
+        pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
         ne.setSearchMethod(tree);
-        ne.setRadiusSearch(params->at("neRadiusSearch"));
+        ne.setRadiusSearch(this->getParam("normals_radius_search"));
         ne.setNumberOfThreads(0); //use pcl autoallocation
         ne.setInputCloud(input);
-        ne.useSensorOriginAsViewPoint(); //use sensor origin stored inside point cloud as viewpoint, assume user has correctly set it
+        //Use sensor origin stored inside point cloud as viewpoint, should be zero.
+        //Because cloud now is in viewpoint reference frame
+        ne.useSensorOriginAsViewPoint();
         ne.compute(*normals);
         //VFH
-        VFHEstimation<PnT, Normal, VFHSignature308> vfhE;
-        PointCloud<VFHSignature308> out;
+        pcl::VFHEstimation<Pt, pcl::Normal, pcl::VFHSignature308> vfhE;
+        pcl::PointCloud<pcl::VFHSignature308> out;
         vfhE.setSearchMethod(tree);
         vfhE.setInputCloud (input);
         vfhE.setViewPoint (0,0,0);
@@ -166,59 +151,61 @@ namespace pel
         vfhE.compute (out);
         tmp_vfh->push_back(out.points[0]);
         //ESF
-        ESFEstimation<PnT, ESFSignature640> esfE;
-        PointCloud<ESFSignature640> out_esf;
+        pcl::ESFEstimation<Pt, pcl::ESFSignature640> esfE;
+        pcl::PointCloud<pcl::ESFSignature640> out_esf;
         esfE.setSearchMethod(tree);
         esfE.setInputCloud (input);
         esfE.compute (out_esf);
         tmp_esf->push_back(out_esf.points[0]);
         //CVFH
-        CVFHEstimation<PnT, Normal, VFHSignature308> cvfhE;
+        pcl::CVFHEstimation<Pt, pcl::Normal, pcl::VFHSignature308> cvfhE;
         cvfhE.setSearchMethod(tree);
         cvfhE.setInputCloud (input);
         cvfhE.setViewPoint (0, 0, 0);
         cvfhE.setInputNormals (normals);
-        cvfhE.setEPSAngleThreshold(params->at("cvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
-        cvfhE.setCurvatureThreshold(params->at("cvfhCurvThresh"));
-        cvfhE.setClusterTolerance(params->at("cvfhClustTol"));
-        cvfhE.setMinPoints(params->at("cvfhMinPoints"));
+        //angle needs to be supplied in radians
+        cvfhE.setEPSAngleThreshold(pcl::deg2rad(this->getParam("cvfh_ang_thresh")));
+        cvfhE.setCurvatureThreshold(this->getParam("cvfh_curv_thresh"));
+        cvfhE.setClusterTolerance(this->getParam("cvfh_clus_tol"));
+        cvfhE.setMinPoints(this->getParam("cvfh_clus_min_points"));
         cvfhE.setNormalizeBins(false);
         cvfhE.compute (out);
         for (size_t n=0; n<out.points.size(); ++n)
         {
-          names_cvfh_.push_back(names_[i]);
+          created.names_cvfh_.push_back(created.names_[i]);
           tmp_cvfh->push_back(out.points[n]);
         }
         //OURCVFH
-        OURCVFHEstimation<PnT, Normal, VFHSignature308> ourcvfhE;
-        search::KdTree<PnT>::Ptr tree2 (new search::KdTree<PnT>);
-        PointCloud<PnT>::Ptr input2 (new PointCloud<PnT>);
+        pcl::OURCVFHEstimation<Pt, pcl::Normal, pcl::VFHSignature308> ourcvfhE;
+        pcl::search::KdTree<Pt>::Ptr tree2 (new pcl::search::KdTree<Pt>);
+        pcl::PointCloud<Pt>::Ptr input2 (new pcl::PointCloud<Pt>);
         copyPointCloud(*input, *input2);
         ourcvfhE.setSearchMethod(tree2);
         ourcvfhE.setInputCloud (input2);
         ourcvfhE.setViewPoint (0,0,0);
         ourcvfhE.setInputNormals (normals);
-        ourcvfhE.setEPSAngleThreshold(params->at("ourcvfhEPSAngThresh")*D2R); //angle needs to be supplied in radians
-        ourcvfhE.setCurvatureThreshold(params->at("ourcvfhCurvThresh"));
-        ourcvfhE.setClusterTolerance(params->at("ourcvfhClustTol"));
-        ourcvfhE.setMinPoints(params->at("ourcvfhMinPoints"));
-        ourcvfhE.setAxisRatio(params->at("ourcvfhAxisRatio"));
-        ourcvfhE.setMinAxisValue(params->at("ourcvfhMinAxisValue"));
-        ourcvfhE.setRefineClusters(params->at("ourcvfhRefineClusters"));
+        ourcvfhE.setEPSAngleThreshold(pcl::deg2rad(this->getParam("ourcvfh_ang_thresh")));
+        ourcvfhE.setCurvatureThreshold(this->getParam("ourcvfh_curv_thresh"));
+        ourcvfhE.setClusterTolerance(this->getParam("ourcvfh_clus_tol"));
+        ourcvfhE.setMinPoints(this->getParam("ourcvf_clus_min_points"));
+        ourcvfhE.setAxisRatio(this->getParam("ourcvfh_axis_ratio"));
+        ourcvfhE.setMinAxisValue(this->getParam("ourcvfh_min_axis_value"));
+        ourcvfhE.setRefineClusters(this->getParam("ourcvfh_refine_clusters"));
         ourcvfhE.compute (out);
         for (size_t n=0; n<out.points.size(); ++n)
         {
           tmp_ourcvfh->push_back(out.points[n]);
-          names_ourcvfh_.push_back(names_[i]);
+          created.names_ourcvfh_.push_back(created.names_[i]);
         }
         print_info("%*s]\t%d clouds processed so far...\r",20,__func__,i+1);
-        cout<<std::flush;
+        std::cout<<std::flush;
+        ++i;
       }
-      cout<<endl;
+      std::cout<<std::endl;
       if (tmp_vfh->points.size() == 0) //no clouds loaded
       {
         print_error("%*s]\tNo Histograms created, something went wrong, exiting...\n",20,__func__);
-        return false;
+        return (created);
       }
       //generate FLANN matrix
       histograms vfh (new float[tmp_vfh->points.size()*308],tmp_vfh->points.size(),308);
@@ -237,57 +224,24 @@ namespace pel
       for (i=0; i<ourcvfh.rows; ++i)
         for (int j=0; j<ourcvfh.cols; ++j)
           ourcvfh[i][j] = tmp_ourcvfh->points[i].histogram[j];
-      vfh_ = boost::make_shared<histograms>(vfh);
-      esf_ = boost::make_shared<histograms>(esf);
-      cvfh_ = boost::make_shared<histograms>(cvfh);
-      ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
-      dbPath_ = "UNSET";
+      created.vfh_ = boost::make_shared<histograms>(vfh);
+      created.esf_ = boost::make_shared<histograms>(esf);
+      created.cvfh_ = boost::make_shared<histograms>(cvfh);
+      created.ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
       //and indices
-      indexVFH vfh_idx (*vfh_, flann::KDTreeIndexParams(4));
-      vfh_idx_ = boost::make_shared<indexVFH>(vfh_idx);
-      vfh_idx_->buildIndex();
-      indexESF esf_idx (*esf_, flann::KDTreeIndexParams(4));
-      esf_idx_ = boost::make_shared<indexESF>(esf_idx);
-      esf_idx_->buildIndex();
-      print_info("%*s]\tDone creating database, total of %d poses stored in memory\n",20,__func__,names_.size());
-      return true;
+      indexVFH vfh_idx (*created.vfh_, flann::KDTreeIndexParams(4));
+      created.vfh_idx_ = boost::make_shared<indexVFH>(vfh_idx);
+      created.vfh_idx_->buildIndex();
+      indexESF esf_idx (*created.esf_, flann::KDTreeIndexParams(4));
+      created.esf_idx_ = boost::make_shared<indexESF>(esf_idx);
+      created.esf_idx_->buildIndex();
+      print_info("%*s]\tDone creating database, total of %d poses stored in memory\n",20,__func__,created.names_.size());
+      return (created);
     }
     else
     {
-      print_error("%*s]\t%s is not a valid directory...\n",20,__func__,pathClouds.string().c_str());
-      return false;
+      print_error("%*s]\t%s is not a valid directory...\n",20,__func__,path_clouds.c_str());
+      return created;
     }
-  }
-  //TODO rework
-  bool
-  Database::create (boost::filesystem::path pathClouds)
-  {
-    parameters par;
-    //setting default parameters for db creation, only relevant ones are created
-    par["vgridLeafSize"]=0.005f;
-    par["upsampling"]=par["filtering"]=0;
-    par["downsampling"]=1;
-    par["mlsPolyOrder"]=2;
-    par["mlsPointDensity"]=200;
-    par["mlsPolyFit"]=1;
-    par["mlsSearchRadius"]=0.05f;
-    par["filterMeanK"]=50;
-    par["filterStdDevMulThresh"]=3;
-    par["neRadiusSearch"]=0.02;
-    par["cvfhEPSAngThresh"]=7.5;
-    par["cvfhCurvThresh"]=0.025;
-    par["cvfhClustTol"]=0.01;
-    par["cvfhMinPoints"]=50;
-    par["ourcvfhEPSAngThresh"]=7.5;
-    par["ourcvfhCurvThresh"]=0.025;
-    par["ourcvfhClustTol"]=0.01;
-    par["ourcvfhMinPoints"]=50;
-    par["ourcvfhAxisRatio"]=0.95;
-    par["ourcvfhMinAxisValue"]=0.01;
-    par["ourcvfhRefineClusters"]=1;
-    boost::shared_ptr<parameters> p;
-    p=boost::make_shared<parameters>(par);
-    return ( this->create(pathClouds, p) );
-  */
   }
 }//End of namespace
