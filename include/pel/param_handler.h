@@ -60,6 +60,12 @@ namespace pel
       ///\brief Base interface for loadParamsFromFile
       virtual int
       loadParamsFromFile (const boost::filesystem::path) =0;
+      ///\brief Base interface to setParamsFromMap
+      virtual int
+      setParamsFromMap (const parameters&) =0;
+      ///\brief Base interface to getAllParams
+      virtual inline parameters
+      getAllParams () const =0;
   };
   /**\brief Base class for parameters handling
    *
@@ -70,8 +76,6 @@ namespace pel
     protected:
       ///Protected constructor, we dont want explicit instantiation of the class, only derived, still we dont want it to be pure virtual
       ParamHandler ();
-      ///Protected destructor
-      virtual ~ParamHandler () {}
       ///Map that stores parameters in key=value fashion
       parameters params_;
       ///How many valid parameters are there
@@ -90,6 +94,8 @@ namespace pel
       checkAndFixMinParam (std::string key, const float min);
 
     public:
+      ///destructor
+      virtual ~ParamHandler () {}
       /**\brief Set a param from a float value
        * \param[in] key Valid key that identifies a parameter, look at docs for a valid keys list
        * \param[in] value The value the key will assume
@@ -117,13 +123,13 @@ namespace pel
        * Note: par_map could be a subset of all valid parameters (even only 1), in this case only
        * specified parameters are set, others are left untouched.
        */
-      int
+      virtual int
       setParamsFromMap (const parameters& par_map);
 
       /**\brief Get a map containing all current parameters
        * \returns The map of parameters
       */
-      inline parameters
+      virtual inline parameters
       getAllParams () const
       {
         return params_;

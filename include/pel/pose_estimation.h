@@ -36,6 +36,7 @@
 
 #include <pel/database/database.h>
 #include <pel/candidates/candidate.h>
+#include <pel/param_handler.h>
 #include <cmath>
 #include <stdexcept>
 #include <pcl/common/norms.h>
@@ -105,36 +106,31 @@ namespace pel
 
   \author Federico Spinelli
   */
-  class PoseEstimation : public Database
+  class PoseEstimationBase : public ParamHandler, public Database
   {
-    ///Map to store all parameters as key=value pairs
-    parameters params_;
+    protected:
+      ///Pointer to the final Candidate that holds the pose estimation of the query
+      boost::shared_ptr<Candidate> pose_estimation_;
 
-    ///Database used for Pose Estimation
-    Database database_;
+      ///Internal counter used to count how many feature the class uses
+      int feature_count_;
 
-    ///Pointer to the final Candidate that holds the pose estimation of the query
-    boost::shared_ptr<Candidate> pose_estimation_;
+      ///The name of the query to estimate
+      std::string query_name_;
 
-    ///Internal counter used to count how many feature the class uses
-    int feature_count_;
+      ///The cloud pointer that represent the query to estimate as supplied before any computation
+      PtC::Ptr target_cloud_;
 
-    ///The name of the query to estimate
-    std::string query_name_;
-
-    ///The cloud pointer that represent the query to estimate as supplied before any computation
-    PtC::Ptr target_cloud_;
-
-    ///List of candidates to the query calculated from VFH
-    std::vector<Candidate> vfh_list_;
-    ///List of candidates to the query calculated from ESF
-    std::vector<Candidate> esf_list_;
-    ///List of candidates to the query calculated from CVFH
-    std::vector<Candidate> cvfh_list_;
-    ///List of candidates to the query calculated from OURCVFH
-    std::vector<Candidate> ourcvfh_list_;
-    ///List of candidates to the query composed from the other features
-    std::vector<Candidate> composite_list_;
+      ///List of candidates to the query calculated from VFH
+      std::vector<Candidate> vfh_list_;
+      ///List of candidates to the query calculated from ESF
+      std::vector<Candidate> esf_list_;
+      ///List of candidates to the query calculated from CVFH
+      std::vector<Candidate> cvfh_list_;
+      ///List of candidates to the query calculated from OURCVFH
+      std::vector<Candidate> ourcvfh_list_;
+      ///List of candidates to the query composed from the other features
+      std::vector<Candidate> composite_list_;
 
     ///Internal parameter to check if the target was succesfully set and its features estimated
     bool target_set_;

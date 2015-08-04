@@ -62,74 +62,74 @@ namespace pel
    */
   class Database
   {
+    protected:
+      ///Shared pointers to database histograms
+      boost::shared_ptr<histograms> vfh_, esf_, cvfh_, ourcvfh_;
+      ///Names of database clouds
+      std::vector<std::string> names_;
+      ///Names of clusters of CVFH and OURCVFH clouds
+      std::vector<std::string> names_cvfh_, names_ourcvfh_;
+      ///Path to database location on disk
+      boost::filesystem::path db_path_;
+      ///Database of point clouds
+      std::vector<PtC> clouds_;
+      ///Flann index for vfh
+      boost::shared_ptr<indexVFH> vfh_idx_;
+      ///Flann index for esf
+      boost::shared_ptr<indexESF> esf_idx_;
 
-    ///Shared pointers to database histograms
-    boost::shared_ptr<histograms> vfh_, esf_, cvfh_, ourcvfh_;
-    ///Names of database clouds
-    std::vector<std::string> names_;
-    ///Names of clusters of CVFH and OURCVFH clouds
-    std::vector<std::string> names_cvfh_, names_ourcvfh_;
-    ///Path to database location on disk
-    boost::filesystem::path db_path_;
-    ///Database of point clouds
-    std::vector<PtC> clouds_;
-    ///Flann index for vfh
-    boost::shared_ptr<indexVFH> vfh_idx_;
-    ///Flann index for esf
-    boost::shared_ptr<indexESF> esf_idx_;
-
-    /**\brief Calculates unnormalized distance of objects, based on their cluster distances. This is only used
-     * for CVFH and OURCVFH, since other features don't have clusters.
-     * \param[in] target Pointer to the target histogram
-     * \param[in] feat Enum that indicates from which list the histogram belongs (listType::cvfh or listType::ourcvfh only)
-     * \param[out] distIdx Vector of unnormalized distances of objects and their relative index
-     * \return _True_ if distances are correctly computed, _false_ otherwise
-     */
-    bool
-    computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, listType feat,
-        std::vector<std::pair<float, int> >& distIdx);
+      /**\brief Calculates unnormalized distance of objects, based on their cluster distances. This is only used
+       * for CVFH and OURCVFH, since other features don't have clusters.
+       * \param[in] target Pointer to the target histogram
+       * \param[in] feat Enum that indicates from which list the histogram belongs (listType::cvfh or listType::ourcvfh only)
+       * \param[out] distIdx Vector of unnormalized distances of objects and their relative index
+       * \return _True_ if distances are correctly computed, _false_ otherwise
+       */
+      bool
+        computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, listType feat,
+            std::vector<std::pair<float, int> >& distIdx);
 
     public:
-    /** \brief Default empty Constructor
-    */
-    Database () {}
+      /** \brief Default empty Constructor
+      */
+      Database () {}
 
-    /** \brief Copy constructor
-     * \param[in] other Database to copy from
-     */
-    Database (const Database& other);
+      /** \brief Copy constructor
+       * \param[in] other Database to copy from
+       */
+      Database (const Database& other);
 
-    /**\brief Move constructor
-     * \param[in] other Database to move from
-     */
-    Database (Database&& other);
+      /**\brief Move constructor
+       * \param[in] other Database to move from
+       */
+      Database (Database&& other);
 
-    /** \brief Copy assignment operator
-     * \param[in] other Database to copy from
-     */
-    Database& operator= (const Database& other);
+      /** \brief Copy assignment operator
+       * \param[in] other Database to copy from
+       */
+      Database& operator= (const Database& other);
 
-    /** \brief Move assignment operator
-     * \param[in] other Database to move from
-     */
-    Database& operator= (Database&& other);
+      /** \brief Move assignment operator
+       * \param[in] other Database to move from
+       */
+      Database& operator= (Database&& other);
 
-    /** \brief Erase the entire database. I.E. a call to isEmpty() method will return _True_ after
-     * after this operation
-    */
-    void
-    clear ();
+      /** \brief Erase the entire database. I.E. a call to isEmpty() method will return _True_ after
+       * after this operation
+       */
+      void
+        clear ();
 
-    /** \brief Tell if the database is empty
-     *
-     * \return _True_ if database is not loaded or empty, _False_ otherwise
-     */
-    bool
-    isEmpty () const;
+      /** \brief Tell if the database is empty
+       *
+       * \return _True_ if database is not loaded or empty, _False_ otherwise
+       */
+      bool
+        isEmpty () const;
 
-    friend bool DatabaseReader::load (boost::filesystem::path, Database&);
-    friend bool DatabaseWriter::save (boost::filesystem::path, const Database&, bool);
-    friend Database DatabaseCreator::create (boost::filesystem::path path_cloud);
+      friend bool DatabaseReader::load (boost::filesystem::path, Database&);
+      friend bool DatabaseWriter::save (boost::filesystem::path, const Database&, bool);
+      friend Database DatabaseCreator::create (boost::filesystem::path path_cloud);
   };
 }
 
