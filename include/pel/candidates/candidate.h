@@ -54,93 +54,151 @@ namespace pel
       Candidate (std::string str, PtC::Ptr clp) : rank_(0), name_(str), distance_(-1),
         normalized_distance_(-1), rmse_(-1), cloud_(clp)
       {}
-      ///\brief Destructor
+      /**\brief Destructor */
       virtual ~Candidate () {}
 
-      // #<{(|* \brief Get Candidate Rank from the list of candidates it belongs
-      //  * \return The rank of Candidate (if any) in the list, otherwise returns 0
-      //  *
-      //  * A Candidate has a rank only after list(s) of Candidates are built by PoseEstimation
-      //  |)}>#
-      // inline int
-      // getRank () const
-      // {
-      //   return (rank_);
-      // }
-      //
-      // #<{(|* \brief Get the distance of Candidate from target point cloud in the metric chosen by the feature
-      //  * \return The distance of candidate from target point cloud (if any), otherwise -1
-      //  *
-      //  * A Candidate has a distance only after list(s) of Candidates are built by PoseEstimation
-      //  |)}>#
-      // inline float
-      // getDistance () const
-      // {
-      //   return (distance_);
-      // }
-      //
-      // #<{(|* \brief Get the normalized distance of Candidate from target point cloud
-      //  * \return The normalized distance of candidate from target point cloud (if any), otherwise -1
-      //  *
-      //  * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k", they are indipendent of the
-      //  * current metric chosen to calculate them, thus could be compared with other normalized distances from other
-      //  * lists. A Candidate has a normalized distance only after list(s) of Candidates are built by PoseEstimation
-      //  |)}>#
-      // inline float
-      // getNormalizedDistance () const
-      // {
-      //   return (normalized_distance_);
-      // }
-      //
-      // #<{(|* \brief Get Root Mean Square Error of Candidate from target point cloud
-      //  * \return The Root Mean Square Error of the Candidate (if any), otherwise -1
-      //  *
-      //  * A Candidate has an RMSE only after the refinement process has been performed by PoseEstimation
-      //  |)}>#
-      // inline float
-      // getRMSE () const
-      // {
-      //   return (rmse_);
-      // }
-      //
-      // #<{(|* \brief Get Homogeneous Transformation that brings Candidate cloud over target cloud
-      //  * \return The transformation that brings Candidate cloud over target cloud (if any), otherwise returns Identity matrix
-      //  *
-      //  * Candidates has a transformation only after refinement process has been performed by PoseEstimation
-      //  |)}>#
-      // inline Eigen::Matrix4f
-      // getTransformation () const
-      // {
-      //   return (transformation_);
-      // }
-      //
-      // #<{(|* \brief Get a copy of the point cloud representing the Candidate
-      //  * \return Point cloud of the candidate
-      //  |)}>#
-      // inline PtC
-      // getCloud () const
-      // {
-      //   return (*cloud_);
-      // }
-      //
-      // #<{(|* \brief Get Candidate name
-      //  * \return The name of the Candidate
-      //  |)}>#
-      // inline std::string
-      // getName() const
-      // {
-      //   return (name_);
-      // }
-      //
+      /** \brief Get Candidate Rank from the list of candidates it belongs
+       * \return The rank of Candidate (if any) in the list, otherwise returns 0
+       *
+       * A Candidate has a rank only after list(s) of Candidates are built by PoseEstimation
+       */
+      inline int
+      getRank () const
+      {
+        return (rank_);
+      }
+
+      /** \brief Get the distance of Candidate from target point cloud in the metric chosen by the feature
+       * \return The distance of candidate from target point cloud (if any), otherwise -1
+       *
+       * A Candidate has a distance only after list(s) of Candidates are built by PoseEstimation
+       */
+      inline float
+      getDistance () const
+      {
+        return (distance_);
+      }
+
+      /** \brief Get the normalized distance of Candidate from target point cloud
+       * \return The normalized distance of candidate from target point cloud (if any), otherwise -1
+       *
+       * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k", they are indipendent of the
+       * current metric chosen to calculate them, thus could be compared with other normalized distances from other
+       * lists. A Candidate has a normalized distance only after list(s) of Candidates are built by PoseEstimation
+       */
+      inline float
+      getNormalizedDistance () const
+      {
+        return (normalized_distance_);
+      }
+
+      /** \brief Get Root Mean Square Error of Candidate from target point cloud
+       * \return The Root Mean Square Error of the Candidate (if any), otherwise -1
+       *
+       * A Candidate has an RMSE only after the refinement process has been performed by PoseEstimation
+       */
+      inline float
+      getRMSE () const
+      {
+        return (rmse_);
+      }
+
+      /** \brief Get Homogeneous Transformation that brings Candidate cloud over target cloud
+       * \return The transformation that brings Candidate cloud over target cloud (if any), otherwise returns Identity matrix
+       *
+       * Candidates has a transformation only after refinement process has been performed by PoseEstimation
+       */
+      inline Eigen::Matrix4f
+      getTransformation () const
+      {
+        return (transformation_);
+      }
+
+      /** \brief Get a copy of the point cloud representing the Candidate
+       * \return Point cloud of the candidate
+       */
+      inline PtC
+      getCloud () const
+      {
+        return (*cloud_);
+      }
+
+      /** \brief Get Candidate name
+       * \return The name of the Candidate
+       */
+      inline std::string
+      getName() const
+      {
+        return (name_);
+      }
       /// Avoid alignment errors with Eigen
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-      std::string name;
-      PtC::Ptr cloud;
-      int rank;
-      float distance;
-      float normalized_distance;
-      float rmse;
-      Eigen::Matrix4f transformation;
+    protected:
+      /**\brief Set Name of the Candidate
+       *\param[in] name The name to set
+       */
+      inline void
+      setName (std::string name)
+      {
+        name_ = name;
+      }
+      /**\brief Set Point Cloud containing candidate
+       *\param[in] cloud Pointer to point cloud to set
+        */
+      inline void
+      setCloud (const PtC::Ptr& cloud)
+      {
+        cloud_.reset(new PtC);
+        pcl::copyPointCloud(*cloud, *cloud_);
+      }
+      /**\brief Set Rank of Candidate
+       *\param[in] rank Rank to set
+       */
+      inline void
+      setRank(int rank)
+      {
+        rank_ = rank;
+      }
+      /**\brief Set Distance of Candidate
+       *\param[in] dist Distance to set
+      */
+      inline void
+      setDistance (float dist)
+      {
+        distance_ = dist;
+      }
+      /**\brief Set Normalized Distance of Candidate
+       *\param[in] norm_dist Normalized Distance to set
+       */
+      inline void
+      setNormalizedDistance (float norm_dist)
+      {
+        normalized_distance_ = norm_dist;
+      }
+      /**\bief Set RMSE of Candidate
+       *\param[in] rmse RMSE to set
+        */
+      inline void
+      setRMSE (float rmse)
+      {
+        rmse_ = rmse;
+      }
+      /**\brief Set Transformation of Candidate
+       *\param[in] trans Eigen Matrix, expressing the homogeneous transformation to set.
+       */
+      inline void
+      setTransformation (const Eigen::Matrix4f& trans)
+      {
+        transformation_ = trans;
+      }
+    private:
+      std::string name_;
+      PtC::Ptr cloud_;
+      int rank_;
+      float distance_;
+      float normalized_distance_;
+      float rmse_;
+      Eigen::Matrix4f transformation_;
 
   };//End of Class Candidate
 } //End of namespace pel

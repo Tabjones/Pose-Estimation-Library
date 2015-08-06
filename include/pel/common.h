@@ -69,7 +69,7 @@ namespace pel
   ///Short writing of timestamps
   typedef boost::posix_time::ptime timestamp;
   /// Enumerator for list of candidates
-  enum class listType {vfh, esf, cvfh, ourcvfh, composite};
+  enum class ListType {vfh, esf, cvfh, ourcvfh, composite};
   /** Map that stores configuration parameters in a key=value fashion*/
   typedef std::unordered_map<std::string,float> parameters;
 

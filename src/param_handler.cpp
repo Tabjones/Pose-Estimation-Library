@@ -312,4 +312,18 @@ namespace pel
       print_info("%*s]\tParameters written into %s succesfully.\n",20,__func__, config_file.c_str());
     return true;
   }
+  void
+  ParamHandler::printAllParams () const
+  {
+    for (const auto& x: params_)
+      print_info("%*s]\t%s: %g\n",20,__func__,x.first.c_str(), x.second);
+  }
+  void
+  ParamHandler::printParam (const std::string key) const
+  {
+    if (params_.count(key))
+      print_info("%*s]\t%s: %g\n",20,__func__,key.c_str(), params_.at(key) );
+    else
+      print_error("%*s]\tParam %s does not exists!\n",20,__func__,key.c_str());
+  }
 }

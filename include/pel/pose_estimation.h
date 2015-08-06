@@ -121,17 +121,6 @@ namespace pel
       ///The cloud pointer that represent the query to estimate as supplied before any computation
       PtC::Ptr target_cloud_;
 
-      ///List of candidates to the query calculated from VFH
-      std::vector<Candidate> vfh_list_;
-      ///List of candidates to the query calculated from ESF
-      std::vector<Candidate> esf_list_;
-      ///List of candidates to the query calculated from CVFH
-      std::vector<Candidate> cvfh_list_;
-      ///List of candidates to the query calculated from OURCVFH
-      std::vector<Candidate> ourcvfh_list_;
-      ///List of candidates to the query composed from the other features
-      std::vector<Candidate> composite_list_;
-
     ///Internal parameter to check if the target was succesfully set and its features estimated
     bool target_set_;
     ///Internal parameter to check if list(s) of candidates are successfully generated
@@ -153,10 +142,6 @@ namespace pel
     pcl::PointCloud<pcl::ESFSignature640> esf_;
     ///Container that hold the query normals
     pcl::PointCloud<pcl::Normal> normals_;
-
-    ///Set a parameter of Pose Estimation from a string representing its value, used internally when reading parameters from a file
-    bool setParam_ (std::string, std::string&);
-
     ///Initialize the Query by computing preprocessing and features, returns true if success, internal use
     bool initQuery_();
 
@@ -197,75 +182,6 @@ namespace pel
     ///Default Empty Constructor that sets default parameters (see them in config file "config/parameters.conf")
     PoseEstimation();
 
-    /**\brief Set a parameter of the Class directly, knowing its name
-     * \param[in] key the parameter name to change
-     * \param[in] value the value that key should assume
-     * \return _True_ if successful, _false_ otherwise
-     *
-     * For more information on possible parameters look at \ref param.
-     * Example Usage:
-     * \code
-     * PoseEstimation pe; //construct and sets default parameters
-     * pe.setParam("useVFH", 0); //pe now skips VFH computation for query
-     * string str;
-     * str = "verbosity";
-     * pe.setParam(str, 2); //pe now has verbosity set to 2
-     * \endcode
-     * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
-     */
-    bool setParam (std::string key, float value);
-
-    /**\brief Set a parameter of the Class directly, knowing its name
-     * \param[in] key the parameter name to change
-     * \param[in] value the value that key should assume
-     * \return _True_ if successful, _false_ otherwise
-     *
-     * Overloaded for ints.
-     * For more information on possible parameters look at \ref param.
-     * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
-     */
-    bool setParam (std::string key, int value) {return (this->setParam(key, (float)value) );}
-
-    /**\brief Set a parameter of the Class directly, knowing its name
-     * \param[in] key the parameter name to change
-     * \param[in] value the value that key should assume
-     * \return _True_ if successful, _false_ otherwise
-     *
-     * Overloaded for double
-     * For more information on possible parameters look at \ref param.
-     * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
-     */
-    bool setParam (std::string key, double value) {return (this->setParam(key, (float)value) );}
-
-    /** \brief Initialize the class with parameters found in config file
-     * \param[in] config_file Path to a config file to use
-     * \return How many parameters were correctly found and set, or (-1) in case of errors
-     *
-     * Configuration file must have extension .conf and follow certain naming conventions,
-     * look at example .conf file provided for more details or at \ref param.
-     * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
-     */
-    int initParams (boost::filesystem::path config_file);
-
-    /** \brief Initialize parameters of PoseEstimation from the map provided
-     * \param[in] map shared pointer to unordered_map containing parameters to use
-     * \return How many parameters were correctly set, or (-1) in case of errors
-     *
-     * unordered_map must contain valid keys and values, otherwise they will be ignored. For more inforamtion look at \ref param.
-     * Note that parameters should not be updated until current estimation is completed (i.e. between call of setQuery() and call of refineCandidates())
-     */
-    int initParams (boost::shared_ptr<parameters> map);
-
-    /**\brief Constructor with parameters to set.
-     *\param[in] map Shared pointer to unordered_map containing parameters to use
-     *
-     * For more information on parameters look at \ref param.
-     * Note: This constructor uses C++11 functionality and will  not compile without -std=c++11
-     * It delegates construction to empty contructor then calls initParams()
-     * It is the same way as calling empty constructor and then initParams() method.
-     */
-    PoseEstimation(boost::shared_ptr<parameters> map) : PoseEstimation() {this->initParams(map);}
-
     /**\brief Constructor with path to a configuration file containing parameters to set.
      *\param[in] config_file Path to a config file to use
      *
@@ -288,37 +204,6 @@ namespace pel
      * \param[in] clp Shared pointer containing only the pointcloud of the object to be estimated (i.e. already segmented)
      */
     void setQuery (std::string str, PtC::Ptr clp);
-
-    /// \brief Print current parameter values on screen
-    void printParams();
-
-    /** \brief Save current configuration parameters into a .conf file
-     * \param[in] file Path on disk where to write the .conf file
-     * \return _True_ if operation was successful, _false_ otherwise
-     *
-     * The path specified must not point to an already existant file, or saveParams() will refuse to write.
-     * The path may be absolute or relative and may or may not contain the extension, however remember that config files must have .conf extension to be accepted from PoseEstimation as valid config files, see also initParams()
-     * Example code:
-     * \code
-     * PoseEstimation pe;
-     * pe.setParam("verbosity", 2);
-     * pe.saveParams("./verbose.conf"); //relative path with extension specified
-     * pe.saveParams("../verbose"); //relative path without extension, in this case a .conf will be appended
-     * pe.saveParams("verbose.wrong"); //the file will be written with warnings but initParams() will not read it back since the file has a wrong extension
-     * \endcode
-     */
-    bool saveParams(boost::filesystem::path file);
-
-    /// \brief Print list(s) of Candidate to the query on screen
-    void printCandidates();
-
-    /** \brief Save list(s) of Candidate to query on a file
-     * \param[in] file Path to a file where to write the candidate list(s)
-     * \return _True_ if operation was successful, _false_ otherwise
-     *
-     * Path specified may exist, in that case the file will be appended
-     */
-    bool saveCandidates(boost::filesystem::path file);
 
     /** \brief Set a database of known poses to be used for pose estimation procedure.
      * \param[in] dbPath The path to the directory containing the database
@@ -429,21 +314,6 @@ namespace pel
       "foo/bar.f" will be treated as file "bar.f" inside relative directory "foo"
       */
     bool saveEstimation(boost::filesystem::path file, bool append = true);
-    /** \brief Get a shared pointer of a copy of parameters used by the pose estimation
-     *  \return Shared pointer of a copy of parameters used
-     *
-     * Returned pointer can be modified but any changes are not reflected back to the class,
-     * use setParam() or initParams() to modify PoseEstimation parameters
-     */
-    boost::shared_ptr<parameters> getParams();
-    /** \brief Get a shared pointer of a copy of parameters used by the pose estimation
-     *  \param[out] params Shared pointer of a copy of parameters used
-     *  \return _True_ if params correctly contains the class parameters, _false_ otherwise
-     *
-     * Passed pointer can be modified but any changes are not reflected back to the class,
-     * use setParam() or initParams() to modify PoseEstimation parameters
-     */
-    bool getParams(boost::shared_ptr<parameters> params);
 
     /** \brief Get a pointer to a copy of final chosen Candidate, representing the pose estimation
      * \return A pointer to a copy of the final Candidate
@@ -461,25 +331,6 @@ namespace pel
      * \return _True_ if t is correctly initialized, _false_ otherwise
      */
     bool getEstimationTransformation(Eigen::Matrix4f& t);
-
-    /** \brief Get a vector containing a list of Candidates to the Query
-     * \param[out] list Vector containing a copy of Candidates list, ordered by rank
-     * \param[in] type listType enumerate to select which list is to be copied among those created
-     * \return _True_ if the selected list is correctly copied, _false_ otherwise
-     *
-     * Composite list is created by generateLists() and it is used by the refinement procedure, get that by passing type= listType::composite
-     * vfh, esf, cvfh and ourcvfh lists are created by the corresponding features and may or may not exists, depending on parameters set.
-     * To select one of them either pass type= listType::vfh, listType::esf, listType::cvfh or listType::ourcvfh
-     * Code example:
-     * \code
-     * PoseEstimation pe;
-     * // ... initialize query and generate list of candidates
-     * vector<Candidate> mylist;
-     * pe.getCandidateList(mylist, listType::composite ); //get the composite list, that always exists
-     * pe.getCandidateList(mylist, listType::vfh ); //if vfh list exists, now mylist holds it
-     * \endcode
-     */
-    bool getCandidateList(std::vector<Candidate>& list, listType type);
 
     /** \brief Print some information on Query object on screen
     */

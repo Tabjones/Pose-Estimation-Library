@@ -152,6 +152,14 @@ namespace pel
       virtual bool
       dumpParamsToFile (boost::filesystem::path config_file, bool overwrite=false) const;
 
+      ///brief Print current parameters on screen
+      virtual void
+      printAllParams () const;
+
+      ///brief Print a single parameter on screen
+      virtual void
+      printParam (const std::string key) const;
+
   };
 }
 #endif //_INCL_PARAM_HANDLER_H_
