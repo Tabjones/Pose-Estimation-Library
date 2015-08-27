@@ -63,9 +63,19 @@ namespace pel
       ///computeNormals prototype
       virtual void
       computeNormals()=0;
+      ///removeOutliers prototype
+      virtual void
+      removeOutliers()=0;
+      ///applyDownsampling prototype
+      virtual void
+      applyDownsampling()=0;
+      ///applyUpsampling prototype
+      virtual void
+      applyUpsampling()=0;
 
       std::string target_name;
       PtC::Ptr target_cloud;
+      PtC::Ptr target_cloud_processed;
       ///Container that holds the target VFH feature
       pcl::PointCloud<pcl::VFHSignature308> target_vfh;
       ///Container that holds the target CVFH feature

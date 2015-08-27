@@ -58,7 +58,7 @@ namespace pel
     }
     if (verbosity > 1)
       print_info("%*s]\tStarting Candidate lists generation...\n",20,__func__);
-    StopWatch timer,t;
+    pcl::StopWatch timer,t;
     timer.reset();
     vfh_list.clear();
     esf_list.clear();
@@ -383,7 +383,7 @@ namespace pel
     }
     return true;
   }
-//TODO add filters
+
   virtual bool
   PoseEstimationBase::initTarget(std::string name, PtC:Ptr cloud)
   {
@@ -397,6 +397,12 @@ namespace pel
       }
       target_cloud = cloud;
     }
+    if (getParam("filter")>0)
+      removeOutliers();
+    if (getParam("upsamp")>0)
+      applyUpsampling();
+    if (getParam("downsamp")>0)
+      applyDownsampling();
     feature_count_ = 0;
     if (getParam("use_esf")>0)
     {
@@ -429,6 +435,38 @@ namespace pel
     }
   }
   //TODO here
+  ///\brief Filter target point cloud with Statistical Outlier Removal
+  virtual void
+  PoseEstimationBase::removeOutliers()
+  {
+    pcl::StopWatch timer;
+    if (getParam("verbosity") >1)
+    {
+      print_info("%*s]\tSetting Statistical Outlier Filter to preprocess target cloud...\n",20,__func__);
+      print_info("%*s]\tSetting mean K to %g\n",20,__func__, getParam("filter_mean_k"));
+      print_info("%*s]\tSetting Standard Deviation multiplier to %g\n",20,__func__, getParam("filter_std_dev_mul_thresh"));
+      timer.reset();
+    }
+    PtC::Ptr filtered (new PtC);
+    pcl::StatisticalOutlierRemoval<Pt> fil;
+    fil.setMeanK (getParam("filter_mean_k"));
+    fil.setStddevMulThresh (getParam("filter_std_dev_mul_thresh"));
+    fil.setInputCloud(target_cloud);
+    fil.filter(*filtered);
+    copyPointCloud(*filtered, *target_cloud_processed);
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tTotal time elapsed during filter: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+      ///\brief Apply Upsampling procedure to target cloud
+      virtual void
+      applyUpsampling();
+      ///\brief Downsample target cloud with VoxelGrid Filter
+      virtual void
+      applyDownsampling();
       ///\brief computeVFH feature of target
       virtual void
       computeVFH();
@@ -455,18 +493,7 @@ namespace pel
 //     ///Internal parameter to check if query was supplied in a local refernce system
 //     bool local_query_;
 //
-//     ///Initialize the Query by computing preprocessing and features, returns true if success, internal use
-//     bool initQuery_();
-//
-//     ///Internal method to filter the query with Statistical Outlier Removal, internal use
-//     void filtering_();
-//
-//     ///Internal method to upsample the query with MLS Random Uniform Density, internal use
-//     void upsampling_();
-//
-//     ///Internal method to downsample the query with VoxelGrid, internal use
-//     void downsampling_();
-//
+
 //     #<{(|*\brief Searches a list for a candidate and eliminates it, saving its distance. Internal use
 //      * \param[in] list The list to inspect and modifiy
 //      * \param[in] name The name to search in list
