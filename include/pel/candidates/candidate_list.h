@@ -51,7 +51,7 @@ namespace pel
       std::vector<Candidate> vfh_list, esf_list, cvfh_list, ourcvfh_list, composite_list;
 
       ///\brief Prototype function for list generation
-      bool
+      virtual bool
       generateLists() =0;
 
       /**\brief Return a list of choice
@@ -65,7 +65,32 @@ namespace pel
       */
       void
       printCandidateList (ListType type) const;
-
+      /**\brief Sort lists based on Minimum RMSE
+       * \param[in] type Which ListType to sort
+       * \returns _True_ if sorting succeded, _False_ otherwise
+       */
+      bool
+      sortListByRMSE (ListType type);
+      /**\brief Sort lists based on Minimum Distance from target
+       * \param[in] type Which ListType to sort
+       * \returns _True_ if sorting succeded, _False_ otherwise
+       */
+      bool
+      sortListByDistance (ListType type);
+      /**\brief Sort lists based on Minimum Normalized Distance from target
+       * \param[in] type Which ListType to sort
+       * \returns _True_ if sorting succeded, _False_ otherwise
+       */
+      bool
+      sortListByNormalizedDistance (ListType type);
+      /**\brief Find a Candidate in the specified list by name, save its distance and remove it from the list
+       * \param[in] type Which ListType to modify
+       * \param[in] name The Candidate Name to find
+       * \parma[out] dist Distance found
+       * \returns _True_ if operation succeded, _False_ otherwise
+       */
+      bool
+      findAndEraseCandidate(ListType type, std::string name, float dist);
   };
 }
 

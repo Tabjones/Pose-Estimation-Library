@@ -86,8 +86,7 @@ namespace pel
        * \return _True_ if distances are correctly computed, _false_ otherwise
        */
       bool
-        computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, listType feat,
-            std::vector<std::pair<float, int> >& distIdx);
+        computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, ListType feat, std::vector<std::pair<float, int> >& distIdx);
 
     public:
       /** \brief Default empty Constructor
@@ -118,14 +117,14 @@ namespace pel
        * after this operation
        */
       void
-        clear ();
+      clear ();
 
       /** \brief Tell if the database is empty
        *
        * \return _True_ if database is not loaded or empty, _False_ otherwise
        */
       bool
-        isEmpty () const;
+      isEmpty () const;
 
       friend bool DatabaseReader::load (boost::filesystem::path, Database&);
       friend bool DatabaseWriter::save (boost::filesystem::path, const Database&, bool);

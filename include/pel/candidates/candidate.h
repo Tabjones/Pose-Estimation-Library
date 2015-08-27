@@ -191,7 +191,7 @@ namespace pel
       {
         transformation_ = trans;
       }
-    private:
+
       std::string name_;
       PtC::Ptr cloud_;
       int rank_;

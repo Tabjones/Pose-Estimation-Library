@@ -32,6 +32,7 @@
 */
 
 #include <pel/candidates/candidate_list.h>
+#include <algorithm>
 
 namespace pel
 {
@@ -66,5 +67,178 @@ namespace pel
         print_info(" %-15s ",x.getName().c_str());
       }
     }
+  }
+  bool
+  CandidateLists::sortListByRMSE (ListType type)
+  {
+    if (type == ListType::vfh && !vfh_list.empty() )
+      std::sort(vfh_list.begin(), vfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getRMSE() < b.getRMSE());
+        } );
+    else if (type == ListType::esf && !esf_list.empty())
+      std::sort(esf_list.begin(), esf_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getRMSE() < b.getRMSE());
+        } );
+    else if (type == ListType::cvfh && !cvfh_list.empty())
+      std::sort(cvfh_list.begin(), cvfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getRMSE() < b.getRMSE());
+        } );
+    else if (type == ListType::ourcvfh && !ourcvfh_list.empty())
+      std::sort(ourcvfh_list.begin(), ourcvfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getRMSE() < b.getRMSE());
+        } );
+    else if (type == ListType::composite && !composite_list.empty())
+      std::sort(composite_list.begin(), composite_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getRMSE() < b.getRMSE());
+        } );
+    else
+    {
+      print_error("%*s]\tListType provided not supported\n",20,__func__);
+      return false;
+    }
+    return true;
+  }
+  bool
+  CandidateLists::sortListByDistance (ListType type)
+  {
+    if (type == ListType::vfh && !vfh_list.empty() )
+      std::sort(vfh_list.begin(), vfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getDistance() < b.getDistance());
+        } );
+    else if (type == ListType::esf && !esf_list.empty())
+      std::sort(esf_list.begin(), esf_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getDistance() < b.getDistance());
+        } );
+    else if (type == ListType::cvfh && !cvfh_list.empty())
+      std::sort(cvfh_list.begin(), cvfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getDistance() < b.getDistance());
+        } );
+    else if (type == ListType::ourcvfh && !ourcvfh_list.empty())
+      std::sort(ourcvfh_list.begin(), ourcvfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getDistance() < b.getDistance());
+        } );
+    else if (type == ListType::composite && !composite_list.empty())
+      std::sort(composite_list.begin(), composite_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getDistance() < b.getDistance());
+        } );
+    else
+    {
+      print_error("%*s]\tListType provided not supported\n",20,__func__);
+      return false;
+    }
+    return true;
+  }
+  bool
+  CandidateLists::sortListByNormalizedDistance (ListType type)
+  {
+    if (type == ListType::vfh && !vfh_list.empty() )
+      std::sort(vfh_list.begin(), vfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getNormalizedDistance() < b.getNormalizedDistance());
+        } );
+    else if (type == ListType::esf && !esf_list.empty())
+      std::sort(esf_list.begin(), esf_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getNormalizedDistance() < b.getNormalizedDistance());
+        } );
+    else if (type == ListType::cvfh && !cvfh_list.empty())
+      std::sort(cvfh_list.begin(), cvfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getNormalizedDistance() < b.getNormalizedDistance());
+        } );
+    else if (type == ListType::ourcvfh && !ourcvfh_list.empty())
+      std::sort(ourcvfh_list.begin(), ourcvfh_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getNormalizedDistance() < b.getNormalizedDistance());
+        } );
+    else if (type == ListType::composite && !composite_list.empty())
+      std::sort(composite_list.begin(), composite_list.end(),
+        [](Candidate const& a, Candidate const &b)
+        {
+          return (a.getNormalizedDistance() < b.getNormalizedDistance());
+        } );
+    else
+    {
+      print_error("%*s]\tListType provided not supported\n",20,__func__);
+      return false;
+    }
+    return true;
+  }
+  bool
+  CandidateLists::findAndEraseCandidate(ListType type, std::string name, float dist)
+  {
+    if (type == ListType::vfh && !vfh_list.empty())
+    {
+      for (std::vector<Candidate>::iterator it=vfh_list.begin(); it!=vfh_list.end(); ++it)
+      {
+        if (name.compare(it->getName()) ==0)
+        {
+          dist = it->getNormalizedDistance();
+          vfh_list.erase(it);
+          return true;
+        }
+      }
+    }
+    if (type == ListType::esf && !esf_list.empty())
+    {
+      for (std::vector<Candidate>::iterator it=esf_list.begin(); it!=esf_list.end(); ++it)
+      {
+        if (name.compare(it->getName()) ==0)
+        {
+          dist = it->getNormalizedDistance();
+          esf_list.erase(it);
+          return true;
+        }
+      }
+    }
+    if (type == ListType::cvfh && !cvfh_list.empty())
+    {
+      for (std::vector<Candidate>::iterator it=cvfh_list.begin(); it!=cvfh_list.end(); ++it)
+      {
+        if (name.compare(it->getName()) ==0)
+        {
+          dist = it->getNormalizedDistance();
+          cvfh_list.erase(it);
+          return true;
+        }
+      }
+    }
+    if (type == ListType::ourcvfh && !ourcvfh_list.empty())
+    {
+      for (std::vector<Candidate>::iterator it=ourcvfh_list.begin(); it!=ourcvfh_list.end(); ++it)
+      {
+        if (name.compare(it->getName()) ==0)
+        {
+          dist = it->getNormalizedDistance();
+          ourcvfh_list.erase(it);
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

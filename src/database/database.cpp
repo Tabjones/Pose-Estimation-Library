@@ -189,7 +189,8 @@ namespace pel
   }
 
   bool
-  Database::computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, listType feat,
+  Database::computeDistFromClusters
+	(pcl::PointCloud<pcl::VFHSignature308>::Ptr target, ListType feat,
       std::vector<std::pair<float, int> >& distIdx)
   {
     if (this->isEmpty())
@@ -203,7 +204,7 @@ namespace pel
       return false;
     }
     distIdx.clear();
-    if ( feat == listType::cvfh )
+    if ( feat == ListType::cvfh )
     { //cvfh list
       for (int n=0; n<target->points.size(); ++n)
       {//for each target cluster
@@ -253,7 +254,7 @@ namespace pel
       }//end of for each target cluster
       return true;
     }
-    else if ( feat == listType::ourcvfh )
+    else if ( feat == ListType::ourcvfh )
     { //ourcvfh list
       for (int n=0; n<target->points.size(); ++n)
       {//for each target cluster
@@ -305,7 +306,8 @@ namespace pel
     }
     else
     {
-      print_error("%*s]\tfeat must be 'listType::cvfh' or 'listType::ourcvfh'! Exiting...\n",20,__func__);
+      print_error("%*s]\tfeat must be 'ListType::cvfh' or
+'ListType::ourcvfh'! Exiting...\n",20,__func__);
       return false;
     }
   }
