@@ -31,8 +31,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _INCL_PARAM_HANDLER_H_
-#define _INCL_PARAM_HANDLER_H_
+#ifndef PEL_PARAM_HANDLER_H_
+#define PEL_PARAM_HANDLER_H_
 
 #include <pel/common.h>
 #include <fstream>
@@ -162,4 +162,4 @@ namespace pel
 
   };
 }
-#endif //_INCL_PARAM_HANDLER_H_
+#endif //PEL_PARAM_HANDLER_H_

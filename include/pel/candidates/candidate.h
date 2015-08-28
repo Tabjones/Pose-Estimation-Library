@@ -131,9 +131,6 @@ namespace pel
       {
         return (name_);
       }
-      /// Avoid alignment errors with Eigen
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    protected:
       /**\brief Set Name of the Candidate
        *\param[in] name The name to set
        */
@@ -191,7 +188,9 @@ namespace pel
       {
         transformation_ = trans;
       }
-
+      /// Avoid alignment errors with Eigen
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    private:
       std::string name_;
       PtC::Ptr cloud_;
       int rank_;

@@ -35,7 +35,6 @@
 #define PEL_POSE_ESTIMATION_BASE_H_
 
 #include <pel/database/database.h>
-#include <pel/candidates/candidate.h>
 #include <pel/param_handler.h>
 #include <pel/candidates/target.h>
 #include <pel/candidates/candidate_list.h>
@@ -141,6 +140,15 @@ namespace pel
       ///\brief computeNormals features of target
       virtual void
       computeNormals();
+      ///\brief removeOutliers by applying Statistical Outliers Filter
+      virtual void
+      removeOutliers();
+      ///\brief applyDownsampling with VoxelGrid Filter
+      virtual void
+      applyDownsampling();
+      ///\brief applyUpsampling With MLS with Random uniform sampling
+      virtual void
+      applyUpsampling();
   };
 //     ///Internal parameter to check if the target was succesfully set and its features estimated
 //     bool target_set_;

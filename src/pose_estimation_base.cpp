@@ -32,10 +32,13 @@
 */
 
 #include <pel/pose_estimation_base.h>
+#include <pcl/common/angles.h>
+
+using namespace pcl::console;
 
 namespace pel
 {
-  virtual bool
+  bool
   PoseEstimationBase::generateLists()
   {
     int k = getParam("lists_size");
@@ -46,7 +49,7 @@ namespace pel
       print_error("%*s]\tDatabase is empty, set it first!\n",20,__func__);
       return false;
     }
-    if (target_cloud.empty())
+    if (target_cloud->empty())
     {
       print_error("%*s]\tTarget is not set, set it first!\n",20,__func__);
       return false;
@@ -80,8 +83,8 @@ namespace pel
         vfh_idx_->knnSearch (vfh_query, match_id, match_dist, k, SearchParams(256));
         for (size_t i=0; i<k; ++i)
         {
-          string name= database_.names_[match_id[0][i]];
-          Candidate c(names_[match_id[0][i]],clouds_[match_id[0][i]]);
+          std::string name= names_[match_id[0][i]];
+          Candidate c(names_[match_id[0][i]],clouds_[match_id[0][i]].makeShared());
           c.setRank(i+1);
           c.setDistance(match_dist[0][i]);
           c.setNormalizedDistance( (match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]));
@@ -114,7 +117,7 @@ namespace pel
         esf_idx_->knnSearch (esf_query, match_id, match_dist, k, SearchParams(256) );
         for (size_t i=0; i<k; ++i)
         {
-          Candidate c(names_[match_id[0][i]],clouds_[match_id[0][i]]);
+          Candidate c(names_[match_id[0][i]],clouds_[match_id[0][i]].makeShared());
           c.setRank(i+1);
           c.setDistance(match_dist[0][i]);
           c.setNormalizedDistance( (match_dist[0][i] - match_dist[0][0])/(match_dist[0][k-1] - match_dist[0][0]) );
@@ -140,7 +143,7 @@ namespace pel
       try
       {
         std::vector<std::pair<float, int> > dists;
-        if (computeDistFromClusters(target_cvfh.makeShared(), listType::cvfh, dists))
+        if (computeDistFromClusters(target_cvfh.makeShared(), ListType::cvfh, dists))
         {
           std::sort(dists.begin(), dists.end(),
               [](std::pair<float, int> const& a, std::pair<float, int> const& b)
@@ -150,7 +153,7 @@ namespace pel
           dists.resize(k);
           for (int i=0; i<k ; ++i)
           {
-            Candidate c (names_[dists[i].second], clouds_[dists[i].second]);
+            Candidate c (names_[dists[i].second], clouds_[dists[i].second].makeShared());
             c.setRank(i+1);
             c.setDistance(dists[i].first);
             c.setNormalizedDistance( (dists[i].first - dists[0].first)/(dists[k-1].first - dists[0].first) );
@@ -182,7 +185,7 @@ namespace pel
       try
       {
         std::vector<std::pair<float, int> > dists;
-        if (computeDistFromClusters(target_ourcvfh.makeShared(), listType::ourcvfh, dists) )
+        if (computeDistFromClusters(target_ourcvfh.makeShared(), ListType::ourcvfh, dists) )
         {
           std::sort(dists.begin(), dists.end(),
               [](std::pair<float, int> const& a, std::pair<float, int> const& b)
@@ -192,7 +195,7 @@ namespace pel
           dists.resize(k);
           for (int i=0; i<k ; ++i)
           {
-            Candidate c (names_[dists[i].second], clouds_[dists[i].second] );
+            Candidate c (names_[dists[i].second], clouds_[dists[i].second].makeShared() );
             c.setRank(i+1);
             c.setDistance(dists[i].first);
             c.setNormalizedDistance( (dists[i].first - dists[0].first)/(dists[k-1].first - dists[0].first) );
@@ -282,28 +285,29 @@ namespace pel
       for (auto& x : tmp_vfh)
       {
         float d_tmp;
+        float x_dist = x.getNormalizedDistance();
         if (getParam("use_esf") >0)
         {
-          if (findAndEraseCandidate(ListType::esf, x.getName(), d_tmp))
-            x.normalized_distance_ += d_tmp;
+          if (findAndEraseCandidate(tmp_esf, x.getName(), d_tmp))
+            x_dist += d_tmp;
           else
-            x.normalized_distance_ += 1;
+            x_dist += 1;
         }
         if (getParam("use_cvfh")>0)
         {
-          if (findAndEraseCandidate(ListType::cvfh, x.getName(), d_tmp))
-            x.normalized_distance_ += d_tmp;
+          if (findAndEraseCandidate(tmp_cvfh, x.getName(), d_tmp))
+            x_dist += d_tmp;
           else
-            x.normalized_distance_ += 1;
+            x_dist += 1;
         }
         if (getParam("use_ourcvfh")>0)
         {
-          if (findAndEraseCandidate(ListType::ourcvfh, x.getName(), d_tmp))
-            x.normalized_distance_ += d_tmp;
+          if (findAndEraseCandidate(tmp_ourcvfh, x.getName(), d_tmp))
+            x_dist += d_tmp;
           else
-            x.normalized_distance_ += 1;
+            x_dist += 1;
         }
-        x.normalized_distance_ /= feature_count_;
+        x.setNormalizedDistance (x_dist / feature_count_);
         composite_list.push_back(x);
       }
     }
@@ -313,23 +317,24 @@ namespace pel
       for (auto& x : tmp_esf)
       {
         float d_tmp;
+        float x_dist = x.getNormalizedDistance();
         if (getParam("use_cvfh")>0)
         {
-          if (findAndEraseCandidate(ListType::cvfh, x.getName(), d_tmp))
-            x.normalized_distance_ += d_tmp;
+          if (findAndEraseCandidate(tmp_cvfh, x.getName(), d_tmp))
+            x_dist += d_tmp;
           else
-            x.normalized_distance_ +=1;
+            x_dist += 1;
         }
         if (getParam("use_ourcvfh")>0)
         {
-          if (findAndEraseCandidate(ListType::ourcvfh, x.getName(), d_tmp))
-            x.normalized_distance_ += d_tmp;
+          if (findAndEraseCandidate(tmp_ourcvfh, x.getName(), d_tmp))
+            x_dist += d_tmp;
           else
-            x.normalized_distance_ += 1;
+            x_dist += 1;
         }
         if (getParam("use_vfh")>0)
-          x.normalized_distance_ += 1;
-        x.normalized_distance_ /= feature_count_;
+          x_dist += 1;
+        x.setNormalizedDistance (x_dist / feature_count_);
         composite_list.push_back(x);
       }
     }
@@ -339,18 +344,19 @@ namespace pel
       for (auto& x: tmp_cvfh)
       {
         float d_tmp;
+        float x_dist = x.getNormalizedDistance();
         if (getParam("use_ourcvfh")>0)
         {
-          if (findAndEraseCandidate(ListType::ourcvfh, x.getName(), d_tmp))
-            x.normalized_distance_+= d_tmp;
+          if (findAndEraseCandidate(tmp_ourcvfh, x.getName(), d_tmp))
+            x_dist += d_tmp;
           else
-            x.normalized_distance_+=1;
+            x_dist += 1;
         }
         if (getParam("use_vfh")>0)
-          x.normalized_distance_ += 1;
+          x_dist += 1;
         if (getParam("use_esf")>0)
-          x.normalized_distance_ += 1;
-        x.normalized_distance_ /= feature_count_;
+          x_dist += 1;
+        x.setNormalizedDistance(x_dist / feature_count_);
         composite_list.push_back(x);
       }
     }
@@ -359,13 +365,14 @@ namespace pel
     {
       for (auto& x:tmp_ourcvfh)
       {
+        float x_dist = x.getNormalizedDistance();
         if (getParam("use_vfh")>0)
-          x.normalized_distance_ += 1;
+          x_dist += 1;
         if (getParam("use_esf")>0)
-          x.normalized_distance_ += 1;
+          x_dist += 1;
         if (getParam("use_cvfh")>0)
-          x.normalized_distance_ += 1;
-        x.normalized_distance_ /= feature_count_;
+          x_dist += 1;
+        x.setNormalizedDistance(x_dist / feature_count_);
         composite_list.push_back(x);
       }
     }
@@ -384,8 +391,8 @@ namespace pel
     return true;
   }
 
-  virtual bool
-  PoseEstimationBase::initTarget(std::string name, PtC:Ptr cloud)
+  bool
+  PoseEstimationBase::initTarget(std::string name, PtC::Ptr cloud)
   {
     target_name = name;
     if (cloud)
@@ -399,8 +406,12 @@ namespace pel
     }
     if (getParam("filter")>0)
       removeOutliers();
+    else
+      copyPointCloud(*target_cloud, *target_cloud_processed);
+
     if (getParam("upsamp")>0)
       applyUpsampling();
+
     if (getParam("downsamp")>0)
       applyDownsampling();
     feature_count_ = 0;
@@ -433,10 +444,10 @@ namespace pel
       print_error("%*s]\tError initializing a Target, zero features chosen to estimate. Enable at least one!\n",20,__func__);
       return false;
     }
+    return true;
   }
-  //TODO here
-  ///\brief Filter target point cloud with Statistical Outlier Removal
-  virtual void
+
+  void
   PoseEstimationBase::removeOutliers()
   {
     pcl::StopWatch timer;
@@ -461,27 +472,229 @@ namespace pel
       print_info(" ms\n");
     }
   }
-      ///\brief Apply Upsampling procedure to target cloud
-      virtual void
-      applyUpsampling();
-      ///\brief Downsample target cloud with VoxelGrid Filter
-      virtual void
-      applyDownsampling();
-      ///\brief computeVFH feature of target
-      virtual void
-      computeVFH();
-      ///\brief computeESF feature of target
-      virtual void
-      computeESF();
-      ///\brief computeCVFH feature of target
-      virtual void
-      computeCVFH();
-      ///\brief computeOURCVFH feature of target
-      virtual void
-      computeOURCVFH();
-      ///\brief computeNormals features of target
-      virtual void
-      computeNormals();
+
+  void
+  PoseEstimationBase::applyUpsampling()
+  {
+    pcl::StopWatch timer;
+    float search_radius = getParam("upsamp_search_radius");
+    int point_density = getParam("upsamp_point_density");
+    std::string poly_fit_str = getParam("upsamp_poly_fit") ? "True" : "False";
+    int poly_fit = getParam("upsamp_poly_fit");
+    int poly_order = getParam("upsamp_poly_order");
+    if (getParam("verbosity") >1)
+    {
+      print_info("%*s]\tSetting MLS with Random Uniform Density to preprocess target cloud...\n",20,__func__);
+      print_info("%*s]\tSetting polynomial order to %d\n",20,__func__, poly_order);
+      print_info("%*s]\tSetting polynomial fit to %s\n",20,__func__, poly_fit_str.c_str());
+      print_info("%*s]\tSetting desired point density to %d\n",20,__func__, point_density);
+      print_info("%*s]\tSetting search radius to %g\n",20,__func__, search_radius);
+      timer.reset();
+    }
+    PtC::Ptr upsampled (new PtC);
+    pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
+    pcl::MovingLeastSquares<Pt, Pt> mls;
+    mls.setInputCloud(target_cloud_processed);
+    mls.setSearchMethod(tree);
+    mls.setUpsamplingMethod (pcl::MovingLeastSquares<Pt, Pt>::RANDOM_UNIFORM_DENSITY);
+    mls.setComputeNormals (false);
+    mls.setPolynomialOrder(poly_order);
+    mls.setPolynomialFit(poly_fit);
+    mls.setSearchRadius(search_radius);
+    mls.setPointDensity(point_density);
+    mls.process(*upsampled);
+    copyPointCloud(*upsampled, *target_cloud_processed);
+    if (getParam("verbosity") >1)
+    {
+      print_info("%*s]\tTotal time elapsed during upsampling: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+
+  void
+  PoseEstimationBase::applyDownsampling()
+  {
+    pcl::StopWatch timer;
+    float leaf_size = getParam("downsamp_leaf_size");
+    if (getParam("verbosity") >1)
+    {
+      print_info("%*s]\tSetting Voxel Grid Filter to preprocess target cloud...\n",20,__func__);
+      print_info("%*s]\tSetting Leaf Size to %g\n",20,__func__, leaf_size);
+      timer.reset();
+    }
+    PtC::Ptr downsampled (new PtC);
+    pcl::VoxelGrid<Pt> vg;
+    vg.setInputCloud(target_cloud_processed);
+    vg.setLeafSize (leaf_size, leaf_size, leaf_size);
+    vg.setDownsampleAllData (true);
+    vg.filter(*downsampled);
+    copyPointCloud(*downsampled, *target_cloud_processed);
+    if (getParam("verbosity") >1)
+    {
+      print_info("%*s]\tTotal time elapsed during downsampling: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+
+  void
+  PoseEstimationBase::computeVFH()
+  {
+    pcl::StopWatch timer;
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tEstimating VFH feature of target...\n",20,__func__);
+      timer.reset();
+    }
+    pcl::VFHEstimation<Pt, pcl::Normal, pcl::VFHSignature308> vfhE;
+    pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
+    vfhE.setSearchMethod(tree);
+    vfhE.setInputCloud (target_cloud_processed);
+    vfhE.setViewPoint (target_cloud_processed->sensor_origin_(0), target_cloud_processed->sensor_origin_(1), target_cloud_processed->sensor_origin_(2));
+    vfhE.setInputNormals (target_normals.makeShared());
+    vfhE.compute (target_vfh);
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tTotal time elapsed during VFH estimation: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+
+  void
+  PoseEstimationBase::computeESF()
+  {
+    pcl::StopWatch timer;
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tEstimating ESF feature of target...\n",20,__func__);
+      timer.reset();
+    }
+    pcl::ESFEstimation<Pt, pcl::ESFSignature640> esfE;
+    pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
+    esfE.setSearchMethod(tree);
+    esfE.setInputCloud (target_cloud_processed);
+    esfE.compute (target_esf);
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tTotal time elapsed during ESF estimation: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+
+  void
+  PoseEstimationBase::computeCVFH()
+  {
+    pcl::StopWatch timer;
+    float ang_thresh = getParam("cvfh_ang_thresh");
+    float curv_thresh = getParam("cvfh_curv_thresh");
+    float clus_tol = getParam("cvfh_clus_tol");
+    int min_points = getParam("cvfh_clus_min_points");
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tEstimating CVFH feature of target...\n",20,__func__);
+      print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__, ang_thresh);
+      print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__, curv_thresh);
+      print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__, clus_tol);
+      print_info("%*s]\tConsidering a minimum of %d points for a cluster\n",20,__func__, min_points);
+      timer.reset();
+    }
+    pcl::CVFHEstimation<Pt, pcl::Normal, pcl::VFHSignature308> cvfhE;
+    pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
+    cvfhE.setSearchMethod(tree);
+    cvfhE.setInputCloud (target_cloud_processed);
+    cvfhE.setViewPoint (target_cloud_processed->sensor_origin_(0), target_cloud_processed->sensor_origin_(1), target_cloud_processed->sensor_origin_(2));
+    cvfhE.setInputNormals (target_normals.makeShared());
+    cvfhE.setEPSAngleThreshold(pcl::deg2rad(ang_thresh)); //angle needs to be supplied in radians
+    cvfhE.setCurvatureThreshold(curv_thresh);
+    cvfhE.setClusterTolerance(clus_tol);
+    cvfhE.setMinPoints(min_points);
+    cvfhE.setNormalizeBins(false);
+    cvfhE.compute (target_cvfh);
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tTotal of %d clusters were found on query\n",20,__func__, target_cvfh.points.size());
+      print_info("%*s]\tTotal time elapsed during CVFH estimation: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+
+  void
+  PoseEstimationBase::computeOURCVFH()
+  {
+    pcl::StopWatch timer;
+    float ang_thresh = getParam("ourcvfh_ang_thresh");
+    float curv_thresh = getParam("ourcvfh_curv_thresh");
+    float clus_tol = getParam("ourcvfh_clus_tol");
+    int min_points = getParam("ourcvfh_clus_min_points");
+    float axis_ratio = getParam("ourcvfh_axis_ratio");
+    float min_axis = getParam("ourcvfh_min_axis_value");
+    float refine = getParam("ourcvfh_refine_clusters");
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tEstimating OURCVFH feature of target...\n",20,__func__);
+      print_info("%*s]\tUsing Angle Threshold of %g degress for normal deviation\n",20,__func__,ang_thresh);
+      print_info("%*s]\tUsing Curvature Threshold of %g\n",20,__func__,curv_thresh);
+      print_info("%*s]\tUsing Cluster Tolerance of %g\n",20,__func__,clus_tol);
+      print_info("%*s]\tConsidering a minimum of %d points for a cluster\n",20,__func__,min_points);
+      print_info("%*s]\tUsing Axis Ratio of %g and Min Axis Value of %g during SGURF disambiguation\n",20,__func__,axis_ratio,min_axis);
+      print_info("%*s]\tUsing Refinement Factor of %g for clusters\n",20,__func__,refine);
+      timer.reset();
+    }
+    pcl::OURCVFHEstimation<Pt, pcl::Normal, pcl::VFHSignature308> ourcvfhE;
+    pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
+    //PointCloud<Pt>::Ptr cloud (new PointCloud<Pt>);
+    //copyPointCloud(*query_cloud_, *cloud);
+    ourcvfhE.setSearchMethod(tree);
+    ourcvfhE.setInputCloud (target_cloud_processed);
+    ourcvfhE.setViewPoint (target_cloud_processed->sensor_origin_(0), target_cloud_processed->sensor_origin_(1), target_cloud_processed->sensor_origin_(2));
+    ourcvfhE.setInputNormals (target_normals.makeShared());
+    ourcvfhE.setEPSAngleThreshold(pcl::deg2rad(ang_thresh)); //angle needs to be supplied in radians
+    ourcvfhE.setCurvatureThreshold(curv_thresh);
+    ourcvfhE.setClusterTolerance(clus_tol);
+    ourcvfhE.setMinPoints(min_points);
+    ourcvfhE.setAxisRatio(axis_ratio);
+    ourcvfhE.setMinAxisValue(min_axis);
+    ourcvfhE.setRefineClusters(refine);
+    ourcvfhE.compute (target_ourcvfh);
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tTotal of %d clusters were found on target\n",20,__func__, target_ourcvfh.points.size());
+      print_info("%*s]\tTotal time elapsed during OURCVFH estimation: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
+
+  void
+  PoseEstimationBase::computeNormals()
+  {
+    pcl::StopWatch timer;
+    float search_radius = getParam("normals_radius_search");
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tSetting normal estimation to calculate target normals...\n",20,__func__);
+      print_info("%*s]\tSetting a neighborhood radius of %g\n",20,__func__, search_radius);
+      timer.reset();
+    }
+    pcl::NormalEstimationOMP<Pt, pcl::Normal> ne;
+    pcl::search::KdTree<Pt>::Ptr tree (new pcl::search::KdTree<Pt>);
+    ne.setSearchMethod(tree);
+    ne.setRadiusSearch(search_radius);
+    ne.setNumberOfThreads(0); //use pcl autoallocation
+    ne.setInputCloud(target_cloud_processed);
+    ne.useSensorOriginAsViewPoint();
+    ne.compute(target_normals);
+    if (getParam("verbosity")>1)
+    {
+      print_info("%*s]\tTotal time elapsed during normal estimation: ",20,__func__);
+      print_value("%g", timer.getTime());
+      print_info(" ms\n");
+    }
+  }
 //     ///Internal parameter to check if the target was succesfully set and its features estimated
 //     bool target_set_;
 //     ///Internal parameter to check if list(s) of candidates are successfully generated
@@ -742,6 +955,5 @@ namespace pel
 //      |)}>#
 //     bool elaborateTests(boost::filesystem::path file, boost::filesystem::path result);
 //   };
-}
+} //End of namespace pel
 
-#endif //PEL_POSE_ESTIMATION_BASE_H_

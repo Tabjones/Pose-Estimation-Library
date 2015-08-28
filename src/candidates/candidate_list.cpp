@@ -189,52 +189,16 @@ namespace pel
     return true;
   }
   bool
-  CandidateLists::findAndEraseCandidate(ListType type, std::string name, float dist)
+  CandidateLists::findAndEraseCandidate(std::vector<Candidate>& list, std::string name, float dist)
   {
-    if (type == ListType::vfh && !vfh_list.empty())
+    if (!list.empty())
     {
-      for (std::vector<Candidate>::iterator it=vfh_list.begin(); it!=vfh_list.end(); ++it)
+      for (std::vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
       {
         if (name.compare(it->getName()) ==0)
         {
           dist = it->getNormalizedDistance();
-          vfh_list.erase(it);
-          return true;
-        }
-      }
-    }
-    if (type == ListType::esf && !esf_list.empty())
-    {
-      for (std::vector<Candidate>::iterator it=esf_list.begin(); it!=esf_list.end(); ++it)
-      {
-        if (name.compare(it->getName()) ==0)
-        {
-          dist = it->getNormalizedDistance();
-          esf_list.erase(it);
-          return true;
-        }
-      }
-    }
-    if (type == ListType::cvfh && !cvfh_list.empty())
-    {
-      for (std::vector<Candidate>::iterator it=cvfh_list.begin(); it!=cvfh_list.end(); ++it)
-      {
-        if (name.compare(it->getName()) ==0)
-        {
-          dist = it->getNormalizedDistance();
-          cvfh_list.erase(it);
-          return true;
-        }
-      }
-    }
-    if (type == ListType::ourcvfh && !ourcvfh_list.empty())
-    {
-      for (std::vector<Candidate>::iterator it=ourcvfh_list.begin(); it!=ourcvfh_list.end(); ++it)
-      {
-        if (name.compare(it->getName()) ==0)
-        {
-          dist = it->getNormalizedDistance();
-          ourcvfh_list.erase(it);
+          list.erase(it);
           return true;
         }
       }

@@ -104,6 +104,7 @@ include_directories(${PEL_BIN_DIR}/include)
 ## ------> List Sources
 set(srcs_base
   "src/pose_estimation.cpp"
+  "src/pose_estimation_base.cpp"
   "src/common.cpp"
   "src/param_handler.cpp"
   )
@@ -114,6 +115,10 @@ set(srcs_db
   "src/database/database_creator.cpp"
   )
 list(APPEND srcs ${srcs_db})
+set(srcs_cand
+  "src/candidates/candidate_list.cpp"
+  )
+list(APPEND srcs${srcs_cand})
 
 ## ------> List headers
 list(APPEND incls ${PEL_CONFIG_H_FILE})
@@ -121,10 +126,13 @@ set(incls_base
   "include/pel/common.h"
   "include/pel/param_handler.h"
   "include/pel/pose_estimation.h"
+  "include/pel/pose_estimation_base.h"
   )
 list(APPEND incls ${incls_base})
 set(incls_cand
   "include/pel/candidates/candidate.h"
+  "include/pel/candidates/candidate_list.h"
+  "include/pel/candidates/target.h"
   )
 list(APPEND incls ${incls_cand})
 set(incls_db
@@ -134,7 +142,7 @@ set(incls_db
   )
 list(APPEND incls ${incls_db})
 
-add_library (${PEL_NAME_LOWER} SHARED ${srcs} ${incls} ${PEL_CONFIG_H_FILE})
+add_library (${PEL_NAME_LOWER} SHARED ${srcs} ${incls})
 target_link_libraries (${PEL_NAME_LOWER} ${LINK_LIBS})
 set_target_properties(${PEL_NAME_LOWER} PROPERTIES
   VERSION "${PEL_VERSION}"

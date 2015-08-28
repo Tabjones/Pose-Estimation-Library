@@ -306,8 +306,7 @@ namespace pel
     }
     else
     {
-      print_error("%*s]\tfeat must be 'ListType::cvfh' or
-'ListType::ourcvfh'! Exiting...\n",20,__func__);
+      print_error("%*s]\tfeat must be 'ListType::cvfh' or 'ListType::ourcvfh'! Exiting...\n",20,__func__);
       return false;
     }
   }

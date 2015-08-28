@@ -34,13 +34,13 @@
 #ifndef PEL_CANDIDATES_CANDIDATE_LIST_H_
 #define PEL_CANDIDATES_CANDIDATE_LIST_H_
 
-#include <pel/candidates/candidate.h>
 #include <pel/common.h>
+#include <pel/candidates/candidate.h>
 #include <vector>
 
 namespace pel
 {
-  class CandidateLists : public Candidate
+  class CandidateLists
   {
     public:
       ///Constructor
@@ -84,13 +84,13 @@ namespace pel
       bool
       sortListByNormalizedDistance (ListType type);
       /**\brief Find a Candidate in the specified list by name, save its distance and remove it from the list
-       * \param[in] type Which ListType to modify
+       * \param[in] list The List of Candidates to modify
        * \param[in] name The Candidate Name to find
        * \parma[out] dist Distance found
        * \returns _True_ if operation succeded, _False_ otherwise
        */
       bool
-      findAndEraseCandidate(ListType type, std::string name, float dist);
+      findAndEraseCandidate(std::vector<Candidate>& list, std::string name, float dist);
   };
 }
 
