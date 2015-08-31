@@ -72,6 +72,9 @@ namespace pel
       ///applyUpsampling prototype
       virtual void
       applyUpsampling()=0;
+      ///setTarget prototype
+      virtual bool
+      setTarget(PtC::Ptr target, std::string name="target")=0;
 
       std::string target_name;
       PtC::Ptr target_cloud;

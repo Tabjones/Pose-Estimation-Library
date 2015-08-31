@@ -124,31 +124,39 @@ namespace pel
 
       ///\brief Initialize a Target for PoseEstimation
       virtual bool
-      initTarget(std::string name, PtC::Ptr cloud);
+      initTarget (std::string name, PtC::Ptr cloud);
       ///\brief computeVFH feature of target
       virtual void
-      computeVFH();
+      computeVFH ();
       ///\brief computeESF feature of target
       virtual void
-      computeESF();
+      computeESF ();
       ///\brief computeCVFH feature of target
       virtual void
-      computeCVFH();
+      computeCVFH ();
       ///\brief computeOURCVFH feature of target
       virtual void
-      computeOURCVFH();
+      computeOURCVFH ();
       ///\brief computeNormals features of target
       virtual void
-      computeNormals();
+      computeNormals ();
       ///\brief removeOutliers by applying Statistical Outliers Filter
       virtual void
-      removeOutliers();
+      removeOutliers ();
       ///\brief applyDownsampling with VoxelGrid Filter
       virtual void
-      applyDownsampling();
+      applyDownsampling ();
       ///\brief applyUpsampling With MLS with Random uniform sampling
       virtual void
-      applyUpsampling();
+      applyUpsampling ();
+    public:
+      ///\brief Set the target for next Pose Estimation
+      ///\param[in] target Point cloud of target object
+      ///\returns _True_ if succesful, _False_ otherwise
+      virtual bool
+      setTarget (PtC::Ptr target, std::string name="target");
+      ///\brief Load a Database from disk and set it to be used for next Pose Estimation
+
   };
 //     ///Internal parameter to check if the target was succesfully set and its features estimated
 //     bool target_set_;
