@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <pel/pose_estimation.h>
+#include <pel/pe_progressive_bisection.h>
 
 namespace pel
 {

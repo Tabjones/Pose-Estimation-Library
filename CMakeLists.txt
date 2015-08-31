@@ -103,7 +103,8 @@ include_directories(${PEL_BIN_DIR}/include)
 
 ## ------> List Sources
 set(srcs_base
-  "src/pose_estimation.cpp"
+  "src/pe_brute_force.cpp"
+  "src/pe_progressive_bisection.cpp"
   "src/pose_estimation_base.cpp"
   "src/common.cpp"
   "src/param_handler.cpp"
@@ -125,7 +126,8 @@ list(APPEND incls ${PEL_CONFIG_H_FILE})
 set(incls_base
   "include/pel/common.h"
   "include/pel/param_handler.h"
-  "include/pel/pose_estimation.h"
+  "include/pel/pe_brute_force.h"
+  "include/pel/pe_progressive_bisection.h"
   "include/pel/pose_estimation_base.h"
   )
 list(APPEND incls ${incls_base})

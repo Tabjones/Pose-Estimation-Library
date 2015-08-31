@@ -121,7 +121,6 @@ namespace pel
        */
       virtual bool
       generateLists();
-
       ///\brief Initialize a Target for PoseEstimation
       virtual bool
       initTarget (std::string name, PtC::Ptr cloud);
@@ -149,6 +148,9 @@ namespace pel
       ///\brief applyUpsampling With MLS with Random uniform sampling
       virtual void
       applyUpsampling ();
+      ///Estimate prototype
+      virtual void
+      estimate (Candidate& estimation)=0;
     public:
       ///\brief Set the target for next Pose Estimation
       ///\param[in] target Point cloud of target object

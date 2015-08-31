@@ -57,6 +57,22 @@ namespace pel
       /**\brief Destructor */
       virtual ~Candidate () {}
 
+      /**\brief assignment operator
+       *\param[in] other Candidate to copy from
+       */
+      Candidate&
+      operator= (const Candidate& other)
+      {
+        rank_ = other.rank_;
+        distance_ = other.distance_;
+        normalized_distance_ = other.normalized_distance_;
+        rmse_ = other.rmse_;
+        transformation_ = other.transformation_;
+        name_ = other.name_;
+        cloud_.reset(new PtC);
+        pcl::copyPointCloud(*other.cloud_, *cloud_);
+        return (*this);
+      }
       /** \brief Get Candidate Rank from the list of candidates it belongs
        * \return The rank of Candidate (if any) in the list, otherwise returns 0
        *
