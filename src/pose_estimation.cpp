@@ -35,113 +35,7 @@
 
 namespace pel
 {
-  /* Disable it for now... TODO
-  /////////////////////////////////////////////////////////////////////////////////////////
-  void PoseEstimation::setDatabase(PoseDB& database)
-  {
-    if (database.isEmpty())
-    {
-      print_warn("%*s]\tProvided database is empty or invalid, skipping new database setting...\n",20,__func__);
-      return;
-    }
-    database_.clear();
-    db_set_= false;
-    StopWatch timer;
-    timer.reset();
-    database_ = database;
-    db_set_ = true;
-    if (params_["verbosity"]>1)
-    {
-      print_info("%*s]\tDatabase set in ",20,__func__);
-      print_value("%g", timer.getTime());
-      print_info(" ms\n");
-      print_info("%*s]\tTotal number of poses found: ",20,__func__);
-      print_value("%d\n",database_.names_.size());
-    }
-  }
-  /////////////////////////////////////////////////////////////////////////////////////
-  void PoseEstimation::setDatabase(boost::filesystem::path dbPath)
-  {
-    if (!exists(dbPath) || !is_directory(dbPath))
-    {
-      print_warn("%*s]\t%s is not a directory or does not exists, skipping new database setting...\n",20,__func__);
-      return;
-    }
-    database_.clear();
-    db_set_=false;
-    StopWatch timer;
-    timer.reset();
-    if (database_.load(dbPath))
-    {
-      db_set_ = true;
-      if (params_["verbosity"]>1)
-      {
-        print_info("%*s]\tDatabase loaded and set from location %s in ",20,__func__,dbPath.string().c_str());
-        print_value("%g", timer.getTime());
-        print_info(" ms\n");
-        print_info("%*s]\tTotal number of poses found: ",20,__func__);
-        print_value("%d\n",database_.names_.size());
-      }
-    }
-  }
-  ///////////////////////////////////////////////
-  void PoseEstimation::printCandidates()
-  {
-    if (!candidates_found_)
-    {
-      if (params_["verbosity"]>0)
-        print_warn("%*s]\tList of Candidates are not yet generated, call generateLists before trying to print them!\n",20,__func__);
-      return;
-    }
-    if (params_["verbosity"]>1)
-      print_info("%*s]\tPrinting current list of candidates:\n",20,__func__);
-    print_info("Query name is: %s\n",query_name_.c_str());
-    print_info("%-6s","Rank");
-    if (params_["useVFH"] >0)
-      print_info("%-30s","VFH");
-    if (params_["useESF"] >0)
-      print_info("%-30s","ESF");
-    if (params_["useCVFH"] >0)
-      print_info("%-30s","CVFH");
-    if (params_["useOURCVFH"] >0)
-      print_info("%-30s","OURCVFH");
-    print_info("\n");
-    for ( int i=0; i< params_["kNeighbors"]; ++i)
-    {
-      print_value("%-6d", i+1);
-      if (params_["useVFH"] >0)
-      {
-        print_info("%-15s D:",vfh_list_[i].name_.c_str());
-        print_value("%-9g   ",vfh_list_[i].normalized_distance_);
-      }
-      if (params_["useESF"] >0)
-      {
-        print_info("%-15s D:",esf_list_[i].name_.c_str());
-        print_value("%-9g   ",esf_list_[i].normalized_distance_);
-      }
-      if (params_["useCVFH"] >0)
-      {
-        print_info("%-15s D:",cvfh_list_[i].name_.c_str());
-        print_value("%-9g   ",cvfh_list_[i].normalized_distance_);
-      }
-      if (params_["useOURCVFH"] >0)
-      {
-        print_info("%-15s D:",ourcvfh_list_[i].name_.c_str());
-        print_value("%-9g   ",ourcvfh_list_[i].normalized_distance_);
-      }
-      print_info("\n");
-    }
-    cout<<endl;
-    print_info("%-6s", "Rank");
-    print_info("%-30s\n","Composite");
-    for (int i=0; i<params_["kNeighbors"]; ++i)
-    {
-      print_value("%-6d", (int)composite_list_[i].rank_);
-      print_info("%-15s D:", composite_list_[i].name_.c_str());
-      print_value("%-9g   ", composite_list_[i].normalized_distance_);
-      cout<<endl;
-    }
-  }
+  /*
 
   bool PoseEstimation::refineCandidates()
   {
@@ -443,14 +337,6 @@ namespace pel
     print_info("Final Transformation (in candidate reference system):\n");
     cout<<pose_estimation_->transformation_<<endl;
   }
-  boost::shared_ptr<parameters> PoseEstimation::getParams()
-  {
-    parameters p = {{"key",-1}}; //initialize p with something so that copy assigned is performed instead of move (to preserve param_)
-    p = params_;
-    boost::shared_ptr<parameters> ptr;
-    ptr = boost::make_shared<parameters>(p);
-    return ptr;
-  }
 
   bool PoseEstimation::saveEstimation(path file, bool append)
   {
@@ -582,46 +468,6 @@ namespace pel
     }
   }
 
-  bool PoseEstimation::saveParams(boost::filesystem::path file)
-  {
-    if (exists(file) && file.has_extension() )
-    {
-      print_error("%*s]\t%s already exists, not saving there, aborting...\n",20,__func__,file.string().c_str());
-      return false;
-    }
-    else if (!file.has_extension())
-    {
-      if (params_["verbosity"] > 1)
-        print_info("%*s]\tAppending .conf to %s\n",20,__func__,file.string().c_str());
-      file = (file.string() + ".conf"); //append extension
-      if (exists(file))
-      {
-        print_error("%*s]\t%s already exists, not saving there, aborting...\n",20,__func__,file.string().c_str());
-        return false;
-      }
-    }
-    if (!(file.extension().string().compare(".conf") == 0) && params_["verbosity"]>0 )
-      print_warn("%*s]\t%s has extension, but it is not .conf, it will not be a valid configuration file...\n",20,__func__,file.string().c_str());
-    if (params_["verbosity"]>1)
-      print_info ("%*s]\tWriting into %s ...\n",20,__func__,file.string().c_str());
-    ofstream conf;
-    conf.open(file.string().c_str());
-    if (conf.is_open())
-    {
-      //write timestamp in file
-      timestamp t(TIME_NOW);
-      conf<<"% File written on "<< (to_simple_string(t)).c_str()<< " by PoseEstimation::saveParams"<<endl;
-      for (auto &x : params_)
-        conf<< x.first.c_str() <<"="<< x.second<<endl;
-      conf.close();
-      return true;
-    }
-    else
-    {
-      print_error("%*s]\tError opening %s for writing, aborting...\n",20,__func__,file.string().c_str());
-      return false;
-    }
-  }
 
   boost::shared_ptr<Candidate> PoseEstimation::getEstimation()
   {

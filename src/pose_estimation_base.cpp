@@ -33,6 +33,7 @@
 
 #include <pel/pose_estimation_base.h>
 #include <pcl/common/angles.h>
+#include <pel/database/database_io.h>
 
 using namespace pcl::console;
 
@@ -43,7 +44,7 @@ namespace pel
   {
     int k = getParam("lists_size");
     int verbosity = getParam("verbosity");
-    if (isEmpty())
+    if (this->isEmpty())
     {
       //Database is Empty
       print_error("%*s]\tDatabase is empty, set it first!\n",20,__func__);
@@ -54,7 +55,7 @@ namespace pel
       print_error("%*s]\tTarget is not set, set it first!\n",20,__func__);
       return false;
     }
-    if (k > names_.size())
+    if (k > this->names_.size())
     {
       print_error("%*]\tNot enough candidates to select in database, lists_size param is bigger than database size, aborting...\n",20,__func__);
       return false;
@@ -702,6 +703,107 @@ namespace pel
     if (getParam("verbosity")>1)
       print_info("%*s]\tSetting Target for Pose Estimation: %s with %d points",20,__func__,name.c_str(),target->points.size());
     return (initTarget(name, target));
+  }
+
+  bool
+  PoseEstimationBase::loadAndSetDatabase(boost::filesystem::path db_path)
+  {
+    DatabaseReader loader;
+    *this = loader.load(db_path);
+    return (!this->isEmpty());
+  }
+
+  bool
+  PoseEstimationBase::setDatabase (const Database& db)
+  {
+    if (db.isEmpty())
+    {
+      print_error("%*s]\tPassed database looks empty, aborting...",20,__func__);
+      return false;
+    }
+    *this = db;
+    return (!this->isEmpty());
+  }
+
+  PoseEstimationBase&
+  PoseEstimationBase::operator= (const Database& other)
+  {
+    int rows = other.getDatabaseVFH()->rows;
+    int cols = other.getDatabaseVFH()->cols;
+    histograms vfh (new float[rows * cols], rows, cols);
+    for (size_t i=0; i<rows; ++i)
+      for (size_t j=0; j<cols; ++j)
+        vfh[i][j] = (*other.getDatabaseVFH())[i][j];
+    rows = other.getDatabaseESF()->rows;
+    cols = other.getDatabaseESF()->cols;
+    histograms esf (new float[rows * cols], rows, cols);
+    for (size_t i=0; i<rows; ++i)
+      for (size_t j=0; j<cols; ++j)
+        esf[i][j] = (*other.getDatabaseESF())[i][j];
+    rows = other.getDatabaseCVFH()->rows;
+    cols = other.getDatabaseCVFH()->cols;
+    histograms cvfh (new float[rows * cols], rows, cols);
+    for (size_t i=0; i<rows; ++i)
+      for (size_t j=0; j<cols; ++j)
+        cvfh[i][j] = (*other.getDatabaseCVFH())[i][j];
+    rows = other.getDatabaseOURCVFH()->rows;
+    cols = other.getDatabaseOURCVFH()->cols;
+    histograms ourcvfh (new float[rows * cols], rows, cols);
+    for (size_t i=0; i<rows; ++i)
+      for (size_t j=0; j<cols; ++j)
+        ourcvfh[i][j] = (*other.getDatabaseOURCVFH())[i][j];
+    std::vector<std::string> names;
+    boost::copy (other.getDatabaseNames(), back_inserter(names));
+    std::vector<std::string> names_cvfh;
+    boost::copy (other.getDatabaseNamesCVFH(), back_inserter(names_cvfh));
+    std::vector<std::string> names_ourcvfh;
+    boost::copy (other.getDatabaseNamesOURCVFH(), back_inserter(names_ourcvfh));
+    std::vector<PtC> clouds;
+    boost::copy (other.getDatabaseClouds(), back_inserter(clouds));
+    //only way to copy FLANN indexs that i'm aware of (save it to disk then load it)
+    other.getDatabaseIndexVFH()->save(".idx_v_tmp");
+    indexVFH idx_vfh (vfh, SavedIndexParams(".idx_v_tmp"));
+    boost::filesystem::remove(".idx_v_tmp"); //delete tmp file
+    //only way to copy indexs that i'm aware of (save it to disk then load it)
+    other.getDatabaseIndexESF()->save(".idx_e_tmp");
+    indexESF idx_esf (esf, SavedIndexParams(".idx_e_tmp"));
+    boost::filesystem::remove(".idx_e_tmp"); //delete tmp file
+    //save tmp db into this
+    this->vfh_ = boost::make_shared<histograms>(vfh);
+    this->esf_ = boost::make_shared<histograms>(esf);
+    this->cvfh_ = boost::make_shared<histograms>(cvfh);
+    this->ourcvfh_ = boost::make_shared<histograms>(ourcvfh);
+    this->vfh_idx_ = boost::make_shared<indexVFH>(idx_vfh);
+    this->vfh_idx_ -> buildIndex();
+    this->esf_idx_ = boost::make_shared<indexESF>(idx_esf);
+    this->esf_idx_ -> buildIndex();
+    this->names_.clear();
+    this->names_cvfh_.clear();
+    this->names_ourcvfh_.clear();
+    this->clouds_.clear();
+    boost::copy (names, back_inserter(this->names_));
+    boost::copy (names_ourcvfh, back_inserter(this->names_ourcvfh_));
+    boost::copy (clouds, back_inserter(this->clouds_));
+    boost::copy (names_cvfh, back_inserter(this->names_cvfh_));
+    this->db_path_ = other.getDatabasePath();
+    return *this;
+  }
+
+  PoseEstimationBase&
+  PoseEstimationBase::operator= (Database&& other)
+  {
+    this->vfh_ = std::move(other.getDatabaseVFH());
+    this->esf_ = std::move(other.getDatabaseESF());
+    this->cvfh_ = std::move(other.getDatabaseCVFH());
+    this->ourcvfh_ = std::move(other.getDatabaseOURCVFH());
+    this->names_ = std::move(other.getDatabaseNames());
+    this->names_cvfh_ = std::move(other.getDatabaseNamesCVFH());
+    this->names_ourcvfh_ = std::move(other.getDatabaseNamesOURCVFH());
+    this->db_path_= std::move(other.getDatabasePath());
+    this->clouds_ = std::move(other.getDatabaseClouds());
+    this->vfh_idx_ = std::move(other.getDatabaseIndexVFH());
+    this->esf_idx_ = std::move(other.getDatabaseIndexESF());
+    return *this;
   }
 } //End of namespace pel
 

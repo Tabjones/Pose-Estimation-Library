@@ -60,6 +60,7 @@ namespace pel
    * \endcode
    * \author Federico Spinelli
    */
+
   class Database
   {
     protected:
@@ -113,19 +114,115 @@ namespace pel
        */
       Database& operator= (Database&& other);
 
-      /** \brief Erase the entire database. I.E. a call to isEmpty() method will return _True_ after
+      /** \brief Erase the entire database. I.E. a call to isEmpty() method will return _True_
        * after this operation
        */
       void
       clear ();
 
       /** \brief Tell if the database is empty
-       *
-       * \return _True_ if database is not loaded or empty, _False_ otherwise
+       *\return _True_ if database is not loaded or empty, _False_ otherwise
        */
       bool
       isEmpty () const;
 
+      /**\brief Get the database of VFH histograms as pointer to n*308 matrix.
+       *\return Shared pointer to matrix
+       _n_ is the number of poses in Database
+      */
+      inline boost::shared_ptr<histograms>
+      getDatabaseVFH () const
+      {
+        return (vfh_);
+      }
+      /**\brief Get the database of ESF histograms as pointer to n*640 matrix
+       *\return Shared pointer to matrix
+       _n_ is the number of poses in Database
+      */
+      inline boost::shared_ptr<histograms>
+      getDatabaseESF () const
+      {
+        return (esf_);
+      }
+      /**\brief Get the database of CVFH histograms as pointer to m*308 matrix
+       *\return Shared pointer to matrix
+       _m_ is the number of poses in Database plus number of clusters per object, which may vary per object
+      */
+      inline boost::shared_ptr<histograms>
+      getDatabaseCVFH () const
+      {
+        return (cvfh_);
+      }
+      /**\brief Get the database of OURCVFH histograms as pointer to p*308 matrix
+       *\return Shared pointer to matrix
+       _p_ is the number of poses in Database plus number of clusters per object, which may vary per object
+      */
+      inline boost::shared_ptr<histograms>
+      getDatabaseOURCVFH () const
+      {
+        return (ourcvfh_);
+      }
+      /**\brief get an _n_ lenght vector containing names of poses in database
+       *\return vector of names
+       _n_ is the number of poses in Database
+       */
+      inline std::vector<std::string>
+      getDatabaseNames () const
+      {
+        return (names_);
+      }
+      /**\brief get an _m_ lenght vector containing names of poses in database for CVFH descriptor
+       *\return vector of names
+       _m_ is the number of poses in Database plus the number of clusters of each pose.
+       */
+      inline std::vector<std::string>
+      getDatabaseNamesCVFH () const
+      {
+        return (names_cvfh_);
+      }
+      /**\brief get an _p_ lenght vector containing names of poses in database for OURCVFH descriptor
+       *\return vector of names
+       _p_ is the number of poses in Database plus the number of clusters of each pose.
+       */
+      inline std::vector<std::string>
+      getDatabaseNamesOURCVFH () const
+      {
+        return (names_ourcvfh_);
+      }
+      /**\brief get a path to Database saved location, if exists.
+       *\return path of directory containing Database on disk
+       */
+      inline boost::filesystem::path
+      getDatabasePath () const
+      {
+        return (db_path_);
+      }
+      /**\brief get an _n_ lenght vector containing point clouds of poses in database
+       *\return vector of point clouds
+       _n_ is the number of poses in Database
+       */
+      inline std::vector<PtC>
+      getDatabaseClouds () const
+      {
+        return (clouds_);
+      }
+      /**\brief get a pointer to FLANN index for VFH histograms
+       *\return shared pointer of FLANN index
+       */
+      inline boost::shared_ptr<indexVFH>
+      getDatabaseIndexVFH () const
+      {
+        return (vfh_idx_);
+      }
+      /**\brief get a pointer to FLANN index for ESF histograms
+       *\return shared pointer of FLANN index
+       */
+      inline boost::shared_ptr<indexESF>
+      getDatabaseIndexESF () const
+      {
+        return (esf_idx_);
+      }
+      //Friend functions
       friend bool DatabaseReader::load (boost::filesystem::path, Database&);
       friend bool DatabaseWriter::save (boost::filesystem::path, const Database&, bool);
       friend Database DatabaseCreator::create (boost::filesystem::path path_cloud);

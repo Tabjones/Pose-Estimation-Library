@@ -189,9 +189,7 @@ namespace pel
   }
 
   bool
-  Database::computeDistFromClusters
-	(pcl::PointCloud<pcl::VFHSignature308>::Ptr target, ListType feat,
-      std::vector<std::pair<float, int> >& distIdx)
+  Database::computeDistFromClusters (pcl::PointCloud<pcl::VFHSignature308>::Ptr target, ListType feat,std::vector<std::pair<float, int> >& distIdx)
   {
     if (this->isEmpty())
     {

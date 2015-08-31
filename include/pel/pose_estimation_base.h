@@ -110,7 +110,7 @@ namespace pel
   class PoseEstimationBase : public ParamHandler, public Database, public CandidateLists, public Target
   {
     public:
-      PoseEstimationBase () {}
+      PoseEstimationBase () : feature_count_(0) {}
       virtual ~PoseEstimationBase () {}
     protected:
       ///Internal counter used to count how many feature the class uses
@@ -156,99 +156,25 @@ namespace pel
       virtual bool
       setTarget (PtC::Ptr target, std::string name="target");
       ///\brief Load a Database from disk and set it to be used for next Pose Estimation
-
+      ///\param[in] db_path Path to directory containing Database to load
+      ///return _True_ if succesful, _False_ otherwise
+      virtual bool
+      loadAndSetDatabase (boost::filesystem::path db_path);
+      /**\brief Set a Database from another object already loaded in memory
+       *\param[in] db Database to set for current Pose Estimation
+       *\return _True_ if succesful, _False_ otherwise
+       */
+      virtual bool
+      setDatabase (const Database& db);
+      /**\brief Copy Assignemnt from Database to PoseEstimationBase
+       *\param[in] other Database to copy from
+       */
+      PoseEstimationBase& operator= (const Database& other);
+      /**\brief Move Assignemnt from Database to PoseEstimationBase
+       * \param[in] other Database to move from
+       */
+      PoseEstimationBase& operator= (Database&& other);
   };
-//     ///Internal parameter to check if the target was succesfully set and its features estimated
-//     bool target_set_;
-//     ///Internal parameter to check if list(s) of candidates are successfully generated
-//     bool candidates_found_;
-//     ///Internal parameter to check if candidate refinement has been done and it was succesfull
-//     bool refinement_done_;
-//     ///Internal parameter to check if a database was loaded in memory and it's now ready to be used
-//     bool db_set_;
-//     ///Internal parameter to check if query was supplied in a local refernce system
-//     bool local_query_;
-//
-//     ///Initialize the Query by computing preprocessing and features, returns true if success, internal use
-//     bool initQuery_();
-//
-//     ///Internal method to filter the query with Statistical Outlier Removal, internal use
-//     void filtering_();
-//
-//     ///Internal method to upsample the query with MLS Random Uniform Density, internal use
-//     void upsampling_();
-//
-//     ///Internal method to downsample the query with VoxelGrid, internal use
-//     void downsampling_();
-//
-//     #<{(|*\brief Searches a list for a candidate and eliminates it, saving its distance. Internal use
-//      * \param[in] list The list to inspect and modifiy
-//      * \param[in] name The name to search in list
-//      * \param[out] dist The distace of Candidate found in list (normalized)
-//      *
-//      * Return true if the candidate is found on the list, false otherwise
-//      |)}>#
-//     bool findCandidate_(std::vector<Candidate>& list, std::string name, float& dist);
-//
-//     public:
-//     ///Default Empty Constructor that sets default parameters (see them in config file "config/parameters.conf")
-//     PoseEstimation();
-//
-//     #<{(|*\brief Constructor with path to a configuration file containing parameters to set.
-//      *\param[in] config_file Path to a config file to use
-//      *
-//      * Configuration file must have extension .conf and follow certain naming conventions,
-//      * look at example .conf file provided for more details, or look at \ref param.
-//      * Note: This constructor uses C++11 functionality and will probably not compile without -std=c++11
-//      * It delegates construction to empty contructor then calls initParams()
-//      * It is the same way as calling empty constructor and then initParams() method
-//      |)}>#
-//     PoseEstimation(boost::filesystem::path config_file) : PoseEstimation() {this->initParams(config_file);}
-//
-//     #<{(|*\brief Set the Pose Estimation query (the object to be identified)
-//      * \param[in] str The name the query should assume
-//      * \param[in] cl  Point cloud containing only the object to be estimated (i.e. already segmented)
-//      |)}>#
-//     void setQuery (std::string str, PtC& cl);
-//
-//     #<{(|* \brief Set the Pose Estimation query (the object to be identified)
-//      * \param[in] str the name the query should assume
-//      * \param[in] clp Shared pointer containing only the pointcloud of the object to be estimated (i.e. already segmented)
-//      |)}>#
-//     void setQuery (std::string str, PtC::Ptr clp);
-//
-//     #<{(|* \brief Set a database of known poses to be used for pose estimation procedure.
-//      * \param[in] dbPath The path to the directory containing the database
-//      *
-//      * Note that this method calls PoseDB::load() on the path specified
-//      |)}>#
-//     void setDatabase(boost::filesystem::path dbPath);
-//     #<{(|* \brief Set a database of known poses to be used for pose estimation procedure.
-//      * \param[in] database PoseDB object to use as database
-//      |)}>#
-//     void setDatabase(Database& database);
-//
-//     #<{(|* \brief Generates list(s) of candidates to the query using the database provided as argument
-//      * \param[in] dbPath The path to the directory containing the database of poses, previously generated.
-//      * \return _True_ if successful, _false_ otherwise
-//      *
-//      * Note that this method also calls setDatabase() on the path specified for future lists computations.
-//      |)}>#
-//     bool generateLists(boost::filesystem::path dbPath);
-//
-//     #<{(|* \brief Generates list(s) of candidates to the query using the database provided as argument
-//      * \param[in] db The PoseDB object containing the database of poses, previously generated or loaded.
-//      * \return _True_ if successful, _false_ otherwise
-//      *
-//      * Note that this method also calls setDatabase() for future lists computations.
-//      |)}>#
-//     bool generateLists(Database& db);
-//
-//     #<{(|* \brief Generates list(s) of candidates to the query using previously set database
-//      * \return _True_ if successful, _false_ otherwise
-//      |)}>#
-//     bool generateLists();
-//
 //     #<{(|*\brief Start the refinement procedure with ICP to obtain a final candidate from the composite list
 //      * \return _True_ if refinement is successful and one final candidates is obtained, _false_ otherwise
 //      *
