@@ -38,6 +38,9 @@
 #include <pcl/registration/correspondence_rejection_distance.h>
 #include <pcl/registration/correspondence_estimation.h>
 #include <pcl/registration/transformation_estimation_dual_quaternion.h>
+#include <pcl/registration/transformation_estimation_lm.h>
+#include <pcl/registration/transformation_estimation_point_to_plane_lls.h>
+#include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/registration/icp.h>
 
 namespace pel
@@ -50,6 +53,9 @@ namespace pel
     protected:
       pcl::IterativeClosestPoint<Pt, Pt, float> icp_;
       pcl::registration::TransformationEstimationDualQuaternion<Pt,Pt,float>::Ptr te_dq_;
+      pcl::registration::TransformationEstimationLM<Pt,Pt,float>::Ptr te_lm_;
+      pcl::registration::TransformationEstimationPointToPlaneLLS<Pt,Pt,float> te_lls_;
+      pcl::registration::TransformationEstimationSVD<Pt,Pt,float> te_svd_;
     public:
       PEBruteForce ();
       virtual ~PEBruteForce () {}
@@ -58,6 +64,32 @@ namespace pel
        */
       virtual void
       estimate (Candidate& estimation);
+      /**\brief Tell ICP to use reciprocal correspondences or not
+       * \param[in] setting Whenever to use them or not
+       */
+      virtual inline void
+      setUseReciprocalCorrespondences (const bool setting = true)
+      {
+        icp_.setUseReciprocalCorrespondences(setting);
+      }
+      /**\brief Set Maximum ICP iterations to perform for each Candidate
+       *\param[in] iterations Desired number of iterations
+      */
+      virtual inline void
+      setMaxIterations (const unsigned int iterations = 100)
+      {
+        if (iterations > 0)
+          icp_.setMaximumIterations(iterations);
+      }
+      /**\brief Set RMSE threshold for a Candidate to converge
+       *\param[in] thresh The RMSE threshold to set
+       */
+      virtual inline void
+      setRMSEThreshold (const float thresh = 0.005)
+      {
+        if (thresh > 0)
+          icp_.setEuclideanFitnessEpsilon (std::pow(thresh,2));
+      }
   };
 }
 #endif

@@ -44,6 +44,14 @@ namespace pel
   PEBruteForce::PEBruteForce ()
   {
     te_dq_.reset(new pcl::registration::TransformationEstimationDualQuaternion<Pt,Pt,float>);
+    te_lm_.reset(new pcl::registration::TransformationEstimationLM<Pt,Pt,float>);
+    te_lls_.reset(new pcl::registration::TransformationEstimationPointToPlaneLLS<Pt,Pt,float>);
+    te_svd_.reset(new pcl::registration::TransformationEstimationSVD<Pt,Pt,float>);
+    icp_.setUseReciprocalCorrespondences(true);
+    icp_.setMaximumIterations (100);
+    icp_.setTransformationEpsilon (1e-9);
+    icp_.setEuclideanFitnessEpsilon (std::pow(0.005,2));
+    icp_.setTransformationEstimation(te_dq_);
   }
 
   void
@@ -62,11 +70,6 @@ namespace pel
       if (getParam("verbosity")>1)
         print_info("%*s]\tStarting Brute Force...\n",20,__func__);
       icp_.setInputTarget(target_cloud_processed);
-      icp_.setUseReciprocalCorrespondences(getParam("icp_reciprocal_corr"));
-      icp_.setMaximumIterations (getParam("icp_max_iterations"));
-      icp_.setTransformationEpsilon (1e-9);
-      icp_.setEuclideanFitnessEpsilon (std::pow(getParam("icp_rmse_thresh"),2));
-      icp_.setTransformationEstimation(te_dq_);
       for (auto& x: composite_list)
       {
         PtC::Ptr aligned (new PtC);
