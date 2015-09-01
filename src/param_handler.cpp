@@ -45,9 +45,6 @@ namespace pel
     params_["downsamp_leaf_size"]=0.005f;
     params_["upsamp"] = params_["filter"]=0;
     params_["lists_size"]=20;
-    params_["icp_max_iterations"]=200;
-    params_["icp_reciprocal_corr"]=1;
-    params_["icp_rmse_thresh"]=0.003f;
     params_["upsamp_poly_order"]=2;
     params_["upsamp_point_density"]=200;
     params_["upsamp_poly_fit"]=1;
@@ -103,9 +100,6 @@ namespace pel
     checkAndFixMinParam("downsamp_leaf_size", 0.0001);
     checkAndFixMinMaxParam("upsamp", 0,1);
     checkAndFixMinParam("lists_size", 1);
-    checkAndFixMinParam("icp_max_iterations", 1);
-    checkAndFixMinMaxParam("icp_reciprocal_corr", 0, 1);
-    checkAndFixMinParam("icp_rmse_thresh", 0.000001);
     checkAndFixMinParam("upsamp_poly_order", 1);
     checkAndFixMinParam("upsamp_point_density", 1);
     checkAndFixMinMaxParam("upsamp_poly_fit", 0, 1);

@@ -41,12 +41,11 @@
 
 namespace pel
 {
-  /**\brief Bare base interface for parameters handling
-   */
+  /**\brief Base interface for parameters handling */
   class ParamHandlerBase
   {
     public:
-      // Dtor
+      /// Destructor
       virtual ~ParamHandlerBase() =0;
       ///\brief Base interface for setParam
       virtual bool
@@ -67,9 +66,12 @@ namespace pel
       virtual inline parameters
       getAllParams () const =0;
   };
-  /**\brief Base class for parameters handling
+  /**\brief Class for parameters handling.
    *
-   * Cannot be used directly, but only inherithed
+   * Parameters contain key:value pairs to configure various aspects
+   * of Pose Estimation and Database creation. Such as radiuses of descriptors or thresholds.
+   * A list of valid keys with their default values are supplied in the \ref index "Main Page" or the config file included.
+   * \note Even if not pure virtual the class cannot be used directly, but only inherithed.
    */
   class ParamHandler : public ParamHandlerBase
   {
@@ -108,9 +110,9 @@ namespace pel
        * \param[in] config_file File containing parameters in yaml format
        * \returns The number of parameters set correctly, or (-1) in case of errors.
        *
-       * Note: Config file can be any file, but must contain a "key: value" on each line (with or without whitespaces). Lists or other
+       * \note Config file can be any file, but must contain a "key: value" on each line (with or without whitespaces). Lists or other
        * YAML contruct are not supported.
-       * Note2: config_file could specify a subset of all valid parameters (even only 1). in this case
+       * \note config_file could specify a subset of all valid parameters (even only 1). in this case
        * only specified parameters are set, others are left untouched.
        */
       virtual int
@@ -120,7 +122,7 @@ namespace pel
        * \param[in] par_map std::unorderd_map to set parameters from.
        * \returns The number of parameters set correctly, or (-1) in case of errors.
        *
-       * Note: par_map could be a subset of all valid parameters (even only 1), in this case only
+       * \note par_map could be a subset of all valid parameters (even only 1), in this case only
        * specified parameters are set, others are left untouched.
        */
       virtual int
@@ -147,7 +149,7 @@ namespace pel
        *\param[in] overwrite Truncate old file, if exists. If _False_ old file will be preserved.
        *\return _True_ if operation is succesful, _False_ otherwise.
        *
-       * Note: a .yaml extension gets appended to config_file if it has no extension.
+       * \note a .yaml extension gets appended to config_file if it has no extension.
        */
       virtual bool
       dumpParamsToFile (boost::filesystem::path config_file, bool overwrite=false) const;
@@ -159,7 +161,6 @@ namespace pel
       ///brief Print a single parameter on screen
       virtual void
       printParam (const std::string key) const;
-
   };
 }
 #endif //PEL_PARAM_HANDLER_H_

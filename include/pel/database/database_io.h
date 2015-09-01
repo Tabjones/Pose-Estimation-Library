@@ -45,8 +45,19 @@
 namespace pel
 {
   class Database;
-  /**\brief Reads(loads) a Database from disk.
+  /**\brief Reads (loads) a Database from disk.
    * Manages Database reading from disk, providing methods to load them.
+   * Example:
+   * \code
+   * #include <pel/database/database_io.h>
+   * #include <pel/database/database.h>
+   * //...
+   * pel::Database db; //Empty Database
+   * pel::DatabaseReader reader;
+   * reader.load ("path_to_db", db); //Read Database from location and stores it in db variable.
+   * pel::Database another_db;
+   * another_db = reader.reload(); //Reload from the same location as before and save it in another_db.
+   * \endcode
    * \author Federico Spinelli
    */
   class DatabaseReader
@@ -57,7 +68,7 @@ namespace pel
     public:
       /**\brief Empty Constructor
       */
-      DatabaseReader () {}
+      DatabaseReader () {last_loaded_.clear();}
 
       /**\brief Empty Destructor.
       */
@@ -68,7 +79,7 @@ namespace pel
        * \parma[out] target Database object to load into.
        * \returns _True_ if operation is succesful, _False_ otherwise.
        *
-       * If path is not valid or database fails to load, target is not touched
+       * \note If path is not valid or database fails to load, target is not touched
        */
       bool
       load (boost::filesystem::path path, Database& target);
@@ -77,19 +88,19 @@ namespace pel
        * \param[in] path Path to the directory on disk containing database to load
        * \returns The loaded Database.
        *
-       * If path is not valid or database fails to load, returns an empty database
+       * \note If path is not valid or database fails to load, returns an empty database
        */
       Database
       load (boost::filesystem::path path);
 
-      /**\brief Reload a database from the last succesfully loaded path
+      /**\brief Reload a database from the last succesfully loaded path.
        * \param[out] target Database object to load into.
        * \returns _True_ if operation is succesful, _False_ otherwise
        */
       bool
       reload (Database& target);
 
-      /**\brief Reload a database from the last succesfully loaded path
+      /**\brief Reload a database from the last succesfully loaded path.
        * \returns The loaded database, or an empty one if operation fails
        */
       Database
@@ -98,6 +109,16 @@ namespace pel
 
   /**\brief Writes(saves) a Database to disk.
    * Manages Database writing to disk, providing methods to save them.
+   * Example:
+   * \code
+   * #include <pel/database/database_io.h>
+   * //...
+   * // Create or load a database ...
+   * //...
+   * pel::DatabaseWriter writer;
+   * writer.save ("empty_location", db); //Save Database db to location.
+   * writer.save ("occupied_location", db, true); //Save the same Database to another location overwriting destination if not empty.
+   * \endcode
    * \author Federico Spinelli
    */
   class DatabaseWriter

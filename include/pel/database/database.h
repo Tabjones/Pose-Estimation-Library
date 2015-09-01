@@ -41,26 +41,33 @@
 namespace pel
 {
   /**\brief Stores the database of poses for PoseEstimation.
-   * Manages PoseEstimation database, providing methods to load and save them.
-   * The interface is used internally by PoseEstimation, however it can be used by the user
-   * to manage multiple databases and test PoseEstimation with them.
-   * For instance with setDatabase() method from PoseEstimation class.
+   *
+   * Manages Pose Estimation database.
+   * The interface is used internally by Pose Estimation Procedure, however it can be used by the user
+   * to manage multiple databases and test Pose Estimation with them, along with helper classes to load and save
+   * databases.
+   * \note See also DatabaseReader, DatabaseWriter and DatabaseCreator classes.
    *
    * Some examples:
    * \code
-   * Database db; //empty database
-   * db.load("/path/to/location"); //load a database from the specified location
-   * Database another_db ("/another/location"); //create another database and load it from another location
-   * PoseEstimation test; //create a pose estimation with default parameters
-   * test.setDatabase(db); //tell prova to use the first database
-   * //... setting target, parameters, etc...
-   * test.estimate;
-   * test.setDatabase(another_db); //now use the second database
-   * test.estimate; //estimate the same target again with another database
+   * #include <pel/pe_brute_force.h>
+   * #include <pel/database/database_io.h>
+   * //...
+   * pel::Database db1, db2; //empty databases
+   * pel::DatabaseReader reader;
+   * db1 = reader.load("/path/to/location"); //load a database from the specified location and stores it in db1
+   * db2 = db1; //Both databases contain the same
+   * db1 = reader.load("/patho/to/another/location"); //load another database and overwrite db1
+   * //...
+   * pel::PEBruteForce pose_estimation; //Declare a PoseEstimation object
+   * pose_estimation.setTarget(target); //Set its target
+   * pose_estimation.setDatabase(db1); //Use the first database
+   * pose_estimation.estimate(result1); //estimate the target with first database
+   * pose_estimation.setDatabase(db2); //Now use the second database
+   * pose_estimation.estimate(result2); //estimate the same target with second database
    * \endcode
    * \author Federico Spinelli
    */
-
   class Database
   {
     protected:
@@ -222,7 +229,7 @@ namespace pel
       {
         return (esf_idx_);
       }
-      //Friend functions
+      ///Friend functions of this class
       friend bool DatabaseReader::load (boost::filesystem::path, Database&);
       friend bool DatabaseWriter::save (boost::filesystem::path, const Database&, bool);
       friend Database DatabaseCreator::create (boost::filesystem::path path_cloud);

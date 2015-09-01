@@ -227,13 +227,19 @@ namespace pel
   bool
   DatabaseReader::reload (Database& target)
   {
-    return load(last_loaded_, target);
+    if (!last_loaded_.empty())
+      return load(last_loaded_, target);
+    else
+      return (false);
   }
 
   Database
   DatabaseReader::reload ()
   {
-    return load(last_loaded_);
+    if (!last_loaded_.empty())
+      return load(last_loaded_);
+    else
+      return Database();
   }
 
   bool

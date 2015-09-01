@@ -31,6 +31,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+//Doxygen Main Page
+/*! \mainpage notitle
+ *  Pose Estimation Library is mainly developed within the <a href="http://www.pacman-project.eu/">PaCMan Project</a> as a tool to obtain fast and accurate
+ *  Pose Estimations of known graspable objects. TODO
+ */
+
 #ifndef PEL_COMMON_H_
 #define PEL_COMMON_H_
 
@@ -68,20 +74,16 @@ namespace pel
   typedef flann::Index<flann::L2<float> > indexESF;
   ///Short writing of timestamps
   typedef boost::posix_time::ptime timestamp;
-  /// Enumerator for list of candidates
+  ///Enumerator for list of candidates
   enum class ListType {vfh, esf, cvfh, ourcvfh, composite};
-  /** Map that stores configuration parameters in a key=value fashion*/
+  /// Map that stores configuration parameters in a key=value fashion
   typedef std::unordered_map<std::string,float> parameters;
 
-  /**\addtogroup global Global Functions
-   *
-   * General utilities functions
-   * @{ */
   /**\brief Compute the MinMax distance between two histograms, used by CVFH and OURCVFH
    * \param[in] a The first histogram
    * \param[in] b The second histogram
    * \param[in] size Size of vectors
-   * \returns The computed dstance _D_
+   * \returns The computed distance _D_
    *
    * The distance _D_ is defined by the following metric:
    * \f[
@@ -90,12 +92,11 @@ namespace pel
    * where n=308 for CVFH/OURCVFH histograms
    */
   float
-  getMinMaxDistance (float* a, float* b, int size);
+  getMinMaxDistance (float* a, float* b, int size=308);
 
   /**\brief Check if passed path could contain a valid database
    * \param[in] db_path The path to check
    * \returns _True_ if valid, _False_ otherwise
-   * @}
    */
   bool
   isValidDatabasePath (boost::filesystem::path db_path);

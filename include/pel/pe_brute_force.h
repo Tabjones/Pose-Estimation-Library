@@ -45,8 +45,32 @@
 
 namespace pel
 {
-  //TODO remove parameters for icp and add methods to control them here.
-  /**\brief Brute Force explanation docs.
+  /**\brief Implements Pose Estimation procedure with Brute Force ICP refinement.
+   *
+   * This class is used to achieve pose estimation of a Target point cloud, using a loaded Database.
+   * Brute Force method generates a list of Candidate(s), selecting them from Database, according to various global descriptors (VFH, ESF, ...).
+   * Then, starting from the most suitable Candidate onward, it aligns them one by one with ICP until one falls under the
+   * specified RMSE threshold or ICP steps run out. If one Candidate converges, it is reported as the final Pose Estimation of the Target. If none
+   * converged the procedure fails.
+   * Typical usage:
+   * \code
+   * #include <pel/pe_brute_force.h>
+   * //... Load a point cloud from disk, containing a view of an object to be identified. Store it in obj_cloud pointer.
+   * pel::PEBruteForce estimator;
+   * estimator.loadAndSetDatabase("path_to_db_on_disk"); //Load a Database and use it for Pose Estimation
+   * estimator.setTarget(obj_cloud, "my target"); //Set my newly loaded target
+   * //Optionally adjust Brute Force behaviour
+   * estimator.setMaxIterations(300); //How many steps of ICP for each Candidate
+   * estimator.setRMSEThreshold(0.001); //Convergence criteria for ICP: Candidate must align over target with no more than 1mm of error.
+   * estimator.setUseLM(); //Use Levenberg Marquardt method to estimate a transformation during ICP steps.
+   * pel::Candidate final_pose_estimation;
+   * estimator.estimate (final_pose_estimation); //Perform Pose Estimation and put winner Candidate into final_pose_estimation.
+   * //... We can check its RMSE and Transformation
+   * std::cout<<"Winner is: "<<final_pose_estimation.getName().c_str()<<std::endl;
+   * std::cout<<"RMSE: "<<final_pose_estimation.getRMSE()<<std::endl;
+   * std::cout<<"Rigid Transformation:"<<std::endl;
+   * std::cout<<final_pose_estimation.getTransformation();
+   * \endcode
    */
   class PEBruteForce : public PoseEstimationBase
   {
@@ -58,12 +82,12 @@ namespace pel
     public:
       PEBruteForce ();
       virtual ~PEBruteForce () {}
-      /**\brief Get a Pose Estimation for the previously set target, using the previously set Database, with Brute Force method
+      /**\brief Get a Pose Estimation for the previously set target, using the previously set Database, with Brute Force method.
        * \param[out] estimation Final Pose Estimation of the Target as a Candidate object
        */
       virtual void
       estimate (Candidate& estimation);
-      /**\brief Tell ICP to use reciprocal correspondences or not
+      /**\brief Tell ICP to use reciprocal correspondences or not.
        * \param[in] setting Whenever to use them or not
        */
       virtual inline void
@@ -71,7 +95,7 @@ namespace pel
       {
         icp_.setUseReciprocalCorrespondences(setting);
       }
-      /**\brief Set Maximum ICP iterations to perform for each Candidate
+      /**\brief Set Maximum ICP iterations to perform for each Candidate.
        *\param[in] iterations Desired number of iterations
       */
       virtual inline void
@@ -80,7 +104,7 @@ namespace pel
         if (iterations > 0)
           icp_.setMaximumIterations(iterations);
       }
-      /**\brief Set RMSE threshold for a Candidate to converge
+      /**\brief Set RMSE threshold for a Candidate to converge.
        *\param[in] thresh The RMSE threshold to set
        */
       virtual inline void
@@ -89,7 +113,7 @@ namespace pel
         if (thresh > 0)
           icp_.setEuclideanFitnessEpsilon (std::pow(thresh,2));
       }
-      /**\brief Set transformation estimation for ICP to Dual Quaternion method (default)
+      /**\brief Set transformation estimation for ICP to Dual Quaternion method (default).
        */
       virtual inline void
       setUseDQ()
@@ -104,7 +128,7 @@ namespace pel
       {
         icp_.setTransformationEstimation(te_lm_);
       }
-      /**\brief Set transformation estimation for ICP to SVD-based method
+      /**\brief Set transformation estimation for ICP to SVD-based method.
        * Default is to use Dual Quaternion Method
        */
       virtual inline void

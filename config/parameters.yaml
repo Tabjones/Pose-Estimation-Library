@@ -22,9 +22,6 @@ filter: 0
 filter_mean_k: 50
 filter_std_dev_mul_thresh: 3
 lists_size: 20
-icp_max_iterations: 200
-icp_rmse_thresh: 0.003
-icp_reciprocal_corr: 1
 normals_radius_search: 0.02
 cvfh_ang_thresh: 7.5
 cvfh_curv_thresh: 0.025

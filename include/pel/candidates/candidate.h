@@ -76,7 +76,7 @@ namespace pel
       /** \brief Get Candidate Rank from the list of candidates it belongs
        * \return The rank of Candidate (if any) in the list, otherwise returns 0
        *
-       * A Candidate has a rank only after list(s) of Candidates are built by PoseEstimation
+       * \note A Candidate has a rank only after list(s) of Candidates are built by PoseEstimation
        */
       inline int
       getRank () const
@@ -87,7 +87,7 @@ namespace pel
       /** \brief Get the distance of Candidate from target point cloud in the metric chosen by the feature
        * \return The distance of candidate from target point cloud (if any), otherwise -1
        *
-       * A Candidate has a distance only after list(s) of Candidates are built by PoseEstimation
+       * \note A Candidate has a distance only after list(s) of Candidates are built by PoseEstimation
        */
       inline float
       getDistance () const
@@ -98,9 +98,9 @@ namespace pel
       /** \brief Get the normalized distance of Candidate from target point cloud
        * \return The normalized distance of candidate from target point cloud (if any), otherwise -1
        *
-       * Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k", they are indipendent of the
+       * \note Normalized distances range from 0 to 1, zero at "rank 1" and one at "rank k", they are indipendent of the
        * current metric chosen to calculate them, thus could be compared with other normalized distances from other
-       * lists. A Candidate has a normalized distance only after list(s) of Candidates are built by PoseEstimation
+       * lists. A Candidate has a normalized distance only after list(s) of Candidates are built by generateLists
        */
       inline float
       getNormalizedDistance () const
@@ -111,7 +111,7 @@ namespace pel
       /** \brief Get Root Mean Square Error of Candidate from target point cloud
        * \return The Root Mean Square Error of the Candidate (if any), otherwise -1
        *
-       * A Candidate has an RMSE only after the refinement process has been performed by PoseEstimation
+       * \noe A Candidate has an RMSE only after pose estimation process has been performed
        */
       inline float
       getRMSE () const
@@ -122,7 +122,7 @@ namespace pel
       /** \brief Get Homogeneous Transformation that brings Candidate cloud over target cloud
        * \return The transformation that brings Candidate cloud over target cloud (if any), otherwise returns Identity matrix
        *
-       * Candidates has a transformation only after refinement process has been performed by PoseEstimation
+       * \note A Candidate has a transformation only after pose estimation process has been performed
        */
       inline Eigen::Matrix4f
       getTransformation () const

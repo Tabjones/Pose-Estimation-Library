@@ -48,6 +48,24 @@ namespace pel
   class Database;
   /**\brief Creates a Database from acquired poses, uses inherited parameters handle.
    *
+   * Example usage:
+   * \code
+   * #include <pel/database/database_creator.h>
+   * #include <pel/database/database_io.h>
+   * #include <pel/database/database.h>
+   * //...
+   * pel::Database db; //Empty Database
+   * pel::DatabaseCreator creator;
+   * db = creator.create("path_to_pcd_poses");
+   * //... optionally save the newly created database to disk
+   * pel::DatabaseWriter writer;
+   * writer.save ("db_location", db);
+   * //... Create another one with different parameters
+   * creator.setParam("use_esf", 0); //Disable ESF descriptor
+   * db = creator.create("path_to_pcd_poses");
+   * \endcode
+   * \note When creating databases, please note that database poses and target of pose estimation should have the same parameters.
+   * In the above example, the second database does not contain ESF descriptor, hence also the Pose Estimation procedure must disable ESF, when using that database.
    * \author Federico Spinelli
    */
   class DatabaseCreator : public ParamHandler
@@ -62,12 +80,15 @@ namespace pel
       virtual ~DatabaseCreator () {}
 
       /**\brief Create a database from a set of poses
-       * \param[in] path_clouds Path to a directory that stores pcds of poses to create database from.
+       * \param[in] path_clouds Path to a directory that contains pcds of poses to create database from.
        * \returns Database created from supplied poses, or empty one if failed.
        *
-       * Note: building a database from scratch could take several minutes, depending on how many
-       * poses are supplied, and your processing power.
-       * Note: Default parameters are used, if you want to change them used methods inherited by ParamHandler
+       * \note Each pcd file must have unique names, must contain only the point cloud of the object pose and it must be expressed in a local reference frame.
+       * The local reference frame can be any, but must be the same for all the poses of the same object. For example you could chose as origin the object centroid,
+       * as _z-axis_ the "up" direction and as _x-axis_ an object feature (like and handle).
+       * Then all the poses representing the same object must retain the same reference frame. For more information on this you can look at the \ref index "Main Page".
+       * \note Building a database from scratch could take several minutes, depending on how many poses are supplied, and your processing power.
+       * \note Default parameters are used, if you want to change them use methods inherited by ParamHandler.
        */
       Database
       create (boost::filesystem::path path_clouds);

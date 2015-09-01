@@ -38,7 +38,7 @@
 
 namespace pel
 {
-  /**\brief Class Target describes an object to be estimated
+  /**\brief Class Target describes an object to be estimated, all implementation is done into PoseEstimationBase
    */
   class Target
   {

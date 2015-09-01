@@ -40,6 +40,9 @@
 
 namespace pel
 {
+  /**\brief Class CandidateLists implements various lists of Candidates, one for each descriptor plus the composite one
+   * \note Lists are generated during the Pose Estimation procedure.
+   */
   class CandidateLists
   {
     public:
@@ -47,12 +50,6 @@ namespace pel
       CandidateLists () {}
       ///Destructor
       virtual ~CandidateLists () {}
-    protected:
-      std::vector<Candidate> vfh_list, esf_list, cvfh_list, ourcvfh_list, composite_list;
-
-      ///\brief Prototype function for list generation
-      virtual bool
-      generateLists() =0;
 
       /**\brief Return a list of choice
        *\param[in] type ListType enum to choose which list to return
@@ -65,6 +62,13 @@ namespace pel
       */
       void
       printCandidateList (ListType type) const;
+    protected:
+      std::vector<Candidate> vfh_list, esf_list, cvfh_list, ourcvfh_list, composite_list;
+
+      ///\brief Prototype function for list generation
+      virtual bool
+      generateLists() =0;
+
       /**\brief Sort lists based on Minimum RMSE
        * \param[in] type Which ListType to sort
        * \returns _True_ if sorting succeded, _False_ otherwise
@@ -93,5 +97,4 @@ namespace pel
       findAndEraseCandidate(std::vector<Candidate>& list, std::string name, float dist);
   };
 }
-
 #endif //PEL_CANDIDATES_CANDIDATE_LIST_H_
