@@ -33,8 +33,12 @@
 
 //Doxygen Main Page
 /*! \mainpage notitle
+ *  \section intro Introduction
+ *  Pose Estimation Library (PEL) provides tools to perform accurate and fast pose estimations of objects, represented by point clouds, to be used in Robotics applications in order
+ *  to achieve robust grasps. The library provides the user with some methods, that TODO
  *  Pose Estimation Library is mainly developed within the <a href="http://www.pacman-project.eu/">PaCMan Project</a> as a tool to obtain fast and accurate
- *  Pose Estimations of known graspable objects. TODO
+ *  Pose Estimations of known graspable objects. The work implemented here is derived from the author's master thesis in Robotics Engineering, which is available
+ *  online, as a further reference, from University of Pisa <a href="https://etd.adm.unipi.it/theses/available/etd-09022014-142255/unrestricted/tesi.pdf">Online Thesis Archive</a>.
  */
 
 #ifndef PEL_COMMON_H_
