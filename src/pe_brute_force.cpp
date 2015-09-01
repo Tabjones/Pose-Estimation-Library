@@ -45,7 +45,6 @@ namespace pel
   {
     te_dq_.reset(new pcl::registration::TransformationEstimationDualQuaternion<Pt,Pt,float>);
     te_lm_.reset(new pcl::registration::TransformationEstimationLM<Pt,Pt,float>);
-    te_lls_.reset(new pcl::registration::TransformationEstimationPointToPlaneLLS<Pt,Pt,float>);
     te_svd_.reset(new pcl::registration::TransformationEstimationSVD<Pt,Pt,float>);
     icp_.setUseReciprocalCorrespondences(true);
     icp_.setMaximumIterations (100);

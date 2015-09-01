@@ -54,8 +54,7 @@ namespace pel
       pcl::IterativeClosestPoint<Pt, Pt, float> icp_;
       pcl::registration::TransformationEstimationDualQuaternion<Pt,Pt,float>::Ptr te_dq_;
       pcl::registration::TransformationEstimationLM<Pt,Pt,float>::Ptr te_lm_;
-      pcl::registration::TransformationEstimationPointToPlaneLLS<Pt,Pt,float> te_lls_;
-      pcl::registration::TransformationEstimationSVD<Pt,Pt,float> te_svd_;
+      pcl::registration::TransformationEstimationSVD<Pt,Pt,float>::Ptr te_svd_;
     public:
       PEBruteForce ();
       virtual ~PEBruteForce () {}
@@ -89,6 +88,29 @@ namespace pel
       {
         if (thresh > 0)
           icp_.setEuclideanFitnessEpsilon (std::pow(thresh,2));
+      }
+      /**\brief Set transformation estimation for ICP to Dual Quaternion method (default)
+       */
+      virtual inline void
+      setUseDQ()
+      {
+        icp_.setTransformationEstimation(te_dq_);
+      }
+      /**\brief Set transformation estimation for ICP to Levenberg Marquardt method.
+       * Default is to use Dual Quaternion Method
+       */
+      virtual inline void
+      setUseLM()
+      {
+        icp_.setTransformationEstimation(te_lm_);
+      }
+      /**\brief Set transformation estimation for ICP to SVD-based method
+       * Default is to use Dual Quaternion Method
+       */
+      virtual inline void
+      setUseSVD()
+      {
+        icp_.setTransformationEstimation(te_svd_);
       }
   };
 }
