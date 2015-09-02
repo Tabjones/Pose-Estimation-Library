@@ -86,7 +86,7 @@ namespace pel
        * \note Each pcd file must have unique names, must contain only the point cloud of the object pose and it must be expressed in a local reference frame.
        * The local reference frame can be any, but must be the same for all the poses of the same object. For example you could chose as origin the object centroid,
        * as _z-axis_ the "up" direction and as _x-axis_ an object feature (like and handle).
-       * Then all the poses representing the same object must retain the same reference frame. For more information on this you can look at the \ref index "Main Page".
+       * Then all the poses representing the same object must retain the same reference frame. For more information on this you can look at the \ref databse "Database section of the User Guide".
        * \note Building a database from scratch could take several minutes, depending on how many poses are supplied, and your processing power.
        * \note Default parameters are used, if you want to change them use methods inherited by ParamHandler.
        */

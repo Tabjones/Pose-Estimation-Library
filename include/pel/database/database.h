@@ -59,7 +59,7 @@ namespace pel
    * db2 = db1; //Both databases contain the same
    * db1 = reader.load("/patho/to/another/location"); //load another database and overwrite db1
    * //...
-   * pel::PEBruteForce pose_estimation; //Declare a PoseEstimation object
+   * pel::interface::PEBruteForce pose_estimation; //Declare a PoseEstimation object
    * pose_estimation.setTarget(target); //Set its target
    * pose_estimation.setDatabase(db1); //Use the first database
    * pose_estimation.estimate(result1); //estimate the target with first database

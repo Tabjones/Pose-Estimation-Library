@@ -36,4 +36,11 @@
 
 #include <pel/pose_estimation_base.h>
 
+namespace pel
+{
+  namespace interface
+  {
+  }
+}
+
 #endif

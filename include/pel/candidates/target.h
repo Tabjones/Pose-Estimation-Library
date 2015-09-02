@@ -43,9 +43,7 @@ namespace pel
   class Target
   {
     public:
-      /**\brief Empty constructor */
       Target () {}
-      /**\brief Destructor */
       virtual ~Target () {}
     protected:
       ///computeVFH prototype

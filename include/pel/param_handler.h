@@ -45,7 +45,6 @@ namespace pel
   class ParamHandlerBase
   {
     public:
-      /// Destructor
       virtual ~ParamHandlerBase() =0;
       ///\brief Base interface for setParam
       virtual bool
@@ -70,7 +69,7 @@ namespace pel
    *
    * Parameters contain key:value pairs to configure various aspects
    * of Pose Estimation and Database creation. Such as radiuses of descriptors or thresholds.
-   * A list of valid keys with their default values are supplied in the \ref index "Main Page" or the config file included.
+   * A list of valid keys with their default values are supplied in the \ref params "Parameters section of User Guide page" or the config file supplied with PEL.
    * \note Even if not pure virtual the class cannot be used directly, but only inherithed.
    */
   class ParamHandler : public ParamHandlerBase
@@ -96,7 +95,6 @@ namespace pel
       checkAndFixMinParam (std::string key, const float min);
 
     public:
-      ///destructor
       virtual ~ParamHandler () {}
       /**\brief Set a param from a float value
        * \param[in] key Valid key that identifies a parameter, look at docs for a valid keys list

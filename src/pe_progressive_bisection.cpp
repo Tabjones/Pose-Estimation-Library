@@ -29,253 +29,255 @@
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 
 #include <pel/pe_progressive_bisection.h>
 
 namespace pel
 {
-  /*
-
-  bool PoseEstimation::refineCandidates()
+  namespace interface
   {
-    if (!candidates_found_)
+    /*
+
+       bool PoseEstimation::refineCandidates()
+       {
+       if (!candidates_found_)
+       {
+       print_error("%*s]\tList of Candidates are not yet generated, call generateLists first...\n",20,__func__);
+       return false;
+       }
+       if (local_query_)
+       print_error("%*s]\tQuery in local reference system in not implemented yet, set another query or transform it, exiting...\n",20,__func__); //TODO implement this
+       CentroidPoint<Pt> qct;
+       for (int i=0; i<query_cloud_->points.size(); ++i)
+       qct.add(query_cloud_->points[i]);
+       Pt query_centroid;
+       qct.get(query_centroid);
+       if (params_["progBisection"]>0)
+       {
+    //ProgressiveBisection
+    if (params_["verbosity"]>1)
+    print_info("%*s]\tStarting Progressive Bisection...\n",20,__func__);
+    StopWatch timer;
+    timer.reset();
+    vector<Candidate> list; //make a temporary list to manipulate
+    boost::copy(composite_list_, back_inserter(list));
+    IterativeClosestPoint<Pt, Pt, float> icp;
+    icp.setInputTarget(query_cloud_); //query
+    icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
+    icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
+    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
+    icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
+    int steps (0);
+    while (list.size() > 1)
     {
-      print_error("%*s]\tList of Candidates are not yet generated, call generateLists first...\n",20,__func__);
-      return false;
-    }
-    if (local_query_)
-      print_error("%*s]\tQuery in local reference system in not implemented yet, set another query or transform it, exiting...\n",20,__func__); //TODO implement this
-    CentroidPoint<Pt> qct;
-    for (int i=0; i<query_cloud_->points.size(); ++i)
-      qct.add(query_cloud_->points[i]);
-    Pt query_centroid;
-    qct.get(query_centroid);
-    if (params_["progBisection"]>0)
+    for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
     {
-      //ProgressiveBisection
-      if (params_["verbosity"]>1)
-        print_info("%*s]\tStarting Progressive Bisection...\n",20,__func__);
-      StopWatch timer;
-      timer.reset();
-      vector<Candidate> list; //make a temporary list to manipulate
-      boost::copy(composite_list_, back_inserter(list));
-      IterativeClosestPoint<Pt, Pt, float> icp;
-      icp.setInputTarget(query_cloud_); //query
-      icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
-      icp.setMaximumIterations (params_["progItera"]); //max iterations to perform
-      icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
-      icp.setEuclideanFitnessEpsilon (1e-9); //not using it (sum of euclidean distances between points)
-      int steps (0);
-      while (list.size() > 1)
-      {
-        for (vector<Candidate>::iterator it=list.begin(); it!=list.end(); ++it)
-        {
-          PtC::Ptr aligned (new PtC);
-          PtC::Ptr candidate (new PtC);
-          copyPointCloud(*(it->cloud_), *candidate);
-          candidate->sensor_origin_.setZero();
-          candidate->sensor_orientation_.setIdentity();
-          //icp align source over target, result in aligned
-          icp.setInputSource(candidate); //the candidate
-          Eigen::Matrix4f guess;
-          if (steps >0)
-            guess = it->transformation_;
-          else
-          {
-            Eigen::Matrix4f T_kli, T_cen;
-            CentroidPoint<Pt> cct;
-            Pt candidate_centroid;
-            if (this->database_.isLocal())
-            { //database is in local frame
-              Eigen::Matrix3f R (it->cloud_->sensor_orientation_);
-              Eigen::Vector4f t;
-              t = it->cloud_->sensor_origin_;
-              T_kli << R(0,0), R(0,1), R(0,2), t(0),
-                    R(1,0), R(1,1), R(1,2), t(1),
-                    R(2,0), R(2,1), R(2,2), t(2),
-                    0,      0,      0,      1;
-              PtC::Ptr cloud_in_k (new PtC);
-              transformPointCloud(*candidate, *cloud_in_k, T_kli);
-              for (int i=0; i< cloud_in_k->points.size(); ++i)
-                cct.add(cloud_in_k->points[i]);
-              cct.get(candidate_centroid);
-              T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
-                    0,1,0, (query_centroid.y - candidate_centroid.y),
-                    0,0,1, (query_centroid.z - candidate_centroid.z),
-                    0,0,0, 1;
-              guess = T_cen*T_kli;
-            }
-            else
-            { //database is in sensor frame, just get centroid
-              for (int i=0; i< it->cloud_->points.size(); ++i)
-                cct.add(it->cloud_->points[i]);
-              cct.get(candidate_centroid);
-              T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
-                    0,1,0, (query_centroid.y - candidate_centroid.y),
-                    0,0,1, (query_centroid.z - candidate_centroid.z),
-                    0,0,0, 1;
-              guess = T_cen;
-            }
-          }
-          icp.align(*aligned, guess); //initial gross estimation
-          it->transformation_ = icp.getFinalTransformation();
-          it->rmse_ = sqrt(icp.getFitnessScore());
-          if (params_["verbosity"]>1)
-          {
-            print_info("%*s]\tCandidate: ",20,__func__);
-            print_value("%-15s",it->name_.c_str());
-            print_info(" just performed %d ICP iterations, its RMSE is: ", (int)params_["progItera"]);
-            print_value("%g\n",it->rmse_);
-          }
-        }
-        ++steps;
-        //now resort list
-        sort(list.begin(), list.end(),
-            [](Candidate const &a, Candidate const &b)
-            {
-            return (a.rmse_ < b.rmse_ );
-            });
-        //check if candidate falled under rmse threshold, no need to check them all since list is now sorted with min rmse on top
-        if (list[0].rmse_ < params_["rmseThreshold"] )
-        {
-          //convergence
-          pose_estimation_.reset();
-          pose_estimation_ = boost::make_shared<Candidate>(list[0]);
-          refinement_done_=true;
-          if (params_["verbosity"]>1)
-          {
-            print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
-            print_info("%*s]\tFinal transformation is:\n",20,__func__);
-            cout<<pose_estimation_->transformation_<<endl;
-            print_info("%*s]\tTotal time elapsed in Progressive Bisection: ",20,__func__);
-            print_value("%g",timer.getTime());
-            print_info(" ms\n");
-          }
-          return true;
-        }
-        else
-        {
-          //no convergence, resize list
-          int size = list.size();
-          size *= params_["progFraction"];
-          list.resize(size);
-          if (params_["verbosity"]>1)
-            print_info("%*s]\tResizing... Keeping %d%% of previous list\n",20,__func__,(int)(params_["progFraction"]*100));
-        }
-      }
-      //only one candidate remained, he wins!
-      pose_estimation_.reset();
-      pose_estimation_ = boost::make_shared<Candidate>(list[0]);
-      refinement_done_=true;
-      if (params_["verbosity"]>1)
-      {
-        print_info("%*s]\tCandidate %s survived progressive bisection with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
-        print_info("%*s]\tFinal transformation is:\n",20,__func__);
-        cout<<pose_estimation_->transformation_<<endl;
-        print_info("%*s]\tTotal time elapsed in Progressive Bisection: ",20,__func__);
-        print_value("%g",timer.getTime());
-        print_info(" ms\n");
-      }
-      return true;
-    }
+    PtC::Ptr aligned (new PtC);
+    PtC::Ptr candidate (new PtC);
+    copyPointCloud(*(it->cloud_), *candidate);
+    candidate->sensor_origin_.setZero();
+    candidate->sensor_orientation_.setIdentity();
+    //icp align source over target, result in aligned
+    icp.setInputSource(candidate); //the candidate
+    Eigen::Matrix4f guess;
+    if (steps >0)
+    guess = it->transformation_;
     else
     {
-      //BruteForce
-      if (params_["verbosity"]>1)
-        print_info("%*s]\tStarting Brute Force...\n",20,__func__);
-      StopWatch timer;
-      timer.reset();
-      IterativeClosestPoint<Pt, Pt, float> icp;
-      icp.setInputTarget(query_cloud_); //query
-      icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
-      icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
-      icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
-      icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2));
-      for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
+    Eigen::Matrix4f T_kli, T_cen;
+    CentroidPoint<Pt> cct;
+    Pt candidate_centroid;
+    if (this->database_.isLocal())
+    { //database is in local frame
+    Eigen::Matrix3f R (it->cloud_->sensor_orientation_);
+    Eigen::Vector4f t;
+    t = it->cloud_->sensor_origin_;
+    T_kli << R(0,0), R(0,1), R(0,2), t(0),
+    R(1,0), R(1,1), R(1,2), t(1),
+    R(2,0), R(2,1), R(2,2), t(2),
+    0,      0,      0,      1;
+    PtC::Ptr cloud_in_k (new PtC);
+    transformPointCloud(*candidate, *cloud_in_k, T_kli);
+    for (int i=0; i< cloud_in_k->points.size(); ++i)
+    cct.add(cloud_in_k->points[i]);
+    cct.get(candidate_centroid);
+    T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+    0,1,0, (query_centroid.y - candidate_centroid.y),
+    0,0,1, (query_centroid.z - candidate_centroid.z),
+    0,0,0, 1;
+    guess = T_cen*T_kli;
+    }
+    else
+    { //database is in sensor frame, just get centroid
+      for (int i=0; i< it->cloud_->points.size(); ++i)
+        cct.add(it->cloud_->points[i]);
+      cct.get(candidate_centroid);
+      T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+            0,1,0, (query_centroid.y - candidate_centroid.y),
+            0,0,1, (query_centroid.z - candidate_centroid.z),
+            0,0,0, 1;
+      guess = T_cen;
+    }
+  }
+  icp.align(*aligned, guess); //initial gross estimation
+  it->transformation_ = icp.getFinalTransformation();
+  it->rmse_ = sqrt(icp.getFitnessScore());
+  if (params_["verbosity"]>1)
+  {
+    print_info("%*s]\tCandidate: ",20,__func__);
+    print_value("%-15s",it->name_.c_str());
+    print_info(" just performed %d ICP iterations, its RMSE is: ", (int)params_["progItera"]);
+    print_value("%g\n",it->rmse_);
+  }
+  }
+  ++steps;
+  //now resort list
+  sort(list.begin(), list.end(),
+      [](Candidate const &a, Candidate const &b)
       {
-        PtC::Ptr aligned (new PtC);
-        PtC::Ptr candidate (new PtC);
-        copyPointCloud(*(it->cloud_), *candidate);
-        //icp align source over target, result in aligned
-        candidate->sensor_origin_.setZero();
-        candidate->sensor_orientation_.setIdentity();
-        icp.setInputSource(candidate); //the candidate
-        Eigen::Matrix4f T_kli, T_cen, guess;
-        CentroidPoint<Pt> cct;
-        Pt candidate_centroid;
-        if (this->database_.isLocal())
-        { //database is in local frame
-          Eigen::Matrix3f R( it->cloud_->sensor_orientation_ );
-          Eigen::Vector4f t;
-          t = it->cloud_->sensor_origin_;
-          T_kli << R(0,0), R(0,1), R(0,2), t(0),
-                R(1,0), R(1,1), R(1,2), t(1),
-                R(2,0), R(2,1), R(2,2), t(2),
-                0,      0,      0,      1;
-          PtC::Ptr cloud_in_k (new PtC);
-          transformPointCloud(*(it->cloud_), *cloud_in_k, T_kli);
-          for (int i=0; i< cloud_in_k->points.size(); ++i)
-            cct.add(cloud_in_k->points[i]);
-          cct.get(candidate_centroid);
-          T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
-                0,1,0, (query_centroid.y - candidate_centroid.y),
-                0,0,1, (query_centroid.z - candidate_centroid.z),
-                0,0,0, 1;
-          guess = T_cen*T_kli;
-        }
-        else
-        { //database is in sensor frame, just get centroid
-          for (int i=0; i< it->cloud_->points.size(); ++i)
-            cct.add(it->cloud_->points[i]);
-          cct.get(candidate_centroid);
-          T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
-                0,1,0, (query_centroid.y - candidate_centroid.y),
-                0,0,1, (query_centroid.z - candidate_centroid.z),
-                0,0,0, 1;
-          guess = T_cen;
-        }
-        icp.align(*aligned, guess);
-        it->transformation_ = icp.getFinalTransformation();
-        it->rmse_ = sqrt(icp.getFitnessScore());
+      return (a.rmse_ < b.rmse_ );
+      });
+  //check if candidate falled under rmse threshold, no need to check them all since list is now sorted with min rmse on top
+  if (list[0].rmse_ < params_["rmseThreshold"] )
+  {
+    //convergence
+    pose_estimation_.reset();
+    pose_estimation_ = boost::make_shared<Candidate>(list[0]);
+    refinement_done_=true;
+    if (params_["verbosity"]>1)
+    {
+      print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
+      print_info("%*s]\tFinal transformation is:\n",20,__func__);
+      cout<<pose_estimation_->transformation_<<endl;
+      print_info("%*s]\tTotal time elapsed in Progressive Bisection: ",20,__func__);
+      print_value("%g",timer.getTime());
+      print_info(" ms\n");
+    }
+    return true;
+  }
+  else
+  {
+    //no convergence, resize list
+    int size = list.size();
+    size *= params_["progFraction"];
+    list.resize(size);
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tResizing... Keeping %d%% of previous list\n",20,__func__,(int)(params_["progFraction"]*100));
+  }
+  }
+  //only one candidate remained, he wins!
+  pose_estimation_.reset();
+  pose_estimation_ = boost::make_shared<Candidate>(list[0]);
+  refinement_done_=true;
+  if (params_["verbosity"]>1)
+  {
+    print_info("%*s]\tCandidate %s survived progressive bisection with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
+    print_info("%*s]\tFinal transformation is:\n",20,__func__);
+    cout<<pose_estimation_->transformation_<<endl;
+    print_info("%*s]\tTotal time elapsed in Progressive Bisection: ",20,__func__);
+    print_value("%g",timer.getTime());
+    print_info(" ms\n");
+  }
+  return true;
+  }
+  else
+  {
+    //BruteForce
+    if (params_["verbosity"]>1)
+      print_info("%*s]\tStarting Brute Force...\n",20,__func__);
+    StopWatch timer;
+    timer.reset();
+    IterativeClosestPoint<Pt, Pt, float> icp;
+    icp.setInputTarget(query_cloud_); //query
+    icp.setUseReciprocalCorrespondences(params_["icpReciprocal"]);
+    icp.setMaximumIterations (params_["maxIterations"]); //max iterations to perform
+    icp.setTransformationEpsilon (1e-9); //difference between consecutive transformations
+    icp.setEuclideanFitnessEpsilon (pow(params_["rmseThreshold"],2));
+    for (vector<Candidate>::iterator it=composite_list_.begin(); it!=composite_list_.end(); ++it)
+    {
+      PtC::Ptr aligned (new PtC);
+      PtC::Ptr candidate (new PtC);
+      copyPointCloud(*(it->cloud_), *candidate);
+      //icp align source over target, result in aligned
+      candidate->sensor_origin_.setZero();
+      candidate->sensor_orientation_.setIdentity();
+      icp.setInputSource(candidate); //the candidate
+      Eigen::Matrix4f T_kli, T_cen, guess;
+      CentroidPoint<Pt> cct;
+      Pt candidate_centroid;
+      if (this->database_.isLocal())
+      { //database is in local frame
+        Eigen::Matrix3f R( it->cloud_->sensor_orientation_ );
+        Eigen::Vector4f t;
+        t = it->cloud_->sensor_origin_;
+        T_kli << R(0,0), R(0,1), R(0,2), t(0),
+              R(1,0), R(1,1), R(1,2), t(1),
+              R(2,0), R(2,1), R(2,2), t(2),
+              0,      0,      0,      1;
+        PtC::Ptr cloud_in_k (new PtC);
+        transformPointCloud(*(it->cloud_), *cloud_in_k, T_kli);
+        for (int i=0; i< cloud_in_k->points.size(); ++i)
+          cct.add(cloud_in_k->points[i]);
+        cct.get(candidate_centroid);
+        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+              0,1,0, (query_centroid.y - candidate_centroid.y),
+              0,0,1, (query_centroid.z - candidate_centroid.z),
+              0,0,0, 1;
+        guess = T_cen*T_kli;
+      }
+      else
+      { //database is in sensor frame, just get centroid
+        for (int i=0; i< it->cloud_->points.size(); ++i)
+          cct.add(it->cloud_->points[i]);
+        cct.get(candidate_centroid);
+        T_cen << 1,0,0, (query_centroid.x - candidate_centroid.x),
+              0,1,0, (query_centroid.y - candidate_centroid.y),
+              0,0,1, (query_centroid.z - candidate_centroid.z),
+              0,0,0, 1;
+        guess = T_cen;
+      }
+      icp.align(*aligned, guess);
+      it->transformation_ = icp.getFinalTransformation();
+      it->rmse_ = sqrt(icp.getFitnessScore());
+      if (params_["verbosity"]>1)
+      {
+        print_info("%*s]\tCandidate: ",20,__func__);
+        print_value("%-15s",it->name_.c_str());
+        print_info(" just performed ICP alignment, its RMSE is: ");
+        print_value("%g\n",it->rmse_);
+      }
+      if (it->rmse_ < params_["rmseThreshold"])
+      {
+        //convergence
+        pose_estimation_.reset();
+        pose_estimation_ = boost::make_shared<Candidate>(*it);
+        refinement_done_=true;
         if (params_["verbosity"]>1)
         {
-          print_info("%*s]\tCandidate: ",20,__func__);
-          print_value("%-15s",it->name_.c_str());
-          print_info(" just performed ICP alignment, its RMSE is: ");
-          print_value("%g\n",it->rmse_);
+          print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
+          print_info("%*s]\tFinal transformation is:\n",20,__func__);
+          cout<<pose_estimation_->transformation_<<endl;
+          print_info("%*s]\tTotal time elapsed in Brute Force: ",20,__func__);
+          print_value("%g",timer.getTime());
+          print_info(" ms\n");
         }
-        if (it->rmse_ < params_["rmseThreshold"])
-        {
-          //convergence
-          pose_estimation_.reset();
-          pose_estimation_ = boost::make_shared<Candidate>(*it);
-          refinement_done_=true;
-          if (params_["verbosity"]>1)
-          {
-            print_info("%*s]\tCandidate %s converged with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
-            print_info("%*s]\tFinal transformation is:\n",20,__func__);
-            cout<<pose_estimation_->transformation_<<endl;
-            print_info("%*s]\tTotal time elapsed in Brute Force: ",20,__func__);
-            print_value("%g",timer.getTime());
-            print_info(" ms\n");
-          }
-          return true;
-        }
+        return true;
       }
-      //no candidate converged, pose estimation failed
-      pose_estimation_.reset();
-      refinement_done_=false;
-      if (params_["verbosity"]>0)
-        print_warn("%*s]\tCannot find a suitable candidate, try raising the rmse threshold\n",20,__func__);
-      if (params_["verbosity"]>1)
-      {
-        print_info("%*s]\tTotal time elapsed in Brute Force: ",20,__func__);
-        print_value("%g",timer.getTime());
-        print_info(" ms\n");
-      }
-      return false;
     }
+    //no candidate converged, pose estimation failed
+    pose_estimation_.reset();
+    refinement_done_=false;
+    if (params_["verbosity"]>0)
+      print_warn("%*s]\tCannot find a suitable candidate, try raising the rmse threshold\n",20,__func__);
+    if (params_["verbosity"]>1)
+    {
+      print_info("%*s]\tTotal time elapsed in Brute Force: ",20,__func__);
+      print_value("%g",timer.getTime());
+      print_info(" ms\n");
+    }
+    return false;
+  }
   }
 
   bool PoseEstimation::estimate(string name, PtC& cloud, boost::filesystem::path db_path)
@@ -1073,4 +1075,5 @@ namespace pel
     return true;
   }
   */
+  }
 }

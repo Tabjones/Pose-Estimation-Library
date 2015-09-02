@@ -46,9 +46,7 @@ namespace pel
   class CandidateLists
   {
     public:
-      ///Constructor
       CandidateLists () {}
-      ///Destructor
       virtual ~CandidateLists () {}
 
       /**\brief Return a list of choice
