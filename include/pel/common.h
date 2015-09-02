@@ -9,7 +9,7 @@
  * modification, are permitted provided that the following conditions are met:
  *
  * * Redistributions of source code must retain the above copyright notice, this
- *   list of conditions and the following disclaimer.
+ *   list of conditions and the following disclaimer.nce
  *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
@@ -35,10 +35,16 @@
 /*! \mainpage notitle
  *  \section intro Introduction
  *  Pose Estimation Library (PEL) provides tools to perform accurate and fast pose estimations of objects, represented by point clouds, to be used in Robotics applications in order
- *  to achieve robust grasps. The library provides the user with some methods, that TODO
+ *  to achieve robust grasps. Since PEL uses point clouds, it makes extensive use of <a href="http://pointclouds.org">Point Cloud Library (PCL)</a> for filtering, features and transformation estimations needed
+ *  for Pose Estimation applications. In particular, PEL employs global features to describe poses of objects (or views) in order to populate a database of known objects, then when a new view is presented (the target),
+ *  it tries to find the _k_ most similar views from database (or candidates). Finally a single candidate is selected from the pool, by means of iterative procedures, which use ICP algorithm. The final candidate, along with
+ *  its transformation aliging it over the target, is the sought pose estimation.
  *  Pose Estimation Library is mainly developed within the <a href="http://www.pacman-project.eu/">PaCMan Project</a> as a tool to obtain fast and accurate
  *  Pose Estimations of known graspable objects. The work implemented here is derived from the author's master thesis in Robotics Engineering, which is available
  *  online, as a further reference, from University of Pisa <a href="https://etd.adm.unipi.it/theses/available/etd-09022014-142255/unrestricted/tesi.pdf">Online Thesis Archive</a>.
+ *  Full source code and installation instructions are available on <a href="https://bitbucket.org/Tabjones/pose-estimation-library">Bitbucket</a>.
+ *  \section theory Theoreticl Primer
+ *  \section structure User Guide
  */
 
 #ifndef PEL_COMMON_H_
