@@ -109,6 +109,21 @@ namespace pel
     return true;
   }
   bool
+  CandidateLists::sortListByRMSE(std::vector<Candidate>& list)
+  {
+    if (!list.empty())
+    {
+      std::sort(list.begin(), list.end(),
+        [](Candidate const& a, Candidate const& b)
+        {
+          return (a.getRMSE() < b.getRMSE());
+        } );
+      return (true);
+    }
+    else
+      return (false);
+  }
+  bool
   CandidateLists::sortListByDistance (ListType type)
   {
     if (type == ListType::vfh && !vfh_list.empty() )
@@ -149,6 +164,21 @@ namespace pel
     return true;
   }
   bool
+  CandidateLists::sortListByDistance (std::vector<Candidate>& list)
+  {
+    if (!list.empty())
+    {
+      std::sort(list.begin(), list.end(),
+        [](Candidate const& a, Candidate const& b)
+        {
+          return (a.getDistance() < b.getDistance());
+        } );
+      return (true);
+    }
+    else
+      return (false);
+  }
+  bool
   CandidateLists::sortListByNormalizedDistance (ListType type)
   {
     if (type == ListType::vfh && !vfh_list.empty() )
@@ -187,6 +217,21 @@ namespace pel
       return false;
     }
     return true;
+  }
+  bool
+  CandidateLists::sortListByNormalizedDistance (std::vector<Candidate>& list)
+  {
+    if (!list.empty())
+    {
+      std::sort(list.begin(), list.end(),
+        [](Candidate const& a, Candidate const& b)
+        {
+          return (a.getNormalizedDistance() < b.getNormalizedDistance());
+        } );
+      return (true);
+    }
+    else
+      return (false);
   }
   bool
   CandidateLists::findAndEraseCandidate(std::vector<Candidate>& list, std::string name, float dist)

@@ -93,34 +93,34 @@
 
 | key         | Default Value | Range | Description                                                          |
 |:-----------:|:-------------:|:------:|:-----------------------------------------------------------------------|
-| verbosity   | 1            | 0,1 or 2| Controls the verbosity of PEL (0) Silent behaviour, only errors are printed, (1) Normal behaviour, errors and warnings are printed, (2) Verbose behaviour, spams all kind of messages.|
-| use_vfh     | 1            | 0 or 1 | (1) Use the Viewpoint Feature Histogram (VFH) in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
-| use_esf     | 1            | 0 or 1 | (1) Use the Ensemble of Shape Functions (ESF) in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
-| use_cvfh    |           1  | 0 or 1 | (1) Use Clustered Viewpoint Feature Histogram (CVFH) in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
-| use_ourcvfh |           1  | 0 or 1 | (1) Use Oriented, Unique and Repeatable CVFH  in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
+| cvfh_ang_thresh | 7.5     |>0 | Set maximum allowable deviation of the normals in degrees, in the region segmentation step of CVFH computation. The value recommended from relative paper is 7.5 degrees. Relevant only if use_cvfh is enabled.<sup>2</sup>|
+| cvfh_curv_thresh  | 0.025 |>0 | Set maximum allowable disparity of curvatures during region segmentation step of CVFH estimation. The value recommended from relative paper is 0.025. Relevant only if use_cvfh is enabled.<sup>2</sup>|
+| cvfh_clus_tol  | 0.01     | >0 | Euclidean clustering tolerance, during CVFH segmentation. Points distant more than this value from each other, will likely be grouped in different clusters. A value of 1 means one meter. Relevant only if use_cvfh is enabled.<sup>2</sup>|
+| cvfh_clus_min_points  | 50 | >=1 | Set minimum number of points a cluster should contain to be considered such, during CVFH clustering. Relevant only if use_cvfh is enabled.<sup>2</sup>|
 | downsamp    |  1           | 0 or 1 | (1) Downsample the Target point cloud with Voxel Grid after eventual outlier filter and MLS resampling. (0) Don't apply this filter.<sup>2</sup>|
-| downsamp_leaf_size| 0.005  | >0     | Set leaf size of Voxel Grid downsampling, a value of _1_ means one meter. Only relevant if Voxel Grid is enabled.<sup>2</sup>|
-| upsamp      | 0            | 0 or 1 | (1) Resample the Target point cloud with MLS at random uniform density, before the eventual downsampling with Voxel Grid. (0) Don't apply this filter.<sup>2</sup>|
-| upsamp_poly_order| 2        | >1 | Set polynomial order of MLS to the value specified, for most objects  second order polynomial functions are more than enough to correctly approximate the object surface. Relevant only if upsamp is enabled.<sup>2</sup>|
-| upsamp_point_density|  200 | >=1 | Set desired point density on MLS surface to the value specified,  higher values produce more points, thus increasing the upsampling ratio. Relevant only if upsamp and upsamp_poly_fit is enabled.<sup>2</sup>|
-| upsamp_poly_fit| 1          | 0 or 1 | (1) Fit MLS surface on polynomial functions with order upsamp_poly_order. (0) Or don't use polynomial fitting. Relevant only if upsamp is enabled.<sup>2</sup>|
-| upsamp_search_radius| 0.05 | >0 | Set search radius of MLS to the value specified, a value of _1_ means one meter. Relevant if upsamp is enabled.<sup>2</sup>|
+| downsamp_leaf_size| 0.005  | >0     | Set leaf size of Voxel Grid downsampling, a value of 1 means one meter. Only relevant if Voxel Grid is enabled.<sup>2</sup>|
 | filter     | 0            | 0 or 1| (1) Filter Target point cloud with Statistical Outliers Removal, before the eventual upsampling and downsampling. (0) Or don't apply this filter.<sup>2</sup>|
 | filter_mean_k | 50        | >0 | How many neighboring points to consider in the statistical distribution calculated by the filter, relevant if filter is enabled.<sup>2</sup>|
 | filter_std_dev_mul_thresh | 3 | >0 | Multiplication factor to apply at Standard Deviation of the statistical distribution during filtering process (higher value, means less aggressive filter). Relevant only if filter is enabled.<sup>2</sup>|
 | lists_size | 20           | >=1 | The size of generated lists of Candidates. Also the k-nearest neighbors to the Target retrieved from Database. Increasing this value may increase recognition rate at the cost of computational time.|
-| normals_radius_search | 0.02 | >0 | Set radius that defines the neighborhood of each point during Normal Estimation, value of _1_ means one meter. If normals are not computed, i.e. only ESF is estimated, this parameter is ignored.<sup>2</sup>|
-| cvfh_ang_thresh | 7.5     |>0 | Set maximum allowable deviation of the normals in degrees, in the region segmentation step of CVFH computation. The value recommended from relative paper is 7.5 degrees. Relevant only if use_cvfh is enabled.<sup>2</sup>|
-| cvfh_curv_thresh  | 0.025 |>0 | Set maximum allowable disparity of curvatures during region segmentation step of CVFH estimation. The value recommended from relative paper is 0.025. Relevant only if use_cvfh is enabled.<sup>2</sup>|
-| cvfh_clus_tol  | 0.01     | >0 | Euclidean clustering tolerance, during CVFH segmentation. Points distant more than this value from each other, will likely be grouped in different clusters. A value of _1_ means one meter. Relevant only if use_cvfh is enabled.<sup>2</sup>|
-| cvfh_clus_min_points  | 50 | >=1 | Set minimum number of points a cluster should contain to be considered such, during CVFH clustering. Relevant only if use_cvfh is enabled.<sup>2</sup>|
+| normals_radius_search | 0.02 | >0 | Set radius that defines the neighborhood of each point during Normal Estimation, value of 1 means one meter. If normals are not computed, i.e. only ESF is estimated, this parameter is ignored.<sup>2</sup>|
 | ourcvfh_ang_thresh  | 7.5 |>0 | Set maximum allowable deviation of normals, in the region segmentation step of OURCVFH computation. The value recommended from relative paper is 7.5 degrees. Relevant only if use_ourcvfh is enabled.<sup>2</sup>|
 | ourcvfh_curv_thresh | 0.025 |>0| Set maximum allowable disparity of curvatures during region segmentation step of OURCVFH estimation. The value recommended from relative paper is 0.025. Relevant only if use_ourcvfh is enabled.<sup>2</sup>|
-| ourcvfh_clus_tol | 0.01 | >0 | Euclidean clustering tolerance, during OURCVFH segmentation. Points distant more than this value from each other, will likely be grouped in different clusters. A value of _1_ means one meter. Relevant only if use_ourcvfh is enabled.<sup>2</sup>|
+| ourcvfh_clus_tol | 0.01 | >0 | Euclidean clustering tolerance, during OURCVFH segmentation. Points distant more than this value from each other, will likely be grouped in different clusters. A value of 1 means one meter. Relevant only if use_ourcvfh is enabled.<sup>2</sup>|
 | ourcvfh_clus_min_points  | 50 | >=1 | Set minimum number of points a cluster should contain to be considered such, during OURCVFH clustering. Relevant only if use_ourcvfh is enabled.<sup>2</sup>|
 | ourcvfh_axis_ratio  | 0.95 | >0 | Set the minimum axis ratio between the SGURF axes. At the disambiguation phase of OURCVFH, this will decide if additional Reference Frames need to be created for the cluster, if they are ambiguous. Relevant only if use_ourcvfh is enabled.<sup>2</sup>|
 | ourcvfh_min_axis_value  | 0.01 | >0 | Set the minimum disambiguation axis value to generate several SGURFs for the cluster when disambiguition is difficult. Relevant if use_ourcvfh is enabled.<sup>2</sup>|
 | ourcvfh_refine_clusters  |  1 | >=0, <=1 | Set refinement factor for clusters during OURCVFH clustering phase, a value of 1 means 'dont refine clusters', while values between 0 and 1 will reduce clusters size by that number. Relevant only if use_ourcvfh is enabled.<sup>2</sup>|
+| use_vfh     | 1            | 0 or 1 | (1) Use the Viewpoint Feature Histogram (VFH) in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
+| use_esf     | 1            | 0 or 1 | (1) Use the Ensemble of Shape Functions (ESF) in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
+| use_cvfh    |           1  | 0 or 1 | (1) Use Clustered Viewpoint Feature Histogram (CVFH) in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
+| use_ourcvfh |           1  | 0 or 1 | (1) Use Oriented, Unique and Repeatable CVFH  in feature estimation of Target. (0) Or disable it.<sup>1</sup>|
+| upsamp      | 0            | 0 or 1 | (1) Resample the Target point cloud with MLS at random uniform density, before the eventual downsampling with Voxel Grid. (0) Don't apply this filter.<sup>2</sup>|
+| upsamp_poly_order| 2        | >1 | Set polynomial order of MLS to the value specified, for most objects  second order polynomial functions are more than enough to correctly approximate the object surface. Relevant only if upsamp is enabled.<sup>2</sup>|
+| upsamp_point_density|  200 | >=1 | Set desired point density on MLS surface to the value specified,  higher values produce more points, thus increasing the upsampling ratio. Relevant only if upsamp and upsamp_poly_fit is enabled.<sup>2</sup>|
+| upsamp_poly_fit| 1          | 0 or 1 | (1) Fit MLS surface on polynomial functions with order upsamp_poly_order. (0) Or don't use polynomial fitting. Relevant only if upsamp is enabled.<sup>2</sup>|
+| upsamp_search_radius| 0.05 | >0 | Set search radius of MLS to the value specified, a value of 1 means one meter. Relevant if upsamp is enabled.<sup>2</sup>|
+| verbosity   | 1            | 0,1 or 2| Controls the verbosity of PEL (0) Silent behaviour, only errors are printed, (1) Normal behaviour, errors and warnings are printed, (2) Verbose behaviour, spams all kind of messages.|
 
 Notes:
   1. At least one feature must be enabled. Also if you disable this feature during Database creation (see pel::DatabaseCreator), resulting database will not have that feature, so all pose estimations using that database must also disable the feature.
@@ -128,11 +128,13 @@ Notes:
 
  *
  * \subsection database Database
+ * ! TODO !
  *
  * \subsection refine Refinement
+ * ! TODO !
  *
  * \subsection apps Example Applications
- *
+ * ! TODO !
  */
 
 #ifndef PEL_COMMON_H_

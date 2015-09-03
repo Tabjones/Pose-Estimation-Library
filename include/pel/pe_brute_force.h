@@ -80,6 +80,7 @@ namespace pel
     class PEBruteForce : public PoseEstimationBase
     {
       protected:
+        float RMSE_thresh_;
         pcl::IterativeClosestPoint<Pt, Pt, float> icp_;
         pcl::registration::TransformationEstimationDualQuaternion<Pt,Pt,float>::Ptr te_dq_;
         pcl::registration::TransformationEstimationLM<Pt,Pt,float>::Ptr te_lm_;
@@ -91,56 +92,63 @@ namespace pel
          * \param[out] estimation Final Pose Estimation of the Target as a Candidate object
          */
         virtual void
-          estimate (Candidate& estimation);
+        estimate (Candidate& estimation);
         /**\brief Tell ICP to use reciprocal correspondences or not.
          * \param[in] setting Whenever to use them or not
          */
         virtual inline void
-          setUseReciprocalCorrespondences (const bool setting = true)
-          {
-            icp_.setUseReciprocalCorrespondences(setting);
-          }
+        setUseReciprocalCorrespondences (const bool setting = true)
+        {
+          icp_.setUseReciprocalCorrespondences(setting);
+        }
         /**\brief Set Maximum ICP iterations to perform for each Candidate.
-         *\param[in] iterations Desired number of iterations
+         *\param[in] iterations Desired number of iterations.
+
+         \note First termination criteria for the procedure.
          */
         virtual inline void
-          setMaxIterations (const unsigned int iterations = 100)
-          {
-            if (iterations > 0)
-              icp_.setMaximumIterations(iterations);
-          }
+        setMaxIterations (const unsigned int iterations = 100)
+        {
+          if (iterations > 0)
+            icp_.setMaximumIterations(iterations);
+        }
         /**\brief Set RMSE threshold for a Candidate to converge.
          *\param[in] thresh The RMSE threshold to set
+        *
+          * \note Second termination criteria for the procedure.
          */
         virtual inline void
-          setRMSEThreshold (const float thresh = 0.005)
+        setRMSEThreshold (const float thresh = 0.005)
+        {
+          if (thresh > 0)
           {
-            if (thresh > 0)
-              icp_.setEuclideanFitnessEpsilon (std::pow(thresh,2));
+            icp_.setEuclideanFitnessEpsilon (std::pow(thresh,2));
+            RMSE_thresh_ = thresh;
           }
+        }
         /**\brief Set transformation estimation for ICP to Dual Quaternion method (default).
         */
         virtual inline void
-          setUseDQ()
-          {
-            icp_.setTransformationEstimation(te_dq_);
-          }
+        setUseDQ()
+        {
+          icp_.setTransformationEstimation(te_dq_);
+        }
         /**\brief Set transformation estimation for ICP to Levenberg Marquardt method.
          * Default is to use Dual Quaternion Method
          */
         virtual inline void
-          setUseLM()
-          {
-            icp_.setTransformationEstimation(te_lm_);
-          }
+        setUseLM()
+        {
+          icp_.setTransformationEstimation(te_lm_);
+        }
         /**\brief Set transformation estimation for ICP to SVD-based method.
          * Default is to use Dual Quaternion Method
          */
         virtual inline void
-          setUseSVD()
-          {
-            icp_.setTransformationEstimation(te_svd_);
-          }
+        setUseSVD()
+        {
+          icp_.setTransformationEstimation(te_svd_);
+        }
     };
   }
 }

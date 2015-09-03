@@ -93,6 +93,24 @@ namespace pel
        */
       bool
       findAndEraseCandidate(std::vector<Candidate>& list, std::string name, float dist);
+      /**\brief Sort lists based on Minimum RMSE
+       * \param[in] list Reference to an external list to sort
+       * \returns _True_ if sorting succeded, _False_ otherwise
+       */
+      bool
+      sortListByRMSE (std::vector<Candidate>& list);
+      /**\brief Sort lists based on Minimum Distance from target
+       * \param[in] list Reference to an external list to sort
+       * \returns _True_ if sorting succeded, _False_ otherwise
+       */
+      bool
+      sortListByDistance (std::vector<Candidate>& list);
+      /**\brief Sort lists based on Minimum Normalized Distance from target
+       * \param[in] list Reference to external list to sort
+       * \returns _True_ if sorting succeded, _False_ otherwise
+       */
+      bool
+      sortListByNormalizedDistance (std::vector<Candidate>& list);
   };
 }
 #endif //PEL_CANDIDATES_CANDIDATE_LIST_H_
