@@ -46,7 +46,8 @@
  *
  *  Full source code and installation instructions are available on <a href="https://bitbucket.org/Tabjones/pose-estimation-library">Bitbucket</a>.
  *  \section guide User Guide
- *  Namespace pel::interface provides the user with some classes implementing Pose Estimation procedures.
+ *  Namespace pel::interface provides the user with some classes implementing Pose Estimation procedures. The goal of the procedure is to identify an object view, called Target, and estimate
+ *  its 6DOF pose in space.
  *  Currently two procedures exists: Brute Force and Progressive Bisection with their multi-threaded variants.
  *  The library is designed in a way that the user should only use the classes exposed in namespace pel::interface, because they contain all the aspects and procedure
  *  needed to achieve Pose Estimation of objects. From now on the above mentioned classes will be referred to as _interface classes_. Each _interface class_ follows the
@@ -57,6 +58,19 @@
  *    3. Assemble a _composite list_ by building a consensus among all features list.
  *    4. Refine the composite list selecting one Candidate to be the Pose Estimation.
  *
+ *  In _step 1_ a Target point cloud, representing a view of an object, is initialized and its features estimated. According to some parameters, discussed later on, Target point cloud may or may not undergo
+ *  a series of pre processing steps, like downsampling or outliers filtering; then global features are estimated from target point cloud and used in the next step to assemble lists of candidates.
+ *
+ *  In _step 2_ Target global features are matched against a database of features, retrieving _k nearest neighbors_ for each feature; Database assembling is discussed later on the guide. For every feature, each neighbor retrieved
+ *  is sorted according to minimum distance from Target feature, thus assembling a list of "Candidates" that are the most similar views to the Target, in terms of geometric shape.
+ *
+ *  _Step 3_ takes all the lists created from each single feature and tries to assemble, or fuse them, into a single list, called the Composite List. This is done to robustify the Candidates, by building a sort of consensus
+ *  among different features. This also increases recognition performance of the procedure.
+ *
+ *  The last step (_4_) analyzes the composite list and tries to determine which of the _k_ candidates is the best approximation for the target. It does this by trying to overlap a Candidate point cloud over the Target one and measures the root
+ *  mean square error of point distances. The procedure outputs a rigid homogeneous transformation which express the 6DOF pose of the Target, thus completing the Pose Estimation.
+ *  All the procedure is discussed in detail into the <a href="https://etd.adm.unipi.it/theses/available/etd-09022014-142255/unrestricted/tesi.pdf">author's Master Thesis</a>.
+
  *  The user can control all the four aspect of the procedure from _interface classes_ directly, by using inherited members.
  *  In detail:
  *    - For step _1_, _2_ and _3_ various parameters are provided to control features estimation and lists generation (pel::ParamHandler members).
