@@ -128,7 +128,18 @@ Notes:
 
  *
  * \subsection database Database
- * ! TODO !
+ * Pose Esimation procedure needs a Database to match Target features, so that the current object view can be compared and approximated with one of those in the Database. The user can download the PaCMan object Databse <TODO ADD LINK>, and load it in its code with
+ * pel::DatabaseReader class. This Database is composed by 46 kitchen objects from Ikea catalog, each one is composed by 108 point clouds from various viewpoints, all their features estimated with default parameters (see \ref params section above) and a reconstructed
+ * polygonal mesh of the object; useful for visualization purposes.
+ *
+ * User can also build its onw custom Database with pel::DatabaseCreator class, however the procedure to create Databases is a bit more involved and requires the user to follow these guidelines:
+ *
+ *  - Choose a "local" reference system for each object you want to acquire; for example you could center it on the object centroid, have _z-axis_ pointing up and _x-axis_ pointing to an istantly recognizable object feature (like an handle).
+ *  - For each object, acquire _n_ partial point clouds of the object representing various views, having care to:
+ *    1. Express all the point clouds in the "local" reference system for this object, you chose at previous step. I.E. the points in the cloud must have euclidean coordinates expressed in the "local" reference system, so a transformation is needed.
+ *        Please note that all the _n_ clouds of the object must be expressed in the same "local" reference system.
+ *    2. Save the transformation to go back in the kinect reference frame, i.e. the inverse of the one you calculated to go from kinect to local. Save this transformation into sensor_origin and sensor_orientation fields of the pcl::PointCloud class, for the point clouds.
+ *    3.
  *
  * \subsection refine Refinement
  * ! TODO !
