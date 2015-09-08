@@ -31,7 +31,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-//Doxygen Main Page
+//Doxygen Manual Page//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /*! \mainpage notitle
  *  \section intro Introduction
  *  Pose Estimation Library (PEL) provides tools to perform accurate and fast pose estimations of objects, represented by point clouds, to be used in Robotics applications in order
@@ -132,21 +134,73 @@ Notes:
  * pel::DatabaseReader class. This Database is composed by 46 kitchen objects from Ikea catalog, each one is composed by 108 point clouds from various viewpoints, all their features estimated with default parameters (see \ref params section above) and a reconstructed
  * polygonal mesh of the object; useful for visualization purposes.
  *
- * User can also build its onw custom Database with pel::DatabaseCreator class, however the procedure to create Databases is a bit more involved and requires the user to follow these guidelines:
+ * User can also build its own custom Database with pel::DatabaseCreator class, however the procedure to create Databases is a bit more involved and requires the user to follow these guidelines:
  *
- *  - Choose a "local" reference system for each object you want to acquire; for example you could center it on the object centroid, have _z-axis_ pointing up and _x-axis_ pointing to an istantly recognizable object feature (like an handle).
- *  - For each object, acquire _n_ partial point clouds of the object representing various views, having care to:
- *    1. Express all the point clouds in the "local" reference system for this object, you chose at previous step. I.E. the points in the cloud must have euclidean coordinates expressed in the "local" reference system, so a transformation is needed.
+ *  1. Prepare point clouds of objects:
+ *    - Choose a "local" reference system for each object you want to acquire; for example you could center it on the object centroid, have _z-axis_ pointing up and _x-axis_ pointing to an instantly recognizable object feature (like an handle). See the example picture below.
+ *    - For each object, acquire _n_ partial point clouds of the object representing various views, having care to:
+ *      1. Express all the point clouds in the "local" reference system for this object, you chose at previous step. I.E. the points in the cloud must have euclidean coordinates expressed in the "local" reference system, so a transformation is needed.
  *        Please note that all the _n_ clouds of the object must be expressed in the same "local" reference system.
- *    2. Save the transformation to go back in the kinect reference frame, i.e. the inverse of the one you calculated to go from kinect to local. Save this transformation into sensor_origin and sensor_orientation fields of the pcl::PointCloud class, for the point clouds.
- *    3.
+ *      2. Save the transformation to go back in the kinect reference frame, i.e. the inverse of the one you calculated to go from kinect to local. Save this transformation into sensor_origin_ and sensor_orientation_ fields of the pcl::PointCloud class, for each point cloud.
+ *      3. Segment all the object views, so that only the points belonging to the object remain. For example you have to remove the table underneat the object and the surrounding environments.
+ *      4. Save all the clouds of all objects into the same directory, each pcd file must have unique name.
+ *    - Optionally you could undergo a registration process for the clouds of each object, to make sure each one has the same reference system as accurately as possible. For example you could register all the clouds on top of the first.
+ *  2. Make a program that uses pel::DatabaseCreator and pass it the previous saved clouds directory.
+ *  3. Adjust pel::DatabaseCreator parameters to your need with inherited members (look at \ref params previous section). Please note that each pose estimation using this database must ratain the same parameters.
+ *  4. Build the Database and save it somewhere on disk with pel::DatabaseWriter class.
+ *
+ ![Example of two poses of the same object taken with asus xtion sensor. Note how both point clouds are expressed in the same reference frame, even if they are taken from different viewpoints.](@ref mugposes.png)
  *
  * \subsection refine Refinement
- * ! TODO !
+ * Refinement is the process involved when selecting one Candidate among a list of Candidates. Each Candidate represents an object view from Database, that approximates best the Target view (the one you want to identify and estimate).
+ * When Refinement takes place, the best _k_ Candidates that approximate the Target are already selected and assembled in the _composite list_. Refinemente procedure selects which of these _k_ Candidates is the best Pose Estimation
+ * of the Target.
+ * Currently two procedures are available, each will be described further down the section:
+ *  - Brute Force.
+ *  - Progressive Bisection.
+ *
+ * The user can select one of these procedures by using the relative classes: pel::interface::PEBruteForce, pel::interface::PEProgressiveBisection.
+ * Each class implements the whole Pose Estimation procedure and differs from one another only in the refinement procedure. After pose estimation terminates the user can access the transformation, expressing the 6DOF pose of the Target in the sensor reference system,
+ * with the method pel::Candidate::getTransformation().
+ *  \subsubsection brute Brute Force
+ *  Brute Force simply selects the Candidate at least distance (in feature space) from the Target and starts aligning its point cloud with ICP over Target point cloud. If its Root Mean Square Error (RMSE) falls below an user set threshold, the procedure
+ *  terminates and the Candidate it's elected as Pose Estimation of the Target. The Candidate's transformation expresses the 6DOF pose of the Target with respect to the sensor reference frame (i.e. the kinect).
+ *
+ *  If the Candidate selected does not converge and the fixed user set number of ICP steps are expired, the procedure selects the second Candidate on the list and restarts aligning from it.
+ *  If no Candidates on the lists converge the procedure fails.
+ *
+ *  The algorithm is summarized as follows:
+ *  1. Align Candidate over Targer for _n_ steps of ICP.
+ *  2. If convergence, Candidate is Pose Estimation and terminate.
+ *  3. Repeat from point 1 with next Candidate. When no more Candidates are left to try, procedure fails and terminates.
+ *
+ *  Brute Force is generally less performing and more time consuming than the next method, however is the most used one in Pose Estimation literature.
+ *
+ *  \subsubsection progressive Progressive Bisection
+ *  Progressive Bisection does a few steps (typically 5) of ICP alignment for all the Candidates on composite list, then evaluates their Root Mean Square Error (RMSE) and resort the list by minimum RMSE. Finally truncates a portion of the list (typically its half) and
+ *  repeat with alignment. This goes on until a Candidate converges (under the user set threshold) or composite list size is one.
+ *
+ *  Basically the procedure "tastes" all the Candidates and determines which one is more likely to converge in the next ICP steps, positioning them on top of the list. Then discards the "bad" Candidates, located near the bottom, concentrating resources on aligning
+ *  the "good" ones, which are progressively moved on top.
+ *  The user can select if the procedure is to fail when no Candidate converges or if it has to take as correct Pose Estimation the only Candidate remained in the list after progressive bisections. This is generally safe to set
+ *  (in fact it's the default behaviour), because the last Candidate remained is guaranteed to be the best (in terms of RMSE) we could find in the list, thus is likely an accurate enought pose estimation, even if convergence did not occur.
+ *
+ *  In fact the user could also set an impossible to meet RMSE threshold (like 1e-5), and always take as pose estimation the surviving Candidate.
+ *
+ *  The algorithm summary is presented below:
+ *  1. Align all the Candidates over Target for a few ICP steps.
+ *  2. If one converges, Candidate is Pose Estimation and terminate.
+ *  3. Sort composite list on minimum RMSE on top.
+ *  4. Truncate the list.
+ *  5. If list size is one, terminate, otherwise repeat from 1.
  *
  * \subsection apps Example Applications
- * ! TODO !
+ * Example applications can be optionally built and installed to provide some out-of-the-box functionality and as examples of library usage.
+ * Their source code is located inside the "Example Apps" folder.
+ *  \subsubsection app1 App1 TODO
  */
+//////// End of Doxygen ////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef PEL_COMMON_H_
 #define PEL_COMMON_H_
