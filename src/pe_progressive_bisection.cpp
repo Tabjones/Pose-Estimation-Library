@@ -160,8 +160,7 @@ namespace pel
             else
             {
               //no convergence, resize list
-              int size = list.size();
-              size = std::floor(size * bisection_fraction_);
+              int size = std::floor(list.size() * bisection_fraction_);
               if (size < list.size())
               {
                 list.resize(size);
@@ -178,21 +177,38 @@ namespace pel
             return;
           }
         }
-        //TODO
-  //only one candidate remained, he wins!
-  pose_estimation_.reset();
-  pose_estimation_ = boost::make_shared<Candidate>(list[0]);
-  refinement_done_=true;
-  if (params_["verbosity"]>1)
-  {
-    print_info("%*s]\tCandidate %s survived progressive bisection with RMSE %g\n",20,__func__,pose_estimation_->name_.c_str(), pose_estimation_->rmse_);
-    print_info("%*s]\tFinal transformation is:\n",20,__func__);
-    cout<<pose_estimation_->transformation_<<endl;
-    print_info("%*s]\tTotal time elapsed in Progressive Bisection: ",20,__func__);
-    print_value("%g",timer.getTime());
-    print_info(" ms\n");
-  }
-  return true;
-  }
-  }
+        //only one candidate remained
+        if (success_on_size_one_)
+        {
+          estimation = list[0];
+          estimation.setRank(1);
+          if (getParam("verbosity")>1)
+          {
+            print_info("%*s]\tCandidate %s survived progressive bisection with RMSE %g\n",20,__func__,estimation.getName().c_str(), estimation.getRMSE());
+            print_info("%*s]\tFinal transformation is:\n",20,__func__);
+            cout<<estimation.getTransformation()<<endl;
+            print_info("%*s]\tTotal time elapsed for complete Pose Estimation: ",20,__func__);
+            print_value("%g",timer.getTime());
+            print_info(" ms\n");
+          }
+        }
+        else
+        {
+          //User requested failure on list size 1
+          if (getParam("verbosity")>0)
+            print_warn("%*s]\tCannot find a suitable candidate, try raising the RMSE threshold\n",20,__func__);
+          if (getParam("verbosity")>1)
+          {
+            print_info("%*s]\tPose Estimation failed!",20,__func__);
+            print_info("%*s]\tTotal time elapsed: ",20,__func__);
+            print_value("%g",timer.getTime());
+            print_info(" ms\n");
+          }
+        }
+        return;
+      }
+      //Failed to generate lists
+      print_error("%*s]\tFailed to generate lists of Candidates. Aborting pose estimation...",20,__func__);
+    }
+  } //End of namespace
 }

@@ -141,6 +141,8 @@ namespace pel
           print_info(" ms\n");
         }
       }
+      //failed to generate lists
+      print_error("%*s]\tFailed to generate lists of Candidates. Aborting pose estimation...",20,__func__);
     }
-  }
+  }//end of namespace
 }
