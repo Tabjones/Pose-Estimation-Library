@@ -16,7 +16,7 @@ set(PEL_BIN_DIR ${PROJECT_BINARY_DIR})
 include (FindPkgConfig)
 
 ## -------> Set Global Version of the Library, then dissect it to set various version variables
-set (PEL_VERSION 0.5.2 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
+set (PEL_VERSION 0.5.3 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
 string (REGEX REPLACE "^([0-9]+).*" "\\1"
     PEL_MAJOR_VERSION "${PEL_VERSION}")
 string (REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1"
@@ -64,6 +64,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") #will result in error durin
 ## -------> Set Eigen to use only MPL2 licensed sources
 set(EIGEN_MPL2_ONLY ON CACHE BOOL "Force Eigen to use only MPL2(or more permissive) licensed code")
 
+## -------> Set External Apps variables
+set(PEL_EXAMPLE_APPS_BUILD ON CACHE BOOL "Build example applications")
+set(PEL_EXAMPLE_APPS_INSTALL ON CACHE BOOL "Install example applications on ${PEL_BIN_INSTALL_DIR}")
 ##################################################################
 ############## ------> Build Phase ###############################
 ##################################################################
@@ -183,4 +186,15 @@ install(FILES
   "${PEL_BIN_DIR}/PELConfig.cmake"
   "${PEL_BIN_DIR}/PELConfigVersion.cmake"
     DESTINATION ${PEL_CONFIG_INSTALL_DIR})
+
+## -------> Build example apps
+if(PEL_EXAMPLE_APPS_BUILD)
+  ## estimator
+  add_executable(pel_estimator ${PEL_SOURCE_DIR}/ExampleApps/estimator_on_demand.cpp)
+  target_link_libraries (pel_estimator ${PEL_NAME_LOWER})
+  if(PEL_EXAMPLE_APPS_INSTALL)
+    install(TARGETS pel_estimator
+      RUNTIME DESTINATION ${PEL_BIN_INSTALL_DIR})
+  endif(PEL_EXAMPLE_APPS_INSTALL)
+endif(PEL_EXAMPLE_APPS_BUILD)
 
