@@ -45,7 +45,7 @@ namespace pel
   class ParamHandlerBase
   {
     public:
-      virtual ~ParamHandlerBase() =0;
+      virtual ~ParamHandlerBase() {};
       ///\brief Base interface for setParam
       virtual bool
       setParam (const std::string, const float)=0;
@@ -77,7 +77,7 @@ namespace pel
     protected:
       ///Protected constructor, we dont want explicit instantiation of the class, only derived, still we dont want it to be pure virtual
       ParamHandler ();
-      ///Map that stores parameters in key=value fashion
+      ///Map that storageclassres parameters in key=value fashion
       parameters params_;
       ///How many valid parameters are there
       int size_of_valid_params_;

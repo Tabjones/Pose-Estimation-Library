@@ -393,8 +393,9 @@ namespace pel
   }
 
   bool
-  PoseEstimationBase::initTarget(std::string name, PtC::Ptr cloud)
+  PoseEstimationBase::initTarget()
   {
+    //TODO
     target_name = name;
     if (cloud)
     {
@@ -403,7 +404,11 @@ namespace pel
         print_error("%*s]\tError initializing a Target, passed cloud is empty!\n",20,__func__);
         return false;
       }
-      target_cloud = cloud;
+    }
+    else
+    {
+      print_error("%*s]\tError initializing a Target, uninitialized cloud pointer!\n",20,__func__);
+      return false;
     }
     if (getParam("filter")>0)
       removeOutliers();
@@ -700,9 +705,16 @@ namespace pel
   bool
   PoseEstimationBase::setTarget(PtC::Ptr target, std::string name)
   {
+    if (target)
+    {
+      target_cloud.reset(new PtC);
+      target_cloud_processed.reset(new PtC);
+      pcl::copyPointCloud(*target, *target_cloud);
+      target_name = name;
+    }
     if (getParam("verbosity")>1)
-      print_info("%*s]\tSetting Target for Pose Estimation: %s with %d points",20,__func__,name.c_str(),target->points.size());
-    return (initTarget(name, target));
+      print_info("%*s]\tSetting Target for Pose Estimation: %s with %d points",20,__func__,name.c_str(),target_cloud->points.size());
+    return (initTarget());
   }
 
   bool

@@ -1,42 +1,159 @@
 #include <pel/pe_progressive_bisection.h>
+#include <pcl/console/parse.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/common/io.h>
+#include <pcl/common/transforms.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <string>
+#include <vector>
 
 using namespace pcl;
+using namespace pcl::console;
 using namespace pel;
+
+bool vis(true);
+float thresh(0.005f);
+float frac(0.5f);
+unsigned int itera(5);
+std::string target_filename, target_name;
+
+void
+show_help(char* prog_name)
+{
+  //trim and split program name string
+  std::string pn = prog_name;
+  boost::trim(pn);
+  std::vector<std::string> vst;
+  boost::split (vst, pn, boost::is_any_of("/\\.."), boost::token_compress_on);
+  pn = vst.at( vst.size() -1);
+  print_highlight ("%s Takes a pcd file of a Target cloud to run Pose Estimation procedure with Progressive Bisection, using the passed Database.\n", pn.c_str());
+  print_highlight ("Usage:\t%s [DatabaseDir] [TargetCloudPCD] [Options]\n", pn.c_str());
+  print_highlight ("Options are:\n");
+  print_value ("\t-h, --help");
+  print_info (":\t\tShow this help screen and quit.\n");
+  print_value ("\t--no-vis");
+  print_info (":\t\tDisable visualization of Pose Estimation.\n");
+  print_value ("\t-t <float>");
+  print_info (":\t\tChange current RMSE Threshold to <float> value specified. (Default: 0.005)\n");
+  print_value ("\t-f <float>");
+  print_info (":\t\tChange current Bisection Fraction to <float> value specified. I.E. the fraction of the list to keep on every iterations. (Default 0.5)\n");
+  print_value ("\t-s <uint>");
+  print_info(":\t\tChange how many ICP iterations to perform on each step of progressive bisection. (Default 5)\n");
+}
+void
+parse_command_line(int argc, char* argv[])
+{
+  if (find_switch (argc, argv, "-h") || find_switch (argc, argv, "--help"))
+  {
+    show_help(argv[0]);
+    exit(0);
+  }
+  if (find_switch (argc, argv, "--no-vis"))
+    vis = false;
+  parse_argument (argc, argv, "-t", thresh);
+  if (thresh <=0)
+  {
+    print_warn("Invalid negative value for -t option, resetting to default!\n");
+    thresh = 0.005f;
+  }
+  parse_argument (argc, argv, "-f", frac);
+  if (frac <=0 || frac >=1)
+  {
+    print_warn("Invalid value for -f option, resetting to default!\n");
+    frac = 0.5f;
+  }
+  parse_argument (argc, argv, "-s", itera);
+  if (itera <=0)
+  {
+    print_warn("Invalid negative value for -s option, resetting to default!\n");
+    itera = 5;
+  }
+  //find target pcd file
+  std::vector<int> file_idx = parse_file_extension_argument (argc, argv, ".pcd");
+  if (file_idx.empty())
+  {
+    print_error ("No pcd file specified for target\n");
+    exit (0);
+  }
+  target_filename = argv[file_idx.at(0)];
+  boost::trim (target_filename);
+  std::vector<std::string> vst;
+  boost::split (vst, target_filename, boost::is_any_of("./\\.."), boost::token_compress_on);
+  //get target name without path and extension
+  target_name = vst.at( vst.size() -2);
+}
+
 ////////////////////////////////////////////////////
 //////////////////  Main  //////////////////////////
 ////////////////////////////////////////////////////
 int
 main (int argc, char *argv[])
 {
-  if (argc !=3 )
+  //take care of command line parameters
+  if (argc <3 )
   {
-    std::cout<<"Need exactly 2 parameters!"<<std::endl<<"Usage: "<<argv[0]<<" [Target Cloud] [Database Dir]"<<std::endl;
-    return -1;
+    print_error("Need at least 2 parameters!\n");
+    show_help(argv[0]);
+    return (0);
   }
-  PointCloud<PointXYZRGBA> cloud;
-  std::string dbp(argv[2]);
-  std::string obj(argv[1]);
-  pcl::io::loadPCDFile(obj, cloud);
-  cloud.sensor_origin_.setZero();
-  cloud.sensor_orientation_.setIdentity();
-  std::cout<<"Loaded Cloud"<<std::flush<<std::endl;
-  PoseEstimation prova;
-  prova.setParam("verbosity", 2);
-  PoseDB db;
-  //db.create(db_path, prova.getParams() );
-  //db.save(db_path2);
-  db.load(dbp);
-  std::cout<<"Loaded DB"<<std::flush<<std::endl;
-  //db2.create("/home/tabjones/ObjectDB/Round1", prova.getParams() );
-  //db2.save("/home/tabjones/ObjectDB/DB_Round1_cm");
-  //test.create("/home/tabjones/ObjectDB/Round1", prova.getParams() );
-  //test.save("/home/tabjones/ObjectDB/DB_Round1");
-  //test.load("/media/pacman/storage/PointClouds/Database_Round1");
-//  prova.estimate("object_23_50", cloud, db);
-  prova.estimate("object", cloud, db);
-  std::cout<<"Estimated"<<std::flush<<std::endl;
-  prova.printCandidates();
-  prova.printEstimation();
-  prova.viewEstimation();
+  parse_command_line (argc, argv);
+  //create a new point cloud to store loaded Target, with and without color
+  PointCloud<PointXYZ>::Ptr target (new PointCloud<PointXYZ>);
+  PointCloud<PointXYZRGBA>::Ptr cloud (new PointCloud<PointXYZRGBA>);
+  //Database path (it needs to be first argument)
+  std::string dbp(argv[1]);
+
+  //Load target
+  if (pcl::io::loadPCDFile(target_filename, *cloud) == 0)
+  {
+    cloud->sensor_origin_.setZero();
+    cloud->sensor_orientation_.setIdentity();
+    copyPointCloud(*cloud, *target); //Dropping color
+    //instantiate a pose estimation object
+    pel::interface::PEProgressiveBisection pe;
+    //set wanted parameters, others are left as default
+    pe.setBisectionFraction(frac);
+    pe.setRMSEThreshold(thresh);
+    pe.setStepIterations(itera);
+    pe.setParam("verbosity", 2);
+    //Set target for pose estimation
+    pe.setTarget(target, target_name);
+    //load and set the database
+    if (pe.loadAndSetDatabase(dbp))
+    {
+      Candidate estimation;
+      //perform pose estimation
+      pe.estimate(estimation);
+      //print result
+      print_highlight("Target %s was estimated with %s with RMSE of %g",target_name.c_str(), estimation.getName().c_str(), estimation.getRMSE());
+      print_highlight("Pose Estimation transformation is:");
+      std::cout<<estimation.getTransformation();
+      if (vis)
+      {
+        //Proceed to visualization
+        pcl::visualization::PCLVisualizer viewer;
+        //Transform Candidate with pose estimation transformation, so it aligns over Target
+        PointCloud<PointXYZ>::Ptr aligned (new PointCloud<PointXYZ>);
+        pcl::transformPointCloud(estimation.getCloud(), *aligned, estimation.getTransformation());
+        aligned->sensor_origin_.setZero();
+        aligned->sensor_orientation_.setIdentity();
+        //make estimation cloud green
+        pcl::visualization::PointCloudColorHandlerCustom<PointXYZ> aligned_col_handl (aligned, 0, 255, 0);
+        viewer.addPointCloud(cloud, "target");
+        viewer.addPointCloud(aligned, aligned_col_handl, "estimation");
+        //Start viewer
+        while (!viewer.wasStopped())
+          viewer.spinOnce();
+        viewer.close();
+      }
+    }
+    else
+    {
+      print_error("Error loading Database. Database path must be first command line argument!\n");
+      exit(0);
+    }
+  }
   return 1;
 }

@@ -81,7 +81,7 @@ namespace pel
       generateLists();
       ///\brief Initialize a Target for PoseEstimation
       virtual bool
-      initTarget (std::string name, PtC::Ptr cloud);
+      initTarget ();
       ///\brief computeVFH feature of target
       virtual void
       computeVFH ();

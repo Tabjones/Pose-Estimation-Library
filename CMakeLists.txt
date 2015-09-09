@@ -106,11 +106,11 @@ include_directories(${PEL_BIN_DIR}/include)
 
 ## ------> List Sources
 set(srcs_base
-  "src/pe_brute_force.cpp"
-  "src/pe_progressive_bisection.cpp"
-  "src/pose_estimation_base.cpp"
   "src/common.cpp"
   "src/param_handler.cpp"
+  "src/pose_estimation_base.cpp"
+  "src/pe_brute_force.cpp"
+  "src/pe_progressive_bisection.cpp"
   )
 list(APPEND srcs ${srcs_base})
 set(srcs_db
@@ -122,16 +122,16 @@ list(APPEND srcs ${srcs_db})
 set(srcs_cand
   "src/candidates/candidate_list.cpp"
   )
-list(APPEND srcs${srcs_cand})
+list(APPEND srcs ${srcs_cand})
 
 ## ------> List headers
 list(APPEND incls ${PEL_CONFIG_H_FILE})
 set(incls_base
   "include/pel/common.h"
   "include/pel/param_handler.h"
+  "include/pel/pose_estimation_base.h"
   "include/pel/pe_brute_force.h"
   "include/pel/pe_progressive_bisection.h"
-  "include/pel/pose_estimation_base.h"
   )
 list(APPEND incls ${incls_base})
 set(incls_cand

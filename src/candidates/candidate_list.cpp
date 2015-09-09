@@ -33,6 +33,9 @@
 
 #include <pel/candidates/candidate_list.h>
 #include <algorithm>
+#include <pcl/console/parse.h>
+
+using namespace pcl::console;
 
 namespace pel
 {

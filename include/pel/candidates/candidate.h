@@ -35,6 +35,7 @@
 #define PEL_CANDIDATE_H_
 
 #include <pel/common.h>
+#include <pcl/common/io.h>
 
 namespace pel
 {
