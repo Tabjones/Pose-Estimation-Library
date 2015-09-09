@@ -1,21 +1,21 @@
-#include <pel.h>
+#include <pel/pe_progressive_bisection.h>
 
+using namespace pcl;
+using namespace pel;
 ////////////////////////////////////////////////////
 //////////////////  Main  //////////////////////////
 ////////////////////////////////////////////////////
 int
 main (int argc, char *argv[])
 {
-  printVersion();
   if (argc !=3 )
   {
-    std::cout<<"Need exactly 2 parameters: [cloud_to_estimate] [DB_dir]"<<std::endl;
+    std::cout<<"Need exactly 2 parameters!"<<std::endl<<"Usage: "<<argv[0]<<" [Target Cloud] [Database Dir]"<<std::endl;
     return -1;
   }
   PointCloud<PointXYZRGBA> cloud;
   std::string dbp(argv[2]);
   std::string obj(argv[1]);
-  std::cout<<dbp.c_str()<<" "<<obj.c_str()<<std::flush<<std::endl;
   pcl::io::loadPCDFile(obj, cloud);
   cloud.sensor_origin_.setZero();
   cloud.sensor_orientation_.setIdentity();
