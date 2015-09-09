@@ -102,12 +102,16 @@ main (int argc, char *argv[])
   //create a new point cloud to store loaded Target, with and without color
   PointCloud<PointXYZ>::Ptr target (new PointCloud<PointXYZ>);
   PointCloud<PointXYZRGBA>::Ptr cloud (new PointCloud<PointXYZRGBA>);
+  PointCloud<PointXYZRGBA>::Ptr cloud_raw (new PointCloud<PointXYZRGBA>);
   //Database path (it needs to be first argument)
   std::string dbp(argv[1]);
 
   //Load target
-  if (pcl::io::loadPCDFile(target_filename, *cloud) == 0)
+  if (pcl::io::loadPCDFile(target_filename, *cloud_raw) == 0)
   {
+    Eigen::Vector3f offset (cloud_raw->sensor_origin_(0), cloud_raw->sensor_origin_(1), cloud_raw->sensor_origin_(2));
+    Eigen::Quaternionf rot (cloud_raw->sensor_orientation_);
+    pcl::transformPointCloud(*cloud_raw, *cloud, offset, rot);
     cloud->sensor_origin_.setZero();
     cloud->sensor_orientation_.setIdentity();
     copyPointCloud(*cloud, *target); //Dropping color
@@ -127,8 +131,8 @@ main (int argc, char *argv[])
       //perform pose estimation
       pe.estimate(estimation);
       //print result
-      print_highlight("Target %s was estimated with %s with RMSE of %g",target_name.c_str(), estimation.getName().c_str(), estimation.getRMSE());
-      print_highlight("Pose Estimation transformation is:");
+      print_highlight("Target %s was estimated with %s with RMSE of %g\n",target_name.c_str(), estimation.getName().c_str(), estimation.getRMSE());
+      print_highlight("Pose Estimation transformation is:\n");
       std::cout<<estimation.getTransformation();
       if (vis)
       {
@@ -143,6 +147,7 @@ main (int argc, char *argv[])
         pcl::visualization::PointCloudColorHandlerCustom<PointXYZ> aligned_col_handl (aligned, 0, 255, 0);
         viewer.addPointCloud(cloud, "target");
         viewer.addPointCloud(aligned, aligned_col_handl, "estimation");
+        viewer.addCoordinateSystem(0.08);
         //Start viewer
         while (!viewer.wasStopped())
           viewer.spinOnce();

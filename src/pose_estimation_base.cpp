@@ -395,11 +395,9 @@ namespace pel
   bool
   PoseEstimationBase::initTarget()
   {
-    //TODO
-    target_name = name;
-    if (cloud)
+    if (target_cloud)
     {
-      if (cloud->empty())
+      if (target_cloud->empty())
       {
         print_error("%*s]\tError initializing a Target, passed cloud is empty!\n",20,__func__);
         return false;
@@ -713,7 +711,7 @@ namespace pel
       target_name = name;
     }
     if (getParam("verbosity")>1)
-      print_info("%*s]\tSetting Target for Pose Estimation: %s with %d points",20,__func__,name.c_str(),target_cloud->points.size());
+      print_info("%*s]\tSetting Target for Pose Estimation: %s with %d points.\n",20,__func__,name.c_str(),target_cloud->points.size());
     return (initTarget());
   }
 
