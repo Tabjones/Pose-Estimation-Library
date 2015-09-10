@@ -33,6 +33,7 @@
 
 #include <pel/pose_estimation_base.h>
 #include <pcl/common/angles.h>
+#include <pcl/common/transforms.h>
 #include <pel/database/database_io.h>
 
 using namespace pcl::console;
@@ -705,10 +706,13 @@ namespace pel
   {
     if (target)
     {
-      target_cloud.reset(new PtC);
-      target_cloud_processed.reset(new PtC);
-      pcl::copyPointCloud(*target, *target_cloud);
+      //IF for some reason target is not in sensor frame, put it back on it. If it already is the transformation is identity
+      Eigen::Vector3f offset (target->sensor_origin_(0), target->sensor_origin_(1), target->sensor_origin_(2));
+      Eigen::Quaternionf rot (target->sensor_orientation_);
+      pcl::transformPointCloud(*target, *target_cloud, offset, rot);
       target_name = name;
+      target_cloud->sensor_origin_.setZero();
+      target_cloud->sensor_orientation_.setIdentity();
     }
     if (getParam("verbosity")>1)
       print_info("%*s]\tSetting Target for Pose Estimation: %s with %d points.\n",20,__func__,name.c_str(),target_cloud->points.size());

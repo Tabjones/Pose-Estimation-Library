@@ -16,7 +16,7 @@ set(PEL_BIN_DIR ${PROJECT_BINARY_DIR})
 include (FindPkgConfig)
 
 ## -------> Set Global Version of the Library, then dissect it to set various version variables
-set (PEL_VERSION 0.5.4 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
+set (PEL_VERSION 0.5.5 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
 string (REGEX REPLACE "^([0-9]+).*" "\\1"
     PEL_MAJOR_VERSION "${PEL_VERSION}")
 string (REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1"

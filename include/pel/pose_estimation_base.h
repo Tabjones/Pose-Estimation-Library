@@ -68,7 +68,11 @@ namespace pel
   class PoseEstimationBase : public ParamHandler, public Database, public CandidateLists, public Target
   {
     public:
-      PoseEstimationBase () : feature_count_(0) {}
+      PoseEstimationBase () : feature_count_(0)
+      {
+        target_cloud.reset(new PtC);
+        target_cloud_processed.reset(new PtC);
+      }
       virtual ~PoseEstimationBase () {}
     protected:
       ///Internal counter used to count how many feature the class uses

@@ -28,7 +28,7 @@ show_help(char* prog_name)
   std::vector<std::string> vst;
   boost::split (vst, pn, boost::is_any_of("/\\.."), boost::token_compress_on);
   pn = vst.at( vst.size() -1);
-  print_highlight ("%s Takes a pcd file of a Target cloud to run Pose Estimation procedure with Progressive Bisection, using the passed Database.\n", pn.c_str());
+  print_highlight ("%s takes a pcd file of a Target cloud to run Pose Estimation procedure with Progressive Bisection, using the passed Database.\n", pn.c_str());
   print_highlight ("Usage:\t%s [DatabaseDir] [TargetCloudPCD] [Options]\n", pn.c_str());
   print_highlight ("Options are:\n");
   print_value ("\t-h, --help");
@@ -123,40 +123,46 @@ main (int argc, char *argv[])
     pe.setStepIterations(itera);
     pe.setParam("verbosity", 2);
     //Set target for pose estimation
-    pe.setTarget(target, target_name);
-    //load and set the database
-    if (pe.loadAndSetDatabase(dbp))
-    {
-      Candidate estimation;
-      //perform pose estimation
-      pe.estimate(estimation);
-      //print result
-      print_highlight("Target %s was estimated with %s with RMSE of %g\n",target_name.c_str(), estimation.getName().c_str(), estimation.getRMSE());
-      print_highlight("Pose Estimation transformation is:\n");
-      std::cout<<estimation.getTransformation();
-      if (vis)
+    if (pe.setTarget(target, target_name))
+    {//load and set the database
+      if (pe.loadAndSetDatabase(dbp))
       {
-        //Proceed to visualization
-        pcl::visualization::PCLVisualizer viewer;
-        //Transform Candidate with pose estimation transformation, so it aligns over Target
-        PointCloud<PointXYZ>::Ptr aligned (new PointCloud<PointXYZ>);
-        pcl::transformPointCloud(estimation.getCloud(), *aligned, estimation.getTransformation());
-        aligned->sensor_origin_.setZero();
-        aligned->sensor_orientation_.setIdentity();
-        //make estimation cloud green
-        pcl::visualization::PointCloudColorHandlerCustom<PointXYZ> aligned_col_handl (aligned, 0, 255, 0);
-        viewer.addPointCloud(cloud, "target");
-        viewer.addPointCloud(aligned, aligned_col_handl, "estimation");
-        viewer.addCoordinateSystem(0.08);
-        //Start viewer
-        while (!viewer.wasStopped())
-          viewer.spinOnce();
-        viewer.close();
+        Candidate estimation;
+        //perform pose estimation
+        pe.estimate(estimation);
+        //print result
+        print_highlight("Target %s was estimated with %s with RMSE of %g\n",target_name.c_str(), estimation.getName().c_str(), estimation.getRMSE());
+        print_highlight("Pose Estimation transformation is:\n");
+        std::cout<<estimation.getTransformation();
+        if (vis)
+        {
+          //Proceed to visualization
+          pcl::visualization::PCLVisualizer viewer;
+          //Transform Candidate with pose estimation transformation, so it aligns over Target
+          PointCloud<PointXYZ>::Ptr aligned (new PointCloud<PointXYZ>);
+          pcl::transformPointCloud(estimation.getCloud(), *aligned, estimation.getTransformation());
+          aligned->sensor_origin_.setZero();
+          aligned->sensor_orientation_.setIdentity();
+          //make estimation cloud green
+          pcl::visualization::PointCloudColorHandlerCustom<PointXYZ> aligned_col_handl (aligned, 0, 255, 0);
+          viewer.addPointCloud(cloud, "target");
+          viewer.addPointCloud(aligned, aligned_col_handl, "estimation");
+          viewer.addCoordinateSystem(0.08);
+          //Start viewer
+          while (!viewer.wasStopped())
+            viewer.spinOnce();
+          viewer.close();
+        }
+      }
+      else
+      {
+        print_error("Error loading Database. Database path must be first command line argument!\n");
+        exit(0);
       }
     }
     else
     {
-      print_error("Error loading Database. Database path must be first command line argument!\n");
+      print_error("Error setting a Target.\n");
       exit(0);
     }
   }
