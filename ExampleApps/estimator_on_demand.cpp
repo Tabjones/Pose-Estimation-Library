@@ -148,6 +148,7 @@ main (int argc, char *argv[])
           viewer.addPointCloud(cloud, "target");
           viewer.addPointCloud(aligned, aligned_col_handl, "estimation");
           viewer.addCoordinateSystem(0.08);
+          viewer.addText("Target in full color, Pose Estimation in green", 20, 20, 22, 0,1,0);
           //Start viewer
           while (!viewer.wasStopped())
             viewer.spinOnce();

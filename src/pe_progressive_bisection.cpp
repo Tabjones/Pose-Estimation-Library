@@ -165,7 +165,7 @@ namespace pel
               {
                 list.resize(size);
                 if (getParam("verbosity")>1)
-                  print_info("%*s]\tResizing composite list... Keeping %d%% of list at previous step\n",20,__func__,bisection_fraction_*100);
+                  print_info("%*s]\tResizing composite list... Keeping %.2g%% of list at previous step\n",20,__func__,bisection_fraction_*100);
               }
               else
                 break; //break while loop

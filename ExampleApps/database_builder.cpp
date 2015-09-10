@@ -1,11 +1,18 @@
-#include <pel/database_creator.h>
-#include <pel/database_io.h>
-#include <pel/database.h>
+#include <pel/database/database_creator.h>
+#include <pel/database/database_io.h>
+#include <pel/database/database.h>
 #include <pcl/console/parse.h>
 #include <string>
 #include <vector>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem/path.hpp>
+
+using namespace pcl::console;
+
+bool load(false), overwrite(false);
+boost::filesystem::path in_path, out_path;
+boost::filesystem::path p_path;
 
 void
 show_help(char* prog_name)
@@ -16,19 +23,17 @@ show_help(char* prog_name)
   std::vector<std::string> vst;
   boost::split (vst, pn, boost::is_any_of("/\\.."), boost::token_compress_on);
   pn = vst.at( vst.size() -1);
-  print_highlight ("%s takes a path containing pcd files of objects viewes to assemble a PEL Database from them.\n", pn.c_str());
+  print_highlight ("%s takes a path containing pcd files of objects viewes to assemble a PEL Database from them, using default or specified parameters.\n", pn.c_str());
   print_highlight ("Usage:\t%s [SourceDir] [OutputDir] [Options]\n", pn.c_str());
   print_highlight ("Options are:\n");
-  //TODO
   print_value ("\t-h, --help");
   print_info (":\t\tShow this help screen and quit.\n");
-  print_value ("\t-t <float>");
-  print_info (":\t\tChange current RMSE Threshold to <float> value specified. (Default: 0.005)\n");
-  print_value ("\t-f <float>");
-  print_info (":\t\tChange current Bisection Fraction to <float> value specified. I.E. the fraction of the list to keep on every iterations. (Default 0.5)\n");
-  print_value ("\t-s <uint>");
-  print_info(":\t\tChange how many ICP iterations to perform on each step of progressive bisection. (Default 5)\n");
+  print_value ("\t--load <path>");
+  print_info (":\t\tLoad a set of configuration parameters from a yaml file in <path>\n");
+  print_value ("\t-w");
+  print_info (":\t\t\tOverwrite <OutputDir> even if it already exists.\n");
 }
+
 void
 parse_command_line(int argc, char* argv[])
 {
@@ -37,39 +42,25 @@ parse_command_line(int argc, char* argv[])
     show_help(argv[0]);
     exit(0);
   }
-  if (find_switch (argc, argv, "--no-vis"))
-    vis = false;
-  parse_argument (argc, argv, "-t", thresh);
-  if (thresh <=0)
+  if (find_switch (argc, argv, "-w"))
+    overwrite = true;
+  std::string param_path;
+  parse_argument (argc, argv, "--load", param_path);
+  p_path = param_path;
+  if (!boost::filesystem::exists(p_path) || !boost::filesystem::is_regular_file(p_path))
   {
-    print_warn("Invalid negative value for -t option, resetting to default!\n");
-    thresh = 0.005f;
+    print_warn("Invalid path for parameters loading! Ignoring...\n");
+    load = false;
   }
-  parse_argument (argc, argv, "-f", frac);
-  if (frac <=0 || frac >=1)
+  else
+    load=true;
+  in_path = argv[1];
+  out_path = argv[2];
+  if (!boost::filesystem::exists(in_path) || !boost::filesystem::is_directory(in_path))
   {
-    print_warn("Invalid value for -f option, resetting to default!\n");
-    frac = 0.5f;
+    print_error("Invalid path for source clouds. Cannot continue...\n");
+    exit(0);
   }
-  parse_argument (argc, argv, "-s", itera);
-  if (itera <=0)
-  {
-    print_warn("Invalid negative value for -s option, resetting to default!\n");
-    itera = 5;
-  }
-  //find target pcd file
-  std::vector<int> file_idx = parse_file_extension_argument (argc, argv, ".pcd");
-  if (file_idx.empty())
-  {
-    print_error ("No pcd file specified for target\n");
-    exit (0);
-  }
-  target_filename = argv[file_idx.at(0)];
-  boost::trim (target_filename);
-  std::vector<std::string> vst;
-  boost::split (vst, target_filename, boost::is_any_of("./\\.."), boost::token_compress_on);
-  //get target name without path and extension
-  target_name = vst.at( vst.size() -2);
 }
 
 ////////////////////////////////////////////////////
@@ -78,20 +69,40 @@ parse_command_line(int argc, char* argv[])
 int
 main (int argc, char *argv[])
 {
-  printVersion();
-  if (argc !=2)
+  //take care of command line...
+  if (argc <3)
   {
-    cout<<"Need at least 1 parameter, the path where the clouds are stored"<<endl;
-    return -1;
+    print_error("Need at least 2 parameters: [SourceDir] and [OutputDir], in this order.\n");
+    show_help(argv[0]);
+    exit(0);
   }
-  string path (argv[1]);
-  boost::filesystem::path db_path (path);
-  boost::filesystem::path db_path2 (path + "/database");
-  PoseEstimation prova;
-  prova.setParam("verbosity", 2);
-  PoseDB db;
-  db.create(db_path, prova.getParams() );
-  db.save(db_path2);
-  cout<<"Done!!"<<endl<<"Database saved on "<< db_path2.string().c_str() <<endl;
+  parse_command_line(argc, argv);
+
+  //to business!
+  //Create an empty database and
+  pel::Database db;
+  //a creator
+  pel::DatabaseCreator creator;
+  if (load)
+  {
+    //load provided parameters instead of default ones
+    creator.loadParamsFromFile(p_path);
+  }
+  //be verbose
+  creator.setParam("verbosity", 2);
+  //inform user what parameters we are going to use
+  creator.printAllParams();
+
+  //ok, start Database creation
+  db = creator.create(in_path);
+  //go get coffee...
+
+  //Everything went fine, lets save the database where the user told us
+  //Writer object
+  pel::DatabaseWriter writer;
+  //write it!
+  writer.save(out_path, db, overwrite);
+
+  //bye
   return 1;
 }

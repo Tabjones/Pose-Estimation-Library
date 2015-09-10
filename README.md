@@ -18,16 +18,16 @@ Set Up
 + hdf5 (libhdf5-dev on ubuntu)
 + GCC  >4.7 (or equivalent compiler that supports -std=c++11)
 ### Build your own program and link it against PEL
-To link a project against PEL, source code must include the library header:
-
-     #include <pel.h>
-
-Also CMakeLists.txt must contain the following lines:
+To link a project against PEL, CMakeLists.txt must contain the following lines:
 
       find_package (PEL REQUIRED)
 
       include_directories(${PEL_INCLUDE_DIRS})
 
-      target_link_libraries (your_program ${PEL_LIBRARIES} )
+      link_directoriers(${PEL_LIBRARY_DIRS})
 
-An example program is available into /Tests folder.
+      add_definitions(${PEL_DEFINITIONS})
+
+      target_link_libraries (>your_program< ${PEL_LIBRARIES} )
+
+Example programs are available into /ExampleApps folder and are built and installed by default.

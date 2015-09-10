@@ -16,7 +16,7 @@ set(PEL_BIN_DIR ${PROJECT_BINARY_DIR})
 include (FindPkgConfig)
 
 ## -------> Set Global Version of the Library, then dissect it to set various version variables
-set (PEL_VERSION 0.5.5 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
+set (PEL_VERSION 0.6.0 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
 string (REGEX REPLACE "^([0-9]+).*" "\\1"
     PEL_MAJOR_VERSION "${PEL_VERSION}")
 string (REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1"
@@ -27,7 +27,7 @@ string (REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
 ## -------> Set Install dirs
 set(PEL_LIB_INSTALL_DIR "lib" CACHE STRING "Relative path for library install")
 set(INCLUDE_INSTALL_ROOT "include/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}")
-set(PEL_INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}" CACHE STRING "Relative path for headers install")
+set(PEL_INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}/pel" CACHE STRING "Relative path for headers install")
 set(PEL_BIN_INSTALL_DIR "bin" CACHE STRING "Relative path for binaries install")
 set(PEL_CONFIG_INSTALL_DIR "share/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}" CACHE STRING "Relative path for PELConfig files install")
 set(PEL_PKGCONFIG_INSTALL_DIR "${PEL_LIB_INSTALL_DIR}/pkgconfig" CACHE STRING "Relative path for pkgconfig files install")
@@ -191,9 +191,14 @@ install(FILES
 if(PEL_EXAMPLE_APPS_BUILD)
   ## estimator
   add_executable(pel_estimator ${PEL_SOURCE_DIR}/ExampleApps/estimator_on_demand.cpp)
-  target_link_libraries (pel_estimator ${PEL_NAME_LOWER})
+  target_link_libraries (pel_estimator ${PEL_NAME_LOWER} ${PCL_LIBRARIES})
+  ## creator
+  add_executable(pel_db_creator ${PEL_SOURCE_DIR}/ExampleApps/database_builder.cpp)
+  target_link_libraries (pel_db_creator ${PEL_NAME_LOWER} ${PCL_LIBRARIES})
   if(PEL_EXAMPLE_APPS_INSTALL)
     install(TARGETS pel_estimator
+      RUNTIME DESTINATION ${PEL_BIN_INSTALL_DIR})
+    install(TARGETS pel_db_creator
       RUNTIME DESTINATION ${PEL_BIN_INSTALL_DIR})
   endif(PEL_EXAMPLE_APPS_INSTALL)
 endif(PEL_EXAMPLE_APPS_BUILD)

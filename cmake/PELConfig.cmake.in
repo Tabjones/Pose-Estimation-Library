@@ -5,11 +5,13 @@
 # PEL_INCLUDE_DIRS - directory of include files.
 # PEL_LIBRARIES - libraries to link against.
 # PEL_LIBRARY_DIRS - directory of libraries.
+# PEL_DEFINITIONS - Preprocessor definitions for compiler
 
 find_package(PkgConfig QUIET)
 file(TO_CMAKE_PATH "${PEL_DIR}" PEL_DIR)
 #Compute paths
 get_filename_component(PEL_ROOT "${PEL_DIR}" PATH)
+get_filename_component(PEL_ROOT "${PEL_ROOT}" PATH)
 
 if (EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
   #Found a PEL installation
@@ -18,15 +20,17 @@ if (EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pe
   find_library(PEL_LIB @PEL_NAME_LOWER@ HINTS ${PEL_LIBRARY_DIRS}
     DOC "Pose Estimation Library" NO_DEFAULT_PATH)
   set(PEL_LIBRARIES "${PEL_LIB}")
+  set(PEL_DEFINITIONS "-std=c++11")
 elseif(EXISTS "${PEL_DIR}/include/pel/pel_config.h")
   #Found PEL into build tree
   set(PEL_INCLUDE_DIRS "${PEL_DIR}/include")
   set(PEL_LIBRARY_DIRS "${PEL_DIR}/@PEL_LIB_INSTALL_DIR@")
   set(PEL_SOURCE_TREE "@PEL_SOURCE_DIR@")
-  list(APPEND ${PEL_INCLUDE_DIRS} "${PEL_SOURCE_TREE}/include")
+  list(APPEND PEL_INCLUDE_DIRS "${PEL_SOURCE_TREE}/include")
   find_library(PEL_LIB @PEL_NAME_LOWER@ HINTS ${PEL_LIBRARY_DIRS}
     DOC "Pose Estimation Library" NO_DEFAULT_PATH)
   set(PEL_LIBRARIES "${PEL_LIB}")
+  set(PEL_DEFINITIONS "-std=c++11")
 else(EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
   #Not found ...
   unset(PEL_INCLUDE_DIRS)
@@ -34,6 +38,31 @@ else(EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/p
   unset(PEL_LIBRARIES)
   message(STATUS "PEL Not found on this system")
 endif(EXISTS "${PEL_ROOT}/include/pel-${PEL_VERSION_MAJOR}.${PEL_VERSION_MINOR}/pel/pel_config.h")
+
+## Search for PCL
+find_package(PCL 1.7.2 QUIET REQUIRED)
+if (${PCL_FOUND})
+    list(APPEND PEL_INCLUDE_DIRS ${PCL_INCLUDE_DIRS})
+    list(APPEND PEL_LIBRARY_DIRS ${PCL_LIBRARY_DIRS})
+    list(APPEND PEL_LIBRARIES ${PCL_LIBRARIES})
+    list(APPEND PEL_DEFINITIONS ${PCL_DEFINITIONS})
+endif (${PCL_FOUND})
+##Search for hdf5
+find_package(HDF5 QUIET REQUIRED)
+if (${HDF5_FOUND})
+    list(APPEND PEL_INCLUDE_DIRS ${HDF5_INCLUDE_DIRS})
+    list(APPEND PEL_LIBRARY_DIRS ${HDF5_LIBRARY_DIRS})
+    list(APPEND PEL_LIBRARIES ${HDF5_LIBRARIES})
+    list(APPEND PEL_DEFINITIONS ${HDF5_DEFINITIONS})
+endif (${HDF5_FOUND})
+##Search for Boost
+find_package(Boost QUIET REQUIRED)
+if (${Boost_FOUND})
+    list(APPEND PEL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+    list(APPEND PEL_LIBRARY_DIRS ${Boost_LIBRARY_DIRS})
+    list(APPEND PEL_LIBRARIES ${Boost_LIBRARIES})
+    list(APPEND PEL_DEFINITIONS ${Boost_DEFINITIONS})
+endif (${Boost_FOUND})
 
 include(FindPackageHandleStandardArgs)
 
