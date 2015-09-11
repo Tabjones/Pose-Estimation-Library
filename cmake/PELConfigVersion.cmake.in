@@ -8,4 +8,3 @@ else()
     set(PACKAGE_VERSION_EXACT TRUE)
   endif()
 endif()
-

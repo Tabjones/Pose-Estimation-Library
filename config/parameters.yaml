@@ -1,0 +1,36 @@
+# Parameters configuration  file for PEL,  example template with  default values. Comments  are done
+# with '#'  at start of line.  Each line must contain  a [Key]:[Value] pair and  nothing else (white
+# spaces  get trimmed),  for values  representing measures  (i.e. downsamp_leaf_size),  a value  of 1
+# equals one meter.
+#
+# Possible [Keys] and corresponding [Values] are exposed in the documentation
+# --------------------------------------------------------------------------------------------------
+# Start of config file
+verbosity: 1
+use_vfh: 1
+use_esf: 1
+use_cvfh: 1
+use_ourcvfh: 1
+downsamp: 1
+downsamp_leaf_size: 0.005
+upsamp: 0
+upsamp_poly_order: 2
+upsamp_point_density: 200
+upsamp_poly_fit: 1
+upsamp_search_radius: 0.05
+filter: 0
+filter_mean_k: 50
+filter_std_dev_mul_thresh: 3
+lists_size: 20
+normals_radius_search: 0.02
+cvfh_ang_thresh: 7.5
+cvfh_curv_thresh: 0.025
+cvfh_clus_tol: 0.01
+cvfh_clus_min_points: 50
+ourcvfh_ang_thresh: 7.5
+ourcvfh_curv_thresh: 0.025
+ourcvfh_clus_tol: 0.01
+ourcvfh_clud_min_points: 50
+ourcvfh_axis_ratio: 0.95
+ourcvfh_min_axis_value: 0.01
+ourcvfh_refine_clusters: 1
