@@ -25,12 +25,13 @@ string (REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
     PEL_REVISION_VERSION "${PEL_VERSION}")
 
 ## -------> Set Install dirs
-set(PEL_LIB_INSTALL_DIR "lib" CACHE STRING "Relative path for library install")
+set(PEL_PREFIX "/usr/local/" CACHE STRING "Absolute install prefix for library")
+set(PEL_LIB_INSTALL_DIR "lib" CACHE STRING "Relative path (to PEL_PREFIX) for library install")
 set(INCLUDE_INSTALL_ROOT "include/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}")
 set(PEL_INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}/pel" CACHE STRING "Relative path for headers install")
-set(PEL_BIN_INSTALL_DIR "bin" CACHE STRING "Relative path for binaries install")
+set(PEL_BIN_INSTALL_DIR "bin" CACHE STRING "Relative path (to PEL_PREFIX) for binaries install")
 set(PEL_CONFIG_INSTALL_DIR "share/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}" CACHE STRING "Relative path for PELConfig files install")
-set(PEL_PKGCONFIG_INSTALL_DIR "${PEL_LIB_INSTALL_DIR}/pkgconfig" CACHE STRING "Relative path for pkgconfig files install")
+set(PEL_PKGCONFIG_INSTALL_DIR "${PEL_LIB_INSTALL_DIR}/pkgconfig" CACHE STRING "Relative path (to PEL_PREFIX) for pkgconfig files install")
 set(PEL_OUTPUT_LIB_DIR "${PEL_BIN_DIR}/${PEL_LIB_INSTALL_DIR}" CACHE STRING "Output directory for Library")
 set(PEL_OUTPUT_BIN_DIR "${PEL_BIN_DIR}/${PEL_BIN_INSTALL_DIR}" CACHE STRING "Output directory for Binaries")
 make_directory("${PEL_OUTPUT_LIB_DIR}")
@@ -38,6 +39,7 @@ make_directory("${PEL_OUTPUT_BIN_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PEL_OUTPUT_LIB_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PEL_OUTPUT_LIB_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PEL_OUTPUT_BIN_DIR}")
+set(CMAKE_INSTALL_PREFIX ${PEL_PREFIX} CACHE STRING "CMake install prefix" FORCE)
 
 ##
 # this is copy paste form http://www.itk.org/Wiki/CMake_RPATH_handling
