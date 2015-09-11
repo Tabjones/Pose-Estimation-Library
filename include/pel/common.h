@@ -146,7 +146,7 @@ Notes:
  *      4. Save all the clouds of all objects into the same directory, each pcd file must have unique name.
  *    - Optionally you could undergo a registration process for the clouds of each object, to make sure each one has the same reference system as accurately as possible. For example you could register all the clouds on top of the first.
  *  2. Make a program that uses pel::DatabaseCreator and pass it the previous saved clouds directory.
- *  3. Adjust pel::DatabaseCreator parameters to your need with inherited members (look at \ref params previous section). Please note that each pose estimation using this database must ratain the same parameters.
+ *  3. Adjust pel::DatabaseCreator parameters to your need with inherited members (look at \ref params previous section). Please note that each pose estimation using this database must retain the same parameters.
  *  4. Build the Database and save it somewhere on disk with pel::DatabaseWriter class.
  *
  ![Example of two poses of the same object taken with asus xtion sensor. Note how both point clouds are expressed in the same reference frame, even if they are taken from different viewpoints.](@ref mugposes.png)
@@ -196,8 +196,19 @@ Notes:
  *
  * \subsection apps Example Applications
  * Example applications can be optionally built and installed to provide some out-of-the-box functionality and as examples of library usage.
- * Their source code is located inside the "Example Apps" folder.
- *  \subsubsection app1 App1 TODO
+ * They are build and installed by default, user can disable this by changing relative CMake variables: "PEL_EXAMPLE_APPS_BUILD" and "PEL_EXAMPLE_APPS_INSTALL".
+ * Their source code is located inside the "ExampleApps" folder of library source tree.
+ *  \subsubsection estimator Estimator
+ *  _pel_estimator_ is a command line tool to perform a quick pose estimation of a passed Target, via a pcd file containing its point cloud.
+ *  The program is installed by default into library default prefix (which is /usr/local) so it will be accessible by any shells with default path.
+ *  Source code is available as further reference of library usage on estimator_on_demand.cpp file.
+ *  _pel_estimator_ uses pel::interface::PEProgressiveBisection methods to reach Pose Estimation of the Target, results are printed on screen, plus a graphical visualization, picturing the winning Candidate aligned over the Target, is
+ *  shown by default. Picture below shows a succesfull Pose Estimation of a target mug, with its candidate aligned over it in green.
+ ![Example run of pel_estimator. Candidate (green dots) align with reasonable precision over Target cloud.](@ref mug.png)
+    \subsubsection creator Database Creator
+    _pel_db_creator_ is a command line tool to create a PEL Database (see @ref database section for details) out of a set objects views. The created Database is saved on the user specified location to be used by pose estimation
+    procedures. Internally, the program makes use of pel::DatabaseWriter and pel::DatabaseCreator classes to save and create the Database respectively. Take a look at its source code as further reference (database_builder.cpp).
+ *
  */
 //////// End of Doxygen ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

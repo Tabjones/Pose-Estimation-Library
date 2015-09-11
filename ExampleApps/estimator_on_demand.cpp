@@ -109,24 +109,27 @@ main (int argc, char *argv[])
   //Load target
   if (pcl::io::loadPCDFile(target_filename, *cloud_raw) == 0)
   {
+    //Transform Target into sensor reference frame, if it is already expressed in that frame, transformation will be identity, so no big deal
     Eigen::Vector3f offset (cloud_raw->sensor_origin_(0), cloud_raw->sensor_origin_(1), cloud_raw->sensor_origin_(2));
     Eigen::Quaternionf rot (cloud_raw->sensor_orientation_);
     pcl::transformPointCloud(*cloud_raw, *cloud, offset, rot);
     cloud->sensor_origin_.setZero();
     cloud->sensor_orientation_.setIdentity();
-    copyPointCloud(*cloud, *target); //Dropping color
+    //Copy and drop color, PEL uses pcl::PointXYZ as default pointtype
+    copyPointCloud(*cloud, *target);
     //instantiate a pose estimation object
     pel::interface::PEProgressiveBisection pe;
     //set wanted parameters, others are left as default
     pe.setBisectionFraction(frac);
     pe.setRMSEThreshold(thresh);
     pe.setStepIterations(itera);
-    pe.setParam("verbosity", 2);
+    pe.setParam("verbosity", 2); //lets spam a lot
     //Set target for pose estimation
     if (pe.setTarget(target, target_name))
     {//load and set the database
       if (pe.loadAndSetDatabase(dbp))
       {
+        //Creat an object to store pose estimation
         Candidate estimation;
         //perform pose estimation
         pe.estimate(estimation);
@@ -137,7 +140,7 @@ main (int argc, char *argv[])
         if (vis)
         {
           //Proceed to visualization
-          pcl::visualization::PCLVisualizer viewer;
+          pcl::visualization::PCLVisualizer viewer("Estimator Viewer");
           //Transform Candidate with pose estimation transformation, so it aligns over Target
           PointCloud<PointXYZ>::Ptr aligned (new PointCloud<PointXYZ>);
           pcl::transformPointCloud(estimation.getCloud(), *aligned, estimation.getTransformation());
@@ -145,27 +148,31 @@ main (int argc, char *argv[])
           aligned->sensor_orientation_.setIdentity();
           //make estimation cloud green
           pcl::visualization::PointCloudColorHandlerCustom<PointXYZ> aligned_col_handl (aligned, 0, 255, 0);
+          //add clouds to viewer
           viewer.addPointCloud(cloud, "target");
           viewer.addPointCloud(aligned, aligned_col_handl, "estimation");
+          //visualize axis on origin (i.e. the acquisition sensor of Target)
           viewer.addCoordinateSystem(0.08);
-          viewer.addText("Target in full color, Pose Estimation in green", 20, 20, 22, 0,1,0);
+          //add some explanation text
+          viewer.addText("Target in full color, Pose Estimation in green.\nClose viewer to quit.", 20, 20, 20, 0,1,0);
           //Start viewer
           while (!viewer.wasStopped())
             viewer.spinOnce();
+          //user closed viewer, we are done.
           viewer.close();
         }
       }
       else
       {
         print_error("Error loading Database. Database path must be first command line argument!\n");
-        exit(0);
+        return (0);
       }
     }
     else
     {
       print_error("Error setting a Target.\n");
-      exit(0);
+      return (0);
     }
   }
-  return 1;
+  return (1);
 }

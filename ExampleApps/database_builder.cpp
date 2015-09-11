@@ -74,7 +74,7 @@ main (int argc, char *argv[])
   {
     print_error("Need at least 2 parameters: [SourceDir] and [OutputDir], in this order.\n");
     show_help(argv[0]);
-    exit(0);
+    return(0);
   }
   parse_command_line(argc, argv);
 
@@ -97,12 +97,19 @@ main (int argc, char *argv[])
   db = creator.create(in_path);
   //go get coffee...
 
-  //Everything went fine, lets save the database where the user told us
-  //Writer object
-  pel::DatabaseWriter writer;
-  //write it!
-  writer.save(out_path, db, overwrite);
-
+  if (!db.isEmpty())
+  {
+    //Everything went fine, lets save the database where the user told us
+    //Writer object
+    pel::DatabaseWriter writer;
+    //write it!
+    writer.save(out_path, db, overwrite);
+  }
+  else
+  {
+    print_error("Something went wrong with Database creation, not saving it...\n");
+    return (0);
+  }
   //bye
-  return 1;
+  return (1);
 }

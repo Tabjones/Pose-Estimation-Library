@@ -14,9 +14,10 @@ Set Up
        sudo make install
 ### Dependencies
 + pcl >= 1.7.2
-+ boost
-+ hdf5 (libhdf5-dev on ubuntu)
-+ GCC  >4.7 (or equivalent compiler that supports -std=c++11)
++ Boost libraries
++ hdf5 (libhdf5-dev on Ubuntu)
++ GCC  > 4.7 (or equivalent compiler that supports -std=c++11)
++ CMake 2.8
 ### Build your own program and link it against PEL
 To link a project against PEL, CMakeLists.txt must contain the following lines:
 
