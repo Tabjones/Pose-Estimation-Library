@@ -20,15 +20,9 @@ Set Up
 + CMake 2.8
 ### Build your own program and link it against PEL
 To link a project against PEL, CMakeLists.txt must contain the following lines:
-
       find_package (PEL REQUIRED)
-
       include_directories(${PEL_INCLUDE_DIRS})
-
       link_directoriers(${PEL_LIBRARY_DIRS})
-
       add_definitions(${PEL_DEFINITIONS})
-
       target_link_libraries (>your_program< ${PEL_LIBRARIES} )
-
 Example programs are available into /ExampleApps folder and are built and installed by default.
