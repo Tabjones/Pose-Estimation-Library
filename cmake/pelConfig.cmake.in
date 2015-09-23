@@ -5,7 +5,6 @@
 # pel_INCLUDE_DIRS - directory of include files.
 # pel_LIBRARIES - libraries to link against.
 # pel_LIBRARY_DIRS - directory of libraries.
-# pel_DEFINITIONS - Preprocessor definitions for compiler
 
 find_package(PkgConfig QUIET)
 file(TO_CMAKE_PATH "${pel_DIR}" pel_DIR)
@@ -20,7 +19,6 @@ if (EXISTS "${pel_ROOT}/include/@pel_NAME@-${pel_VERSION_MAJOR}.${pel_VERSION_MI
   find_library(pel_LIB @pel_NAME@ HINTS ${pel_LIBRARY_DIRS}
     DOC "Pose Estimation Library" NO_DEFAULT_PATH)
   set(pel_LIBRARIES "${pel_LIB}")
-  set(pel_DEFINITIONS "-std=c++11")
 elseif(EXISTS "${pel_DIR}/include/pel/pel_config.h")
   #Found pel into build tree
   set(pel_INCLUDE_DIRS "${pel_DIR}/include")
@@ -30,7 +28,6 @@ elseif(EXISTS "${pel_DIR}/include/pel/pel_config.h")
   find_library(pel_LIB @pel_NAME@ HINTS ${pel_LIBRARY_DIRS}
     DOC "Pose Estimation Library" NO_DEFAULT_PATH)
   set(pel_LIBRARIES "${pel_LIB}")
-  set(pel_DEFINITIONS "-std=c++11")
 else(EXISTS "${pel_ROOT}/include/@pel_NAME@-${pel_VERSION_MAJOR}.${pel_VERSION_MINOR}/pel/pel_config.h")
   #Not found ...
   unset(pel_INCLUDE_DIRS)
@@ -45,7 +42,6 @@ if (${PCL_FOUND})
     list(APPEND pel_INCLUDE_DIRS ${PCL_INCLUDE_DIRS})
     list(APPEND pel_LIBRARY_DIRS ${PCL_LIBRARY_DIRS})
     list(APPEND pel_LIBRARIES ${PCL_LIBRARIES})
-    list(APPEND pel_DEFINITIONS ${PCL_DEFINITIONS})
 endif (${PCL_FOUND})
 ##Search for hdf5
 find_package(HDF5 QUIET REQUIRED)
@@ -53,7 +49,6 @@ if (${HDF5_FOUND})
     list(APPEND pel_INCLUDE_DIRS ${HDF5_INCLUDE_DIRS})
     list(APPEND pel_LIBRARY_DIRS ${HDF5_LIBRARY_DIRS})
     list(APPEND pel_LIBRARIES ${HDF5_LIBRARIES})
-    list(APPEND pel_DEFINITIONS ${HDF5_DEFINITIONS})
 endif (${HDF5_FOUND})
 ##Search for Boost
 find_package(Boost QUIET REQUIRED)
@@ -61,7 +56,6 @@ if (${Boost_FOUND})
     list(APPEND pel_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
     list(APPEND pel_LIBRARY_DIRS ${Boost_LIBRARY_DIRS})
     list(APPEND pel_LIBRARIES ${Boost_LIBRARIES})
-    list(APPEND pel_DEFINITIONS ${Boost_DEFINITIONS})
 endif (${Boost_FOUND})
 
 include(FindPackageHandleStandardArgs)
