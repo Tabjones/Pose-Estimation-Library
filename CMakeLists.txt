@@ -4,11 +4,10 @@ if(POLICY CMP0048)
   cmake_policy(SET CMP0048 OLD) #In case CMake version >= 3.0, retain old policy (Do not use VERSION in project() command)
 endif()
 
-project(PEL)
+project(Pel) #lowercase name
 set(PEL_NAME ${PROJECT_NAME})
-string(TOLOWER ${PROJECT_NAME} PEL_NAME_LOWER)
 set(PEL_DESCRIPTION "Pose Estimation Library (PEL)")
-set(PEL_URL "https://bitbucket.org/Tabjones/pose-estimation-library")
+set(PEL_URL "https://github.com/Tabjones/Pose-Estimation-Library")
 set(PEL_SOURCE_DIR ${PROJECT_SOURCE_DIR})
 set(PEL_BIN_DIR ${PROJECT_BINARY_DIR})
 
@@ -25,13 +24,12 @@ string (REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
     PEL_REVISION_VERSION "${PEL_VERSION}")
 
 ## -------> Set Install dirs
-set(PEL_PREFIX "/usr/local/" CACHE STRING "Absolute install prefix for library")
-set(PEL_LIB_INSTALL_DIR "lib" CACHE STRING "Relative path (to PEL_PREFIX) for library install")
-set(INCLUDE_INSTALL_ROOT "include/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}")
+set(PEL_LIB_INSTALL_DIR "lib" CACHE STRING "Relative path for library install")
+set(INCLUDE_INSTALL_ROOT "include/${PEL_NAME}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}")
 set(PEL_INCLUDE_INSTALL_DIR "${INCLUDE_INSTALL_ROOT}/pel" CACHE STRING "Relative path for headers install")
-set(PEL_BIN_INSTALL_DIR "bin" CACHE STRING "Relative path (to PEL_PREFIX) for binaries install")
-set(PEL_CONFIG_INSTALL_DIR "share/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}" CACHE STRING "Relative path for PELConfig files install")
-set(PEL_PKGCONFIG_INSTALL_DIR "${PEL_LIB_INSTALL_DIR}/pkgconfig" CACHE STRING "Relative path (to PEL_PREFIX) for pkgconfig files install")
+set(PEL_BIN_INSTALL_DIR "bin" CACHE STRING "Relative path for binaries install")
+set(PEL_CONFIG_INSTALL_DIR "share/${PEL_NAME}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}" CACHE STRING "Relative path for pelConfig files install")
+set(PEL_PKGCONFIG_INSTALL_DIR "${PEL_LIB_INSTALL_DIR}/pkgconfig" CACHE STRING "Relative path for pkgconfig files install")
 set(PEL_OUTPUT_LIB_DIR "${PEL_BIN_DIR}/${PEL_LIB_INSTALL_DIR}" CACHE STRING "Output directory for Library")
 set(PEL_OUTPUT_BIN_DIR "${PEL_BIN_DIR}/${PEL_BIN_INSTALL_DIR}" CACHE STRING "Output directory for Binaries")
 make_directory("${PEL_OUTPUT_LIB_DIR}")
@@ -39,7 +37,6 @@ make_directory("${PEL_OUTPUT_BIN_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PEL_OUTPUT_LIB_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PEL_OUTPUT_LIB_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PEL_OUTPUT_BIN_DIR}")
-set(CMAKE_INSTALL_PREFIX ${PEL_PREFIX} CACHE STRING "CMake install prefix" FORCE)
 
 ##
 # this is copy paste form http://www.itk.org/Wiki/CMake_RPATH_handling
@@ -149,14 +146,14 @@ set(incls_db
   )
 list(APPEND incls ${incls_db})
 
-add_library (${PEL_NAME_LOWER} SHARED ${srcs} ${incls})
-target_link_libraries (${PEL_NAME_LOWER} ${LINK_LIBS})
-set_target_properties(${PEL_NAME_LOWER} PROPERTIES
+add_library (${PEL_NAME} SHARED ${srcs} ${incls})
+target_link_libraries (${PEL_NAME} ${LINK_LIBS})
+set_target_properties(${PEL_NAME} PROPERTIES
   VERSION "${PEL_VERSION}"
   SOVERSION "${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}"
   )
 ## -----> Install
-install(TARGETS ${PEL_NAME_LOWER}
+install(TARGETS ${PEL_NAME}
   RUNTIME DESTINATION ${PEL_BIN_INSTALL_DIR}
   LIBRARY DESTINATION ${PEL_LIB_INSTALL_DIR}
   ARCHIVE DESTINATION ${PEL_LIB_INSTALL_DIR}
@@ -167,36 +164,36 @@ install(FILES ${incls_db} DESTINATION "${PEL_INCLUDE_INSTALL_DIR}/database")
 install(FILES "${PEL_BIN_DIR}/${PEL_CONFIG_H_FILE}" DESTINATION ${PEL_INCLUDE_INSTALL_DIR})
 
 ## -------> Make a pkg-config file for the library
-set(PKG_NAME ${PEL_NAME_LOWER})
+set(PKG_NAME ${PEL_NAME})
 set(PKG_DESC ${PEL_DESCRIPTION})
 set(PKG_URL ${PEL_URL})
 set(PKG_DEPS "pcl_common-1.7 pcl_features-1.7 pcl_filters-1.7 pcl_visualizaton-1.7 pcl_geometry-1.7
   pcl_io-1.7 pcl_registration-1.7 pcl_search-1.7 pcl_kdtree-1.7 pcl_sample_consensus-1.7
   pcl_segmentation-1.7 pcl_surface-1.7")
-set(pc_file ${PEL_BIN_DIR}/${PEL_NAME_LOWER}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}.pc)
+set(pc_file ${PEL_BIN_DIR}/${PEL_NAME}-${PEL_MAJOR_VERSION}.${PEL_MINOR_VERSION}.pc)
 configure_file(${PEL_SOURCE_DIR}/cmake/pkgconfig.cmake.in ${pc_file} @ONLY)
 install(FILES
   "${pc_file}"
    DESTINATION ${PEL_PKGCONFIG_INSTALL_DIR})
 
-## ------> Configure PELConfig.cmake
-configure_file("${PEL_SOURCE_DIR}/cmake/PELConfig.cmake.in"
-  "${PEL_BIN_DIR}/PELConfig.cmake" @ONLY)
-configure_file("${PEL_SOURCE_DIR}/cmake/PELConfigVersion.cmake.in"
-  "${PEL_BIN_DIR}/PELConfigVersion.cmake" @ONLY)
+## ------> Configure PelConfig.cmake
+configure_file("${PEL_SOURCE_DIR}/cmake/PelConfig.cmake.in"
+  "${PEL_BIN_DIR}/PelConfig.cmake" @ONLY)
+configure_file("${PEL_SOURCE_DIR}/cmake/PelConfigVersion.cmake.in"
+  "${PEL_BIN_DIR}/PelConfigVersion.cmake" @ONLY)
 install(FILES
-  "${PEL_BIN_DIR}/PELConfig.cmake"
-  "${PEL_BIN_DIR}/PELConfigVersion.cmake"
+  "${PEL_BIN_DIR}/PelConfig.cmake"
+  "${PEL_BIN_DIR}/PelConfigVersion.cmake"
     DESTINATION ${PEL_CONFIG_INSTALL_DIR})
 
 ## -------> Build example apps
 if(PEL_EXAMPLE_APPS_BUILD)
   ## estimator
   add_executable(pel_estimator ${PEL_SOURCE_DIR}/ExampleApps/estimator_on_demand.cpp)
-  target_link_libraries (pel_estimator ${PEL_NAME_LOWER} ${PCL_LIBRARIES})
+  target_link_libraries (pel_estimator ${PEL_NAME} ${PCL_LIBRARIES})
   ## creator
   add_executable(pel_db_creator ${PEL_SOURCE_DIR}/ExampleApps/database_builder.cpp)
-  target_link_libraries (pel_db_creator ${PEL_NAME_LOWER} ${PCL_LIBRARIES})
+  target_link_libraries (pel_db_creator ${PEL_NAME} ${PCL_LIBRARIES})
   if(PEL_EXAMPLE_APPS_INSTALL)
     install(TARGETS pel_estimator
       RUNTIME DESTINATION ${PEL_BIN_INSTALL_DIR})
