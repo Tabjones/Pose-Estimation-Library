@@ -15,7 +15,7 @@ set(PEL_BIN_DIR ${PROJECT_BINARY_DIR})
 include (FindPkgConfig)
 
 ## -------> Set Global Version of the Library, then dissect it to set various version variables
-set (PEL_VERSION 0.6.0 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
+set (PEL_VERSION 0.6.2 CACHE STRING "PEL Version (maj.min.rev)") ## <---- Change this to update library version globally
 string (REGEX REPLACE "^([0-9]+).*" "\\1"
     PEL_MAJOR_VERSION "${PEL_VERSION}")
 string (REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1"
@@ -175,6 +175,9 @@ configure_file(${PEL_SOURCE_DIR}/cmake/pkgconfig.cmake.in ${pc_file} @ONLY)
 install(FILES
   "${pc_file}"
    DESTINATION ${PEL_PKGCONFIG_INSTALL_DIR})
+
+## ------> Install catkin package.xml
+install (FILES ${PEL_SOURCE_DIR}/package.xml DESTINATION ${PEL_CONFIG_INSTALL_DIR})
 
 ## ------> Configure PelConfig.cmake
 configure_file("${PEL_SOURCE_DIR}/cmake/PelConfig.cmake.in"

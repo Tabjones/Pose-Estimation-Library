@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package>
+  <name>Pel</name>
+  <version>0.6.2</version>
+  <description>The Pose Estimation Library</description>
+
+  <url type="Sources">https://github.com/Tabjones/Pose-Estimation-Library</url>
+  <url type="CodeAPI">http://federicocp.bitbucket.org/pel/index.html</url>
+  <maintainer email="fspinelli@gmail.com">Tabjones</maintainer>
+  <license>BSD</license>
+  <author email="fspinelli@gmail.com">Tabjones</author>
+
+  <!-- Use build_depend for packages you need at compile time: -->
+  <!-- Use buildtool_depend for build tool packages: -->
+  <!-- Use run_depend for packages you need at runtime: -->
+  <!-- Use test_depend for packages you need only for testing: -->
+  <buildtool_depend>cmake</buildtool_depend>
+  <run_depend>catkin</run_depend>
+
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>
