@@ -1,7 +1,7 @@
 POSE ESTIMATION LIBRARY
 =======================
 
-Library for pose estimation of known objects, code api is available [here.](http://federicocp.bitbucket.org/pel/index.html)
+Library for pose estimation of known objects, code api and user manual are available [here.](http://federicocp.bitbucket.org/pel/index.html)
 
 # Set Up
 
