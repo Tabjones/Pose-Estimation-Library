@@ -66,7 +66,7 @@ include_directories(${pel_INCLUDE_DIRS})
 link_directoriers(${pel_LIBRARY_DIRS})
 target_link_libraries (>your_program< ${pel_LIBRARIES} )
 ```
-Example programs are available into /ExampleApps folder and are built and installed by default.
+Example programs are available into [ExampleApps](./ExampleApps) folder and are built and installed by default.
 
 ### Mirrors
 This project is mirrored on:
